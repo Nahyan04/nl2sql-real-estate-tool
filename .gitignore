@@ -1,0 +1,8 @@
+.env
+plan-log.md
+__pycache__/
+*.pyc
+.venv/
+node_modules/
+docs/submission/
+.DS_Store
