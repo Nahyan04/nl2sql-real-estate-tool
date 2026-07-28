@@ -15,8 +15,15 @@ export function QueryInput({ value, onChange, onSubmit, busy }: QueryInputProps)
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
+    const fit = () => {
+      el.style.height = "auto";
+      el.style.height = `${el.scrollHeight}px`;
+    };
+    fit();
+    // a narrower viewport rewraps the question, so the box has to regrow
+    const observer = new ResizeObserver(fit);
+    observer.observe(el);
+    return () => observer.disconnect();
   }, [value]);
 
   const submittable = value.trim().length > 0 && !busy;

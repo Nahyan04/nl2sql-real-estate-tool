@@ -63,7 +63,8 @@ export function PipelineTrace({ state, attempts }: { state: TraceState; attempts
                 />
                 <span
                   className={[
-                    "label-mono transition-colors duration-300",
+                    // five stage names across a phone width need the tighter setting
+                    "label-mono text-[0.625rem] tracking-[0.08em] sm:text-[0.75rem] sm:tracking-[0.14em] transition-colors duration-300",
                     passed || active ? "text-ink" : "text-sand",
                   ].join(" ")}
                 >
