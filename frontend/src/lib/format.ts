@@ -48,6 +48,11 @@ export function humanizeColumn(column: string): string {
     .join(" ");
 }
 
+/** Capitalize the sentence, never the acronyms inside it. */
+export function sentenceCase(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 export function looksNumericColumn(column: string, sample: Cell): boolean {
   return isNumeric(sample) || (sample === null && NUMERIC_NAME.test(column));
 }

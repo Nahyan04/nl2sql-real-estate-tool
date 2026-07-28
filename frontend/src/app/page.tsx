@@ -7,6 +7,7 @@ import { DataSurface } from "@/components/data-surface";
 import { ExampleQuestions } from "@/components/example-questions";
 import { PipelineTrace } from "@/components/pipeline-trace";
 import { QueryInput } from "@/components/query-input";
+import { ResultChart } from "@/components/result-chart";
 import { ResultsTable } from "@/components/results-table";
 import { SqlPanel } from "@/components/sql-panel";
 import { Wordmark } from "@/components/wordmark";
@@ -99,12 +100,18 @@ export default function Home() {
         {result ? (
           <>
             <AnswerPanel answer={result.answer} />
-            <ResultsTable
-              columns={result.columns}
-              rows={result.rows}
-              rowCount={result.row_count}
-              truncated={result.truncated}
-            />
+            {result.chart ? (
+              <ResultChart chart={result.chart} columns={result.columns} rows={result.rows} />
+            ) : null}
+            {/* a scalar is already shown whole by the stat figure */}
+            {result.chart?.type === "stat" && result.columns.length === 1 ? null : (
+              <ResultsTable
+                columns={result.columns}
+                rows={result.rows}
+                rowCount={result.row_count}
+                truncated={result.truncated}
+              />
+            )}
             <SqlPanel
               sql={result.sql}
               tablesUsed={result.tables_used}

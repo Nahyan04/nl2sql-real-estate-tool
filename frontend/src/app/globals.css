@@ -33,11 +33,15 @@
   --border: var(--rule);
   --input: var(--rule);
   --ring: var(--teak);
-  --chart-1: var(--teak);
-  --chart-2: #9bb394;
-  --chart-3: #cdbb8b;
-  --chart-4: #7f949b;
-  --chart-5: #9c8896;
+  /* A single series wears the brand gold. Multi-series needs hues that survive
+     colour-vision deficiency, which the muted brand tones do not — this set
+     passes the lightness band, chroma floor, adjacent CVD ΔE and contrast
+     checks against the #151813 panel surface. */
+  --chart-1: #b58d28;
+  --chart-2: #3f93d8;
+  --chart-3: #3aa981;
+  --chart-4: #d2653f;
+  --chart-5: #9a82d8;
   --radius: 0.75rem;
   --sidebar: var(--ledger);
   --sidebar-foreground: var(--limestone);
