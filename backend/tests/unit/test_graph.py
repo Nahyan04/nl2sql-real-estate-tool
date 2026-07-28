@@ -1,0 +1,161 @@
+from __future__ import annotations
+
+import pytest
+from langchain_core.messages import AIMessage
+
+from app.services.graph import (
+    EMPTY_RESPONSE,
+    EXECUTION_ERROR,
+    MAX_ATTEMPTS,
+    PARSE_ERROR,
+    UNSAFE_SQL,
+    VALIDATION_ERROR,
+    run_pipeline,
+)
+
+GOOD_SQL = "<sql>SELECT name_en FROM communities ORDER BY id</sql>"
+
+
+class FakeChatModel:
+    """Replays canned responses in order so each retry path can be forced."""
+
+    def __init__(self, *responses: str) -> None:
+        self._responses = list(responses)
+        self.prompts: list[str] = []
+
+    def invoke(self, messages, **kwargs) -> AIMessage:
+        self.prompts.append(messages[-1].content)
+        return AIMessage(content=self._responses.pop(0) if self._responses else "")
+
+
+def _run(engine, *responses: str):
+    model = FakeChatModel(*responses)
+    state = run_pipeline("how many communities are there", chat_model=model, engine=engine, engine_ro=engine)
+    return state, model
+
+
+def _exhaust(engine, response: str):
+    state, _ = _run(engine, *([response] * MAX_ATTEMPTS))
+    return state
+
+
+def test_happy_path_returns_the_generated_sql(sqlite_engine) -> None:
+    state, _ = _run(sqlite_engine, GOOD_SQL)
+    assert state["sql"] == "SELECT name_en FROM communities ORDER BY id"
+
+
+def test_happy_path_returns_executed_rows(sqlite_engine) -> None:
+    state, _ = _run(sqlite_engine, GOOD_SQL)
+    assert state["exec_result"].rows == [["Yas Island"], ["Al Reem Island"]]
+
+
+def test_happy_path_returns_column_names(sqlite_engine) -> None:
+    state, _ = _run(sqlite_engine, GOOD_SQL)
+    assert state["exec_result"].columns == ["name_en"]
+
+
+def test_happy_path_takes_a_single_attempt(sqlite_engine) -> None:
+    state, _ = _run(sqlite_engine, GOOD_SQL)
+    assert state["attempts"] == 1
+
+
+def test_happy_path_reports_no_failure(sqlite_engine) -> None:
+    state, _ = _run(sqlite_engine, GOOD_SQL)
+    assert state["failure"] is None
+
+
+def test_schema_context_is_retrieved(sqlite_engine) -> None:
+    state, _ = _run(sqlite_engine, GOOD_SQL)
+    assert "communities" in state["schema_context"]
+
+
+def test_tables_used_is_populated(sqlite_engine) -> None:
+    state, _ = _run(sqlite_engine, GOOD_SQL)
+    assert "communities" in state["tables_used"]
+
+
+def test_latency_is_recorded(sqlite_engine) -> None:
+    state, _ = _run(sqlite_engine, GOOD_SQL)
+    assert state["latency_ms"] >= 0
+
+
+def test_unsafe_sql_is_classified(sqlite_engine) -> None:
+    state = _exhaust(sqlite_engine, "<sql>SELECT * INTO copies FROM communities</sql>")
+    assert state["failure"]["type"] == UNSAFE_SQL
+
+
+def test_unparseable_response_is_classified(sqlite_engine) -> None:
+    state = _exhaust(sqlite_engine, "I am afraid I cannot help with that question.")
+    assert state["failure"]["type"] == PARSE_ERROR
+
+
+def test_empty_response_is_classified(sqlite_engine) -> None:
+    state = _exhaust(sqlite_engine, "")
+    assert state["failure"]["type"] == EMPTY_RESPONSE
+
+
+def test_sql_shaped_but_mutating_response_is_classified_as_validation_error(sqlite_engine) -> None:
+    state = _exhaust(sqlite_engine, "<sql>DELETE FROM communities</sql>")
+    assert state["failure"]["type"] == VALIDATION_ERROR
+
+
+def test_execution_error_is_classified(sqlite_engine) -> None:
+    state = _exhaust(sqlite_engine, "<sql>SELECT no_such_column FROM communities</sql>")
+    assert state["failure"]["type"] == EXECUTION_ERROR
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        "<sql>SELECT * INTO copies FROM communities</sql>",
+        "I am afraid I cannot help with that question.",
+        "",
+        "<sql>DELETE FROM communities</sql>",
+        "<sql>SELECT no_such_column FROM communities</sql>",
+    ],
+)
+def test_pipeline_recovers_on_the_retry_after_any_failure(sqlite_engine, bad: str) -> None:
+    state, _ = _run(sqlite_engine, bad, GOOD_SQL)
+    assert state["sql"] == "SELECT name_en FROM communities ORDER BY id"
+    assert state["failure"] is None
+    assert state["attempts"] == 2
+
+
+def test_retry_sends_feedback_back_to_the_model(sqlite_engine) -> None:
+    _, model = _run(sqlite_engine, "<sql>DELETE FROM communities</sql>", GOOD_SQL)
+    assert len(model.prompts) == 2
+    assert "Previous attempt" in model.prompts[1]
+
+
+def test_first_attempt_carries_no_feedback(sqlite_engine) -> None:
+    _, model = _run(sqlite_engine, GOOD_SQL)
+    assert "Previous attempt" not in model.prompts[0]
+
+
+def test_execution_failure_feedback_quotes_the_database_error(sqlite_engine) -> None:
+    _, model = _run(sqlite_engine, "<sql>SELECT no_such_column FROM communities</sql>", GOOD_SQL)
+    assert "no_such_column" in model.prompts[1]
+
+
+def test_pipeline_gives_up_after_max_attempts(sqlite_engine) -> None:
+    state = _exhaust(sqlite_engine, "")
+    assert state["attempts"] == MAX_ATTEMPTS
+
+
+def test_pipeline_stops_calling_the_model_once_exhausted(sqlite_engine) -> None:
+    model = FakeChatModel(*([""] * 10))
+    run_pipeline("q", chat_model=model, engine=sqlite_engine, engine_ro=sqlite_engine)
+    assert len(model.prompts) == MAX_ATTEMPTS
+
+
+def test_exhausted_pipeline_returns_no_exec_result(sqlite_engine) -> None:
+    assert _exhaust(sqlite_engine, "")["exec_result"] is None
+
+
+def test_exhausted_pipeline_returns_no_sql(sqlite_engine) -> None:
+    assert _exhaust(sqlite_engine, "I cannot help.")["sql"] is None
+
+
+def test_failure_carries_a_detail_message(sqlite_engine) -> None:
+    state = _exhaust(sqlite_engine, "<sql>SELECT no_such_column FROM communities</sql>")
+    assert state["failure"]["detail"]

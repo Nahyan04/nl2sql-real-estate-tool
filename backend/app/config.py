@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     ollama_model: str = "qwen2.5-coder:7b"
     anthropic_api_key: str | None = None
     embedding_enabled: bool = False
+    query_row_limit: int = 500
+    query_timeout_s: int = 5
 
     model_config = SettingsConfigDict(
         env_file=".env",
