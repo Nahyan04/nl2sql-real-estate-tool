@@ -4,12 +4,64 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Palette derived from ADREC's own identity: brand gold #ACA261 ("Teak"), the
+   sage and sand secondaries, driven down to an analyst-console ground. */
+:root {
+  --registry: #0e100d;
+  --ledger: #151813;
+  --rule: #272b23;
+  --teak: #aca261;
+  --teak-dim: #6d6740;
+  --limestone: #e6e9e1;
+  --sand: #8b8a78;
+
+  --background: var(--registry);
+  --foreground: var(--limestone);
+  --card: var(--ledger);
+  --card-foreground: var(--limestone);
+  --popover: var(--ledger);
+  --popover-foreground: var(--limestone);
+  --primary: var(--teak);
+  --primary-foreground: var(--registry);
+  --secondary: #1d2119;
+  --secondary-foreground: var(--limestone);
+  --muted: #1d2119;
+  --muted-foreground: var(--sand);
+  --accent: #1d2119;
+  --accent-foreground: var(--limestone);
+  --destructive: #c4674f;
+  --border: var(--rule);
+  --input: var(--rule);
+  --ring: var(--teak);
+  --chart-1: var(--teak);
+  --chart-2: #9bb394;
+  --chart-3: #cdbb8b;
+  --chart-4: #7f949b;
+  --chart-5: #9c8896;
+  --radius: 0.75rem;
+  --sidebar: var(--ledger);
+  --sidebar-foreground: var(--limestone);
+  --sidebar-primary: var(--teak);
+  --sidebar-primary-foreground: var(--registry);
+  --sidebar-accent: #1d2119;
+  --sidebar-accent-foreground: var(--limestone);
+  --sidebar-border: var(--rule);
+  --sidebar-ring: var(--teak);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --color-registry: var(--registry);
+  --color-ledger: var(--ledger);
+  --color-rule: var(--rule);
+  --color-teak: var(--teak);
+  --color-teak-dim: var(--teak-dim);
+  --color-limestone: var(--limestone);
+  --color-sand: var(--sand);
+  --font-sans: var(--font-plex-sans), var(--font-plex-arabic), ui-sans-serif, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+  --font-heading: var(--font-plex-sans), var(--font-plex-arabic), ui-sans-serif, sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -39,92 +91,64 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+  --radius-sm: calc(var(--radius) * 0.4);
+  --radius-md: calc(var(--radius) * 0.7);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) * 1.4);
   --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
-}
-
-:root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
-
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
   body {
     @apply bg-background text-foreground;
+    font-synthesis-weight: none;
+    text-rendering: optimizeLegibility;
   }
   html {
     @apply font-sans;
+  }
+  ::selection {
+    background: var(--teak);
+    color: var(--registry);
+  }
+  :focus-visible {
+    outline: 1px solid var(--teak);
+    outline-offset: 3px;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--rule);
+    border: 3px solid var(--registry);
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--teak-dim);
+  }
+}
+
+@layer components {
+  /* Small mono caps used for every structural label: section heads, stage
+     names, table headers, metadata. */
+  .label-mono {
+    @apply font-mono text-[0.6875rem] uppercase tracking-[0.16em] text-sand;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
