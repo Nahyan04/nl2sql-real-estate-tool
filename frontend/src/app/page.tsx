@@ -2,10 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { AnswerPanel } from "@/components/answer-panel";
 import { DataSurface } from "@/components/data-surface";
 import { ExampleQuestions } from "@/components/example-questions";
 import { PipelineTrace } from "@/components/pipeline-trace";
 import { QueryInput } from "@/components/query-input";
+import { ResultsTable } from "@/components/results-table";
+import { SqlPanel } from "@/components/sql-panel";
 import { Wordmark } from "@/components/wordmark";
 import { ApiError, getExamples, getSchema, postQuery } from "@/lib/api";
 import type { ExampleQuestion, QueryResponse, SchemaTable } from "@/lib/types";
@@ -94,12 +97,22 @@ export default function Home() {
         ) : null}
 
         {result ? (
-          <section className="mt-12">
-            <h2 className="label-mono">Answer</h2>
-            <p dir="auto" className="mt-3 max-w-[42rem] text-[1.0625rem] leading-relaxed text-limestone">
-              {result.answer}
-            </p>
-          </section>
+          <>
+            <AnswerPanel answer={result.answer} />
+            <ResultsTable
+              columns={result.columns}
+              rows={result.rows}
+              rowCount={result.row_count}
+              truncated={result.truncated}
+            />
+            <SqlPanel
+              sql={result.sql}
+              tablesUsed={result.tables_used}
+              retryCount={result.retry_count}
+              latencyMs={result.latency_ms}
+              provider={result.provider}
+            />
+          </>
         ) : null}
       </main>
     </>
