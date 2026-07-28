@@ -17,7 +17,7 @@ export function HistoryPanel({ questions, onPick, onClear, busy }: HistoryPanelP
         <button
           type="button"
           onClick={onClear}
-          className="label-mono cursor-pointer text-sand/50 transition-colors hover:text-teak"
+          className="label-mono cursor-pointer text-sand transition-colors hover:text-sage"
         >
           Clear
         </button>
@@ -30,7 +30,7 @@ export function HistoryPanel({ questions, onPick, onClear, busy }: HistoryPanelP
               disabled={busy}
               dir="auto"
               onClick={() => onPick(question)}
-              className="w-full cursor-pointer py-[0.3125rem] text-start text-[0.875rem] leading-snug text-sand transition-colors hover:text-limestone disabled:cursor-default disabled:hover:text-sand"
+              className="w-full cursor-pointer py-[0.3125rem] text-start text-[1rem] font-medium leading-snug text-sand transition-colors hover:text-ink disabled:cursor-default disabled:hover:text-sand"
             >
               {question}
             </button>

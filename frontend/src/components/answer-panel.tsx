@@ -7,14 +7,14 @@ const MARKDOWN = {
     <p className="mt-4 first:mt-0">{children}</p>
   ),
   strong: ({ children }: { children?: React.ReactNode }) => (
-    <strong className="font-medium text-teak">{children}</strong>
+    <strong className="font-medium text-sage">{children}</strong>
   ),
   em: ({ children }: { children?: React.ReactNode }) => <em className="italic">{children}</em>,
   ul: ({ children }: { children?: React.ReactNode }) => (
-    <ul className="mt-4 space-y-1.5 ps-5 marker:text-teak-dim">{children}</ul>
+    <ul className="mt-4 space-y-1.5 ps-5 marker:text-sage-dim">{children}</ul>
   ),
   ol: ({ children }: { children?: React.ReactNode }) => (
-    <ol className="mt-4 list-decimal space-y-1.5 ps-5 marker:text-teak-dim">{children}</ol>
+    <ol className="mt-4 list-decimal space-y-1.5 ps-5 marker:text-sage-dim">{children}</ol>
   ),
   li: ({ children }: { children?: React.ReactNode }) => (
     <li className="list-disc">{children}</li>
@@ -34,7 +34,7 @@ export function AnswerPanel({ answer }: { answer: string }) {
           left-anchored measure */}
       <div
         dir="auto"
-        className="mt-4 max-w-[44rem] text-[1.0625rem] leading-[1.65] text-limestone [&:dir(rtl)]:ml-auto"
+        className="mt-4 max-w-[44rem] text-[1.1875rem] leading-[1.6] font-medium text-ink [&:dir(rtl)]:ml-auto"
       >
         <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN}>
           {answer}

@@ -35,7 +35,7 @@ export function ExampleQuestions({ examples, onPick, busy }: ExampleQuestionsPro
                 setExpanded(false);
               }}
               className={`label-mono cursor-pointer transition-colors ${
-                lang === code ? "text-teak" : "text-sand/50 hover:text-sand"
+                lang === code ? "font-medium text-sage" : "text-sand hover:text-ink"
               }`}
             >
               {code}
@@ -51,11 +51,11 @@ export function ExampleQuestions({ examples, onPick, busy }: ExampleQuestionsPro
               type="button"
               disabled={busy}
               onClick={() => onPick(example.text)}
-              className="group/q flex w-full cursor-pointer items-baseline gap-2 py-[0.4375rem] text-start text-[0.9375rem] leading-snug text-sand transition-colors hover:text-limestone disabled:cursor-default disabled:hover:text-sand"
+              className="group/q flex w-full cursor-pointer items-baseline gap-2 py-[0.4375rem] text-start text-[1.0625rem] font-medium leading-snug text-sand transition-colors hover:text-ink disabled:cursor-default disabled:hover:text-sand"
             >
               <span
                 aria-hidden
-                className="w-3 shrink-0 text-teak opacity-0 transition-opacity group-hover/q:opacity-100 rtl:rotate-180"
+                className="w-3 shrink-0 text-sage opacity-0 transition-opacity group-hover/q:opacity-100 rtl:rotate-180"
               >
                 →
               </span>
@@ -69,7 +69,7 @@ export function ExampleQuestions({ examples, onPick, busy }: ExampleQuestionsPro
         <button
           type="button"
           onClick={() => setExpanded((open) => !open)}
-          className="label-mono mt-2 ms-5 cursor-pointer text-sand/60 transition-colors hover:text-teak"
+          className="label-mono mt-2 ms-5 cursor-pointer text-sand transition-colors hover:text-sage"
         >
           {expanded ? "Show fewer" : `Show all ${pool.length}`}
         </button>

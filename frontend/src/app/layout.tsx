@@ -36,17 +36,17 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`dark ${plexSans.variable} ${plexArabic.variable} ${plexMono.variable} h-full antialiased`}
+      className={`${plexSans.variable} ${plexArabic.variable} ${plexMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         {children}
         <footer className="border-t border-rule">
           <div className="mx-auto flex max-w-[68rem] flex-wrap items-baseline justify-between gap-x-8 gap-y-2 px-5 sm:px-8 py-6">
-            <p className="text-[0.8125rem] text-sand">
+            <p className="text-[0.9375rem] text-sand">
               Synthetic demonstration data, calibrated to published ADREC aggregates. Not an
               official ADREC service.
             </p>
-            <p className="label-mono text-sand/45">Presight Innovation Challenge</p>
+            <p className="label-mono text-sand">Presight Innovation Challenge</p>
           </div>
         </footer>
       </body>

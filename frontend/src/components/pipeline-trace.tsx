@@ -45,7 +45,7 @@ export function PipelineTrace({ state, attempts }: { state: TraceState; attempts
       <div className="relative">
         <div className="absolute inset-x-[10%] top-[3px] h-px bg-rule" />
         <div
-          className="absolute left-[10%] top-[3px] h-px bg-teak transition-[width] duration-500 ease-out"
+          className="absolute left-[10%] top-[3px] h-px bg-sage transition-[width] duration-500 ease-out"
           style={{ width: `${(index / LAST) * 80}%` }}
         />
         <ol className="relative flex">
@@ -56,15 +56,15 @@ export function PipelineTrace({ state, attempts }: { state: TraceState; attempts
               <li key={stage.key} className="flex flex-1 flex-col items-center gap-2.5">
                 <span
                   className={[
-                    "size-[7px] rounded-full ring-3 ring-registry transition-colors duration-300",
-                    passed || active ? "bg-teak" : "bg-rule",
+                    "size-[7px] rounded-full ring-3 ring-canvas transition-colors duration-300",
+                    passed || active ? "bg-sage" : "bg-rule",
                     active ? "animate-pulse" : "",
                   ].join(" ")}
                 />
                 <span
                   className={[
                     "label-mono transition-colors duration-300",
-                    passed || active ? "text-limestone" : "text-sand/45",
+                    passed || active ? "text-ink" : "text-sand",
                   ].join(" ")}
                 >
                   {stage.label}
@@ -83,12 +83,12 @@ export function PipelineTrace({ state, attempts }: { state: TraceState; attempts
  *  into the same node. The count is measured, not estimated. */
 function RetryLoop({ attempts }: { attempts: number }) {
   return (
-    <span className="mt-1 flex items-center gap-1.5 text-teak" title={`Generated ${attempts} times`}>
+    <span className="mt-1 flex items-center gap-1.5 text-sage" title={`Generated ${attempts} times`}>
       <svg width="30" height="14" viewBox="0 0 30 14" fill="none" aria-hidden>
         <path d="M21 2 C29 2 29 11 15 11 C1 11 1 2 9 2" stroke="currentColor" strokeWidth="1" />
         <path d="M9 2 L12 4.5 M9 2 L12 -0.5" stroke="currentColor" strokeWidth="1" />
       </svg>
-      <span className="font-mono text-[0.625rem] tracking-wide">×{attempts}</span>
+      <span className="font-mono text-[0.6875rem] tracking-wide">×{attempts}</span>
     </span>
   );
 }

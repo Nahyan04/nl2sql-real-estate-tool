@@ -5,12 +5,12 @@ import { useState } from "react";
 import { tokenizeSql, type TokenKind } from "@/lib/sql-tokens";
 
 const TOKEN_CLASS: Record<TokenKind, string> = {
-  keyword: "text-teak",
-  function: "text-limestone",
-  string: "text-[#9bb394]",
-  number: "text-[#cdbb8b]",
-  comment: "text-sand/60 italic",
-  plain: "text-limestone/85",
+  keyword: "text-sage",
+  function: "text-ink",
+  string: "text-[#8f4526]",
+  number: "text-[#2a5d86]",
+  comment: "text-sand italic",
+  plain: "text-ink/85",
 };
 
 interface SqlPanelProps {
@@ -33,13 +33,13 @@ export function SqlPanel({ sql, tablesUsed, retryCount, latencyMs, provider }: S
   return (
     <details className="group mt-12 border-t border-rule">
       <summary className="flex cursor-pointer list-none items-baseline justify-between gap-6 py-4 [&::-webkit-details-marker]:hidden">
-        <span className="label-mono flex items-baseline gap-2 text-limestone">
-          <span aria-hidden className="text-teak transition-transform group-open:rotate-90">
+        <span className="label-mono flex items-baseline gap-2 text-ink">
+          <span aria-hidden className="text-sage transition-transform group-open:rotate-90">
             ›
           </span>
           How this was answered
         </span>
-        <span className="label-mono text-sand/70">
+        <span className="label-mono text-sand">
           {provider} · {formatLatency(latencyMs)} ·{" "}
           {attempts === 1 ? "1 attempt" : `${attempts} attempts`}
         </span>
@@ -49,16 +49,16 @@ export function SqlPanel({ sql, tablesUsed, retryCount, latencyMs, provider }: S
         {tablesUsed.length > 0 ? (
           <div className="flex flex-wrap items-baseline gap-x-8 gap-y-2 pb-4">
             {/* the retrieval shortlist, not the tables the query touched */}
-            <span className="label-mono text-sand/60">Tables considered</span>
-            <span className="font-mono text-[0.8125rem] text-sand">
+            <span className="label-mono text-sand">Tables considered</span>
+            <span className="font-mono text-[0.9375rem] text-sand">
               {tablesUsed.join("  ·  ")}
             </span>
           </div>
         ) : null}
 
-        <div className="relative rounded-lg border border-rule bg-ledger">
+        <div className="relative rounded-lg border border-rule bg-paper">
           <CopyButton sql={sql} />
-          <pre className="overflow-x-auto px-5 py-4 font-mono text-[0.8125rem] leading-[1.7]">
+          <pre className="overflow-x-auto px-5 py-4 font-mono text-[0.9375rem] leading-[1.7]">
             <code>
               {tokenizeSql(sql).map((token, index) => (
                 <span key={index} className={TOKEN_CLASS[token.kind]}>
@@ -88,7 +88,7 @@ function CopyButton({ sql }: { sql: string }) {
           () => setCopied(false),
         );
       }}
-      className="label-mono absolute end-3 top-3 cursor-pointer bg-ledger px-2 py-1 text-sand/70 transition-colors hover:text-teak"
+      className="label-mono absolute end-3 top-3 cursor-pointer bg-paper px-2 py-1 text-sand transition-colors hover:text-sage"
     >
       {copied ? "Copied" : "Copy"}
     </button>

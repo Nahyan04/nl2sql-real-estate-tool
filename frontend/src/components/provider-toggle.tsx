@@ -16,7 +16,7 @@ interface ProviderToggleProps {
 export function ProviderToggle({ value, onChange, disabled }: ProviderToggleProps) {
   return (
     <div className="flex shrink-0 items-baseline gap-3">
-      <span className="label-mono text-sand/60">Model</span>
+      <span className="label-mono text-sand">Model</span>
       <div className="flex items-baseline gap-2">
         {OPTIONS.map((option, index) => (
           <span key={option.value} className="flex items-baseline gap-2">
@@ -32,7 +32,7 @@ export function ProviderToggle({ value, onChange, disabled }: ProviderToggleProp
               aria-pressed={value === option.value}
               onClick={() => onChange(option.value)}
               className={`label-mono cursor-pointer transition-colors disabled:cursor-default ${
-                value === option.value ? "text-teak" : "text-sand/50 hover:text-sand"
+                value === option.value ? "font-medium text-sage" : "text-sand hover:text-ink"
               }`}
             >
               {option.label}

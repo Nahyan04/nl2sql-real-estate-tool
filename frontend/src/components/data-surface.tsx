@@ -21,8 +21,8 @@ export function DataSurface({ tables }: { tables: SchemaTable[] }) {
       <dl className="mt-4 grid gap-x-8 gap-y-3 sm:grid-cols-[auto_1fr]">
         {groups.map((group) => (
           <div key={group.label} className="contents">
-            <dt className="label-mono pt-px text-sand/60">{group.label}</dt>
-            <dd className="font-mono text-[0.8125rem] leading-relaxed text-sand">
+            <dt className="label-mono pt-px text-sand">{group.label}</dt>
+            <dd className="font-mono text-[0.9375rem] leading-relaxed text-sand">
               {group.names.join("  ·  ")}
             </dd>
           </div>

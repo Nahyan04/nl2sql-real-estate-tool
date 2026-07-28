@@ -4,64 +4,66 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Palette derived from ADREC's own identity: brand gold #ACA261 ("Teak"), the
-   sage and sand secondaries, driven down to an analyst-console ground. */
+/* Warm paper canvas with a sage accent — a printed government record rather
+   than a console. Cream ground, white tiles, sage-tinted hairlines. */
 :root {
-  --registry: #0e100d;
-  --ledger: #151813;
-  --rule: #272b23;
-  --teak: #aca261;
-  --teak-dim: #6d6740;
-  --limestone: #e6e9e1;
-  --sand: #8b8a78;
+  --canvas: #e7e1de;
+  --paper: #ffffff;
+  --paper-flat: #faf8f5;
+  --rule: #c9ccc2;
+  --sage: #3f6238;
+  --sage-dim: #7e9c72;
+  --ink: #32302e;
+  --sand: #5f5b55;
 
-  --background: var(--registry);
-  --foreground: var(--limestone);
-  --card: var(--ledger);
-  --card-foreground: var(--limestone);
-  --popover: var(--ledger);
-  --popover-foreground: var(--limestone);
-  --primary: var(--teak);
-  --primary-foreground: var(--registry);
-  --secondary: #1d2119;
-  --secondary-foreground: var(--limestone);
-  --muted: #1d2119;
+  --background: var(--canvas);
+  --foreground: var(--ink);
+  --card: var(--paper);
+  --card-foreground: var(--ink);
+  --popover: var(--paper);
+  --popover-foreground: var(--ink);
+  --primary: var(--sage);
+  --primary-foreground: var(--paper);
+  --secondary: #ded8d4;
+  --secondary-foreground: var(--ink);
+  --muted: #ded8d4;
   --muted-foreground: var(--sand);
-  --accent: #1d2119;
-  --accent-foreground: var(--limestone);
-  --destructive: #c4674f;
+  --accent: #ded8d4;
+  --accent-foreground: var(--ink);
+  --destructive: #9a3b34;
   --border: var(--rule);
   --input: var(--rule);
-  --ring: var(--teak);
-  /* A single series wears the brand gold. Multi-series needs hues that survive
-     colour-vision deficiency, which the muted brand tones do not — this set
-     passes the lightness band, chroma floor, adjacent CVD ΔE and contrast
-     checks against the #151813 panel surface. */
-  --chart-1: #b58d28;
-  --chart-2: #3f93d8;
-  --chart-3: #3aa981;
-  --chart-4: #d2653f;
-  --chart-5: #9a82d8;
+  --ring: var(--sage);
+  /* A single series wears the sage accent. Multi-series needs hues that survive
+     colour-vision deficiency, which a low-chroma sage does not — this set passes
+     the lightness band, chroma floor, adjacent CVD ΔE and contrast checks
+     against the white panel surface. */
+  --chart-1: #2f7a45;
+  --chart-2: #0f6fa8;
+  --chart-3: #b0442c;
+  --chart-4: #8a5cc4;
+  --chart-5: #8a6a10;
   --radius: 0.75rem;
-  --sidebar: var(--ledger);
-  --sidebar-foreground: var(--limestone);
-  --sidebar-primary: var(--teak);
-  --sidebar-primary-foreground: var(--registry);
-  --sidebar-accent: #1d2119;
-  --sidebar-accent-foreground: var(--limestone);
+  --sidebar: var(--paper);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--sage);
+  --sidebar-primary-foreground: var(--paper);
+  --sidebar-accent: #ded8d4;
+  --sidebar-accent-foreground: var(--ink);
   --sidebar-border: var(--rule);
-  --sidebar-ring: var(--teak);
+  --sidebar-ring: var(--sage);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-registry: var(--registry);
-  --color-ledger: var(--ledger);
+  --color-canvas: var(--canvas);
+  --color-paper: var(--paper);
+  --color-paper-flat: var(--paper-flat);
   --color-rule: var(--rule);
-  --color-teak: var(--teak);
-  --color-teak-dim: var(--teak-dim);
-  --color-limestone: var(--limestone);
+  --color-sage: var(--sage);
+  --color-sage-dim: var(--sage-dim);
+  --color-ink: var(--ink);
   --color-sand: var(--sand);
   --font-sans: var(--font-plex-sans), var(--font-plex-arabic), ui-sans-serif, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, monospace;
@@ -110,16 +112,18 @@
     @apply bg-background text-foreground;
     font-synthesis-weight: none;
     text-rendering: optimizeLegibility;
+    /* 2% monochrome grain keeps the flat cream from reading as plastic. */
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.02'/%3E%3C/svg%3E");
   }
   html {
     @apply font-sans;
   }
   ::selection {
-    background: var(--teak);
-    color: var(--registry);
+    background: var(--sage);
+    color: var(--paper);
   }
   :focus-visible {
-    outline: 1px solid var(--teak);
+    outline: 1px solid var(--sage);
     outline-offset: 3px;
   }
   ::-webkit-scrollbar {
@@ -131,11 +135,11 @@
   }
   ::-webkit-scrollbar-thumb {
     background: var(--rule);
-    border: 3px solid var(--registry);
+    border: 3px solid var(--canvas);
     border-radius: 999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--teak-dim);
+    background: var(--sage-dim);
   }
 }
 
@@ -143,7 +147,7 @@
   /* Small mono caps used for every structural label: section heads, stage
      names, table headers, metadata. */
   .label-mono {
-    @apply font-mono text-[0.6875rem] uppercase tracking-[0.16em] text-sand;
+    @apply font-mono text-[0.75rem] font-medium uppercase tracking-[0.14em] text-sand;
   }
 }
 

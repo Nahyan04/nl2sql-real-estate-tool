@@ -50,12 +50,12 @@ export function QueryInput({ value, onChange, onSubmit, busy }: QueryInputProps)
             }
           }}
           placeholder="Ask about transactions, rents, mortgages or price indices"
-          className="min-w-0 flex-1 resize-none bg-transparent text-[1.375rem] leading-[1.45] text-limestone placeholder:text-sand/55 focus-visible:outline-none disabled:text-sand"
+          className="min-w-0 flex-1 resize-none bg-transparent text-[1.5rem] font-medium leading-[1.45] text-ink placeholder:text-sand/70 focus-visible:outline-none disabled:text-sand"
         />
         <button
           type="submit"
           disabled={!submittable}
-          className="label-mono mt-2 shrink-0 cursor-pointer text-teak transition-opacity hover:opacity-70 disabled:cursor-default disabled:text-sand/40 disabled:hover:opacity-100"
+          className="label-mono mt-2 shrink-0 cursor-pointer text-sage transition-opacity hover:opacity-70 disabled:cursor-default disabled:text-sand/40 disabled:hover:opacity-100"
         >
           {busy ? "Working" : "Ask ↵"}
         </button>
@@ -63,7 +63,7 @@ export function QueryInput({ value, onChange, onSubmit, busy }: QueryInputProps)
       <div
         className={[
           "mt-3 transition-colors duration-200",
-          busy ? "h-px bg-teak-dim" : "h-px bg-rule group-focus-within:bg-teak",
+          busy ? "h-px bg-sage-dim" : "h-px bg-rule group-focus-within:bg-sage",
         ].join(" ")}
       />
     </form>

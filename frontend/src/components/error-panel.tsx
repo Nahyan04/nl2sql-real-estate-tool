@@ -46,13 +46,13 @@ export function ErrorPanel({ error }: { error: ApiError }) {
     <section className="mt-12 border-s-2 border-destructive ps-5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
         <h2 className="label-mono text-destructive">{explanation.title}</h2>
-        <span className="label-mono text-sand/50">{error.code}</span>
+        <span className="label-mono text-sand">{error.code}</span>
       </div>
-      <p className="mt-2 max-w-[44rem] text-[0.9375rem] leading-relaxed text-limestone">
+      <p className="mt-2 max-w-[44rem] text-[1.0625rem] leading-relaxed text-ink">
         {explanation.guidance}
       </p>
       {error.detail ? (
-        <p className="mt-3 max-w-[44rem] font-mono text-[0.8125rem] leading-relaxed break-words text-sand/70">
+        <p className="mt-3 max-w-[44rem] font-mono text-[0.9375rem] leading-relaxed break-words text-sand">
           {error.detail}
         </p>
       ) : null}

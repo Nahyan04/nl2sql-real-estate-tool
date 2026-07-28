@@ -17,10 +17,10 @@ import type { Cell, ChartSpec } from "@/lib/types";
 
 /** Fixed order, never cycled. One series wears the brand gold; more than one
  *  needs the validated categorical set. */
-const SOLO = "var(--teak)";
+const SOLO = "var(--sage)";
 const SERIES = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
 
-const AXIS = { fill: "var(--sand)", fontSize: 11, fontFamily: "var(--font-mono)" };
+const AXIS = { fill: "var(--sand)", fontSize: 12, fontFamily: "var(--font-mono)" };
 const GRID = "var(--rule)";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}/;
@@ -104,10 +104,10 @@ export function ResultChart({ chart, columns, rows }: ResultChartProps) {
         <div className="mt-4 space-y-4">
           {shown.map((key, index) => (
             <figure key={key}>
-              <figcaption className="text-[0.9375rem] text-limestone">
+              <figcaption className="text-[1.0625rem] text-ink">
                 {sentenceCase(`${humanizeColumn(key)} by ${humanizeColumn(xKey)}`)}
               </figcaption>
-              <div className="mt-3 rounded-lg border border-rule bg-ledger p-5 pe-7">
+              <div className="mt-3 rounded-lg border border-rule bg-paper p-5 pe-7">
                 <Figure data={data} xKey={xKey} keys={[key]} colorFor={() => SERIES[index]} />
               </div>
             </figure>
@@ -115,15 +115,15 @@ export function ResultChart({ chart, columns, rows }: ResultChartProps) {
         </div>
       ) : (
         <>
-          <p className="mt-3 text-[0.9375rem] text-limestone">{chart.title}</p>
-          <div className="mt-5 rounded-lg border border-rule bg-ledger p-5 pe-7">
+          <p className="mt-3 text-[1.0625rem] text-ink">{chart.title}</p>
+          <div className="mt-5 rounded-lg border border-rule bg-paper p-5 pe-7">
             <Figure data={data} xKey={xKey} keys={shown} colorFor={colorFor} />
           </div>
         </>
       )}
 
       {keys.length > shown.length ? (
-        <p className="mt-3 text-[0.8125rem] text-sand">
+        <p className="mt-3 text-[0.9375rem] text-sand">
           Charting the first {shown.length} measures. The rest are in the result table.
         </p>
       ) : null}
@@ -140,10 +140,10 @@ function StatFigure({ chart, columns, rows }: ResultChartProps) {
   return (
     <section className="mt-12">
       <h2 className="label-mono">Result</h2>
-      <p className="mt-4 text-[3.25rem] leading-none font-semibold text-limestone">
+      <p className="mt-4 text-[3.25rem] leading-none font-semibold text-ink">
         {formatCell(value)}
       </p>
-      <p className="mt-3 text-[0.9375rem] text-sand">{chart.title}</p>
+      <p className="mt-3 text-[1.0625rem] text-sand">{chart.title}</p>
     </section>
   );
 }
@@ -185,7 +185,7 @@ function LineFigure({ data, xKey, keys, colorFor }: FigureProps) {
             stroke={colorFor(index)}
             strokeWidth={2}
             dot={false}
-            activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--ledger)" }}
+            activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--paper)" }}
           />
         ))}
       </LineChart>
@@ -260,20 +260,20 @@ function ChartTooltip({ active, label, payload, keys, colorFor }: TooltipProps) 
   if (!active || !payload?.length) return null;
 
   return (
-    <div className="rounded-md border border-rule bg-registry px-3.5 py-2.5 shadow-lg">
+    <div className="rounded-md border border-rule bg-paper px-3.5 py-2.5 shadow-[0_8px_24px_rgba(26,24,22,0.12)]">
       <p className="label-mono text-sand">{formatAxisLabel(label)}</p>
       <ul className="mt-2 space-y-1">
         {payload.map((entry) => {
           const key = String(entry.dataKey ?? "");
           return (
-            <li key={key} className="flex items-center gap-2.5 text-[0.8125rem]">
+            <li key={key} className="flex items-center gap-2.5 text-[0.9375rem]">
               <span
                 aria-hidden
                 className="size-2 shrink-0 rounded-full"
                 style={{ background: colorFor(keys.indexOf(key)) }}
               />
               <span className="text-sand">{humanizeColumn(key)}</span>
-              <span className="ms-auto font-mono text-limestone">{formatCell(entry.value ?? null)}</span>
+              <span className="ms-auto font-mono text-ink">{formatCell(entry.value ?? null)}</span>
             </li>
           );
         })}

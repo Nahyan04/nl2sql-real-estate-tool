@@ -3,7 +3,7 @@ export function Wordmark() {
     <span className="relative inline-flex flex-col items-center px-4 py-1.5 leading-none select-none">
       <svg
         aria-hidden
-        className="absolute inset-0 h-full w-full text-teak"
+        className="absolute inset-0 h-full w-full text-sage"
         viewBox="0 0 100 44"
         preserveAspectRatio="none"
         fill="none"
@@ -15,10 +15,10 @@ export function Wordmark() {
           vectorEffect="non-scaling-stroke"
         />
       </svg>
-      <span className="text-[0.8125rem] text-teak" lang="ar" dir="rtl">
+      <span className="text-[0.875rem] text-sage" lang="ar" dir="rtl">
         بيان
       </span>
-      <span className="mt-1 text-[0.8125rem] font-medium tracking-[0.18em] text-limestone">
+      <span className="mt-1 text-[0.875rem] font-semibold tracking-[0.18em] text-ink">
         BAYAN
       </span>
     </span>

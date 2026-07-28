@@ -13,7 +13,7 @@ export function Header({ provider, onProviderChange, busy }: HeaderProps) {
     <header className="border-b border-rule">
       <div className="mx-auto flex max-w-[68rem] items-center gap-8 px-5 sm:px-8 py-5">
         <Wordmark />
-        <p className="hidden text-[0.8125rem] text-sand lg:block">
+        <p className="hidden text-[0.9375rem] text-sand lg:block">
           Natural-language analytics for Abu Dhabi&rsquo;s real estate market
         </p>
         <div className="ms-auto">

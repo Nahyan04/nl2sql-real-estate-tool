@@ -21,15 +21,15 @@ export function ResultsTable({ columns, rows, rowCount, truncated }: ResultsTabl
     <section className="mt-12">
       <div className="flex items-baseline justify-between gap-6">
         <h2 className="label-mono">Result</h2>
-        <p className="label-mono text-sand/60">
+        <p className="label-mono text-sand">
           {rowCount} {rowCount === 1 ? "row" : "rows"} · {columns.length}{" "}
           {columns.length === 1 ? "column" : "columns"}
         </p>
       </div>
 
-      <div className="mt-4 max-h-[26rem] overflow-auto rounded-lg border border-rule bg-ledger">
-        <table className="w-full border-collapse text-[0.875rem]">
-          <thead className="sticky top-0 z-10 bg-ledger">
+      <div className="mt-4 max-h-[26rem] overflow-auto rounded-lg border border-rule bg-paper">
+        <table className="w-full border-collapse text-[1rem] font-medium">
+          <thead className="sticky top-0 z-10 bg-paper">
             <tr>
               {columns.map((column, index) => (
                 <th
@@ -53,7 +53,7 @@ export function ResultsTable({ columns, rows, rowCount, truncated }: ResultsTabl
                     dir="auto"
                     className={`px-4 py-2.5 whitespace-nowrap ${
                       numeric[cellIndex]
-                        ? "text-end font-mono tabular-nums text-limestone"
+                        ? "text-end font-mono tabular-nums text-ink"
                         : "text-start text-sand"
                     }`}
                   >
@@ -67,7 +67,7 @@ export function ResultsTable({ columns, rows, rowCount, truncated }: ResultsTabl
       </div>
 
       {truncated ? (
-        <p className="mt-3 text-[0.8125rem] text-sand">
+        <p className="mt-3 text-[0.9375rem] text-sand">
           Capped at {rowCount} rows. Add a filter or a time range to see a complete set.
         </p>
       ) : null}
