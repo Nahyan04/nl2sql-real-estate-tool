@@ -1,0 +1,94 @@
+{
+  "examples": [
+    {
+      "id": "en-total-value-12mo",
+      "lang": "en",
+      "text": "What was the total transaction value in the last 12 months?"
+    },
+    {
+      "id": "en-top-communities",
+      "lang": "en",
+      "text": "Top 5 communities by total sales value this year"
+    },
+    {
+      "id": "en-apartment-price-index",
+      "lang": "en",
+      "text": "How did apartment sale prices move over the last year?"
+    },
+    {
+      "id": "en-reem-rent",
+      "lang": "en",
+      "text": "What is the average annual rent for a 2 bedroom apartment in Al Reem Island?"
+    },
+    {
+      "id": "en-transaction-count-2025",
+      "lang": "en",
+      "text": "How many property transactions were registered in 2025?"
+    },
+    {
+      "id": "en-rate-per-sqm",
+      "lang": "en",
+      "text": "Which 10 communities have the highest average price per square metre?"
+    },
+    {
+      "id": "en-foreign-share",
+      "lang": "en",
+      "text": "What share of transaction value came from foreign buyers this year?"
+    },
+    {
+      "id": "en-offplan-vs-ready",
+      "lang": "en",
+      "text": "Compare off-plan versus ready sales value in 2025"
+    },
+    {
+      "id": "en-mortgage-by-lender",
+      "lang": "en",
+      "text": "What is the total mortgage value by lender type this year?"
+    },
+    {
+      "id": "en-yas-monthly-trend",
+      "lang": "en",
+      "text": "Show the monthly transaction value trend for Yas Island in 2025"
+    },
+    {
+      "id": "en-top-developers",
+      "lang": "en",
+      "text": "Which 5 developers have the most projects?"
+    },
+    {
+      "id": "en-renewal-vs-new",
+      "lang": "en",
+      "text": "How many rental contracts were renewals versus new in the last 12 months?"
+    },
+    {
+      "id": "ar-reem-apartment-rent",
+      "lang": "ar",
+      "text": "ما هو متوسط الإيجار السنوي للشقق في جزيرة الريم؟"
+    },
+    {
+      "id": "ar-total-sales-this-year",
+      "lang": "ar",
+      "text": "ما هو إجمالي قيمة المبيعات العقارية في السنة الحالية؟"
+    },
+    {
+      "id": "ar-top-communities",
+      "lang": "ar",
+      "text": "أعلى خمس مناطق من حيث إجمالي قيمة المبيعات"
+    },
+    {
+      "id": "ar-villa-price-index",
+      "lang": "ar",
+      "text": "كيف تغير مؤشر أسعار بيع الفلل خلال العام الماضي؟"
+    },
+    {
+      "id": "ar-mortgage-total",
+      "lang": "ar",
+      "text": "ما هو إجمالي قيمة الرهن العقاري هذا العام؟"
+    },
+    {
+      "id": "ar-yas-new-leases",
+      "lang": "ar",
+      "text": "كم عدد عقود الإيجار الجديدة في جزيرة ياس؟"
+    }
+  ]
+}

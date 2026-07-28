@@ -211,6 +211,35 @@ def test_exhausted_pipeline_never_reaches_synthesis(sqlite_engine) -> None:
     assert state["chart"] is None
 
 
+def test_dry_run_returns_validated_sql_without_executing(sqlite_engine) -> None:
+    model = FakeChatModel(GOOD_SQL)
+    state = run_pipeline(
+        "q", dry_run=True, chat_model=model, engine=sqlite_engine, engine_ro=sqlite_engine
+    )
+    assert state["sql"] == "SELECT name_en FROM communities ORDER BY id"
+    assert state["exec_result"] is None
+    assert state["failure"] is None
+
+
+def test_dry_run_skips_synthesis_and_charting(sqlite_engine) -> None:
+    model = FakeChatModel(GOOD_SQL)
+    state = run_pipeline(
+        "q", dry_run=True, chat_model=model, engine=sqlite_engine, engine_ro=sqlite_engine
+    )
+    assert model.synthesis_prompts == []
+    assert state["answer"] == ""
+    assert state["chart"] is None
+
+
+def test_dry_run_still_retries_unsafe_sql(sqlite_engine) -> None:
+    model = FakeChatModel("<sql>DROP TABLE communities</sql>", GOOD_SQL)
+    state = run_pipeline(
+        "q", dry_run=True, chat_model=model, engine=sqlite_engine, engine_ro=sqlite_engine
+    )
+    assert state["attempts"] == 2
+    assert state["sql"] == "SELECT name_en FROM communities ORDER BY id"
+
+
 class ExplodingSynthesis(FakeChatModel):
     def invoke(self, messages, **kwargs):
         if not messages[-1].content.startswith("Schema:"):

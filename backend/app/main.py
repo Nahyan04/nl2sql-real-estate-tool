@@ -8,9 +8,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import ValidationError
 
+from app.api.routes import examples as examples_routes
 from app.api.routes import health as health_routes
+from app.api.routes import query as query_routes
+from app.api.routes import schema as schema_routes
 from app.config import get_settings
 from app.core.database import get_engine
+
+API_PREFIX = "/api/v1"
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -39,6 +44,9 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="nl2sql-real-estate", version="0.1.0", lifespan=lifespan)
 
 app.include_router(health_routes.router)
+app.include_router(query_routes.router, prefix=API_PREFIX)
+app.include_router(examples_routes.router, prefix=API_PREFIX)
+app.include_router(schema_routes.router, prefix=API_PREFIX)
 
 # TODO: restrict allow_origins in production
 app.add_middleware(

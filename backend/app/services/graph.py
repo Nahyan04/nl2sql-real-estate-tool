@@ -53,6 +53,7 @@ class Failure(TypedDict):
 class PipelineState(TypedDict, total=False):
     question: str
     provider: str | None
+    dry_run: bool
     schema_context: str
     tables_used: list[str]
     sql: str | None
@@ -219,7 +220,8 @@ def _after_generate(state: PipelineState) -> str:
 
 
 def _after_validate(state: PipelineState) -> str:
-    return _route(state, "execute_sql")
+    # a dry run stops at validated SQL — nothing is executed, nothing is synthesized
+    return _route(state, END if state.get("dry_run") else "execute_sql")
 
 
 def _after_execute(state: PipelineState) -> str:
@@ -259,6 +261,7 @@ def run_pipeline(
     question: str,
     provider: str | None = None,
     *,
+    dry_run: bool = False,
     chat_model: BaseChatModel | None = None,
     engine: Engine | None = None,
     engine_ro: Engine | None = None,
@@ -271,6 +274,7 @@ def run_pipeline(
         {
             "question": question,
             "provider": provider,
+            "dry_run": dry_run,
             "attempts": 0,
             "sql": None,
             "failure": None,
