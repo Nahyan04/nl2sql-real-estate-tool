@@ -15,8 +15,10 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.config import Settings, get_settings
 from app.core.aliases import load_default_aliases
 from app.core.database import get_engine, get_readonly_engine
-from app.core.llm import get_chat_model
+from app.core.llm import get_chat_model, message_text
 from app.core.prompt_builder import build_system_prompt, build_user_prompt
+from app.services.answer_synthesizer import synthesize_answer
+from app.services.chart_spec import ChartSpec, build_chart_spec
 from app.services.executor import ExecResult, execute_readonly
 from app.services.response_parser import parse_response
 from app.services.retrieval.lexical import retrieve
@@ -58,7 +60,7 @@ class PipelineState(TypedDict, total=False):
     attempts: int
     exec_result: ExecResult | None
     answer: str
-    chart: Any | None
+    chart: ChartSpec | None
     latency_ms: int
 
 
@@ -100,18 +102,6 @@ def _retry_feedback(failure: Failure) -> str:
     )
 
 
-def _message_text(message: Any) -> str:
-    """Flatten a chat response to text; hosted providers may return content blocks."""
-    content = getattr(message, "content", "")
-    if isinstance(content, str):
-        return content
-    if isinstance(content, list):
-        return "".join(
-            part.get("text", "") for part in content if isinstance(part, dict)
-        )
-    return str(content)
-
-
 def _dep(config: RunnableConfig, name: str) -> Any:
     return config["configurable"][name]
 
@@ -147,7 +137,7 @@ def generate_sql(state: PipelineState, config: RunnableConfig) -> dict[str, Any]
         ),
     ]
 
-    raw = _message_text(chat_model.invoke(messages))
+    raw = message_text(chat_model.invoke(messages))
     parsed = parse_response(raw)
 
     if parsed is None:
@@ -196,6 +186,26 @@ def execute_sql(state: PipelineState, config: RunnableConfig) -> dict[str, Any]:
     return {"exec_result": result, "failure": None}
 
 
+def synthesize_answer_node(state: PipelineState, config: RunnableConfig) -> dict[str, Any]:
+    chat_model: BaseChatModel = _dep(config, "chat_model")
+    try:
+        answer = synthesize_answer(
+            state["question"], state["sql"] or "", state["exec_result"], chat_model
+        )
+    except Exception:  # noqa: BLE001 - best effort; the rows and SQL still stand alone
+        logger.exception("answer synthesis failed")
+        return {"answer": ""}
+    return {"answer": answer}
+
+
+def build_chart_node(state: PipelineState, config: RunnableConfig) -> dict[str, Any]:
+    try:
+        return {"chart": build_chart_spec(state["exec_result"])}
+    except Exception:  # noqa: BLE001 - a missing chart must not fail the request
+        logger.exception("chart spec generation failed")
+        return {"chart": None}
+
+
 def _route(state: PipelineState, on_success: str) -> str:
     if not state.get("failure"):
         return on_success
@@ -213,7 +223,7 @@ def _after_validate(state: PipelineState) -> str:
 
 
 def _after_execute(state: PipelineState) -> str:
-    return _route(state, END)
+    return _route(state, "synthesize_answer")
 
 
 def _build_graph():
@@ -222,6 +232,8 @@ def _build_graph():
     builder.add_node("generate_sql", generate_sql)
     builder.add_node("validate_sql", validate_sql)
     builder.add_node("execute_sql", execute_sql)
+    builder.add_node("synthesize_answer", synthesize_answer_node)
+    builder.add_node("build_chart", build_chart_node)
 
     builder.add_edge(START, "retrieve_schema")
     builder.add_edge("retrieve_schema", "generate_sql")
@@ -231,7 +243,12 @@ def _build_graph():
     builder.add_conditional_edges(
         "validate_sql", _after_validate, ["execute_sql", "generate_sql", END]
     )
-    builder.add_conditional_edges("execute_sql", _after_execute, ["generate_sql", END])
+    builder.add_conditional_edges(
+        "execute_sql", _after_execute, ["synthesize_answer", "generate_sql", END]
+    )
+    # terminal tail: a failure in here degrades the response, it never retries SQL
+    builder.add_edge("synthesize_answer", "build_chart")
+    builder.add_edge("build_chart", END)
     return builder.compile()
 
 
@@ -258,6 +275,8 @@ def run_pipeline(
             "sql": None,
             "failure": None,
             "exec_result": None,
+            "answer": "",
+            "chart": None,
         },
         config={
             "configurable": {

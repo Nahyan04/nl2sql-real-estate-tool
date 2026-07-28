@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models import BaseChatModel
 from langchain_ollama import ChatOllama
@@ -8,6 +10,16 @@ from app.config import Settings
 
 ANTHROPIC = "anthropic"
 OLLAMA = "ollama"
+
+
+def message_text(message: Any) -> str:
+    """Flatten a chat response to text; hosted providers may return content blocks."""
+    content = getattr(message, "content", "")
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return "".join(part.get("text", "") for part in content if isinstance(part, dict))
+    return str(content)
 
 
 def get_chat_model(provider: str | None, settings: Settings) -> BaseChatModel:
