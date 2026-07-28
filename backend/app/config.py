@@ -10,7 +10,8 @@ class Settings(BaseSettings):
     readonly_db_password: str
     llm_provider: str = "anthropic"
     llm_base_url: str = "http://localhost:11434"
-    llm_model: str = "claude-sonnet-5"
+    anthropic_model: str = "claude-sonnet-5"
+    ollama_model: str = "qwen2.5-coder:7b"
     anthropic_api_key: str | None = None
     embedding_enabled: bool = False
 
