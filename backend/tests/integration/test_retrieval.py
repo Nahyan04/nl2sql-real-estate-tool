@@ -115,6 +115,35 @@ def test_arabic_questions_score_nothing_without_the_alias_map(schema, question) 
     assert _ranked(question, schema, {}) == []
 
 
+@pytest.mark.parametrize(
+    "table,column,expected",
+    [
+        ("price_indices", "index_type", ["sale", "rent"]),
+        ("transactions", "sale_type", ["sale", "resale"]),
+        ("transactions", "buyer_origin", ["UAE", "GCC", "Foreign"]),
+        ("rental_contracts", "contract_type", ["new", "renewal"]),
+        (
+            "mortgages",
+            "lender_type",
+            ["local_bank", "international_bank", "finance_company"],
+        ),
+    ],
+)
+def test_categorical_columns_expose_their_allowed_values(
+    schema, table: str, column: str, expected: list[str]
+) -> None:
+    columns = next(t for t in schema["tables"] if t["name"] == table)["columns"]
+    assert next(c for c in columns if c["name"] == column)["allowed_values"] == expected
+
+
+def test_serialized_schema_carries_the_categorical_values(schema, aliases) -> None:
+    from app.services.schema_serializer import serialize_schema
+
+    question = "how has the villa sale price index moved"
+    selected = retrieve(question, schema, aliases=aliases, top_n=5)
+    assert "index_type IN ('sale','rent')" in serialize_schema(selected)
+
+
 def test_retrieve_fk_expands_rental_contracts_to_its_dimensions(schema, aliases) -> None:
     question = "average rent in Al Reem"
     selected = {t["name"] for t in retrieve(question, schema, aliases=aliases, top_n=2)}

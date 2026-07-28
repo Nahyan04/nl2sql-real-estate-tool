@@ -85,8 +85,16 @@ def expand_with_fk_neighbors(
     return result
 
 
+def _column_descriptor(column: dict[str, Any]) -> str:
+    allowed = column.get("allowed_values")
+    if not allowed:
+        return column["name"]
+    values = ",".join(f"'{value}'" for value in allowed)
+    return f"{column['name']} IN ({values})"
+
+
 def build_table_descriptor(table: dict[str, Any]) -> str:
-    col_names = ", ".join(c["name"] for c in table["columns"])
+    col_names = ", ".join(_column_descriptor(c) for c in table["columns"])
     descriptor = f"{table['name']}({col_names})"
 
     fk_parts = [
