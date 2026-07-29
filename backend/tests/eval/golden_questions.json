@@ -1,0 +1,225 @@
+{
+  "_comment": "Execution accuracy, not SQL similarity: each case carries a reference query whose result is the ground truth, and a run passes when the pipeline's rows carry the same values. Reference queries select only the values that discriminate a right answer from a wrong one — a label column appears only where its identity matters and its spelling is stable, so a run is never failed for choosing name_ar over name_en or for formatting a month differently. Expressing truth as SQL rather than as literals keeps the set valid when the synthetic dataset is regenerated.",
+  "_match_modes": {
+    "scalar": "one row, one meaningful value; the run must also return exactly one row",
+    "set": "same number of rows, matched in any order",
+    "ordered": "same number of rows, matched position by position (rankings, time series)"
+  },
+  "_tolerance": "relative, applied to numeric comparisons; 0.01 unless a case overrides it",
+  "cases": [
+    {
+      "id": "en-txn-value-2025",
+      "lang": "en",
+      "question": "What was the total transaction value in 2025?",
+      "match": "scalar",
+      "reference_sql": "SELECT SUM(price_aed) FROM transactions WHERE transaction_date >= DATE '2025-01-01' AND transaction_date < DATE '2026-01-01'"
+    },
+    {
+      "id": "en-txn-count-2025",
+      "lang": "en",
+      "question": "How many property transactions were registered in 2025?",
+      "match": "scalar",
+      "reference_sql": "SELECT COUNT(*) FROM transactions WHERE transaction_date >= DATE '2025-01-01' AND transaction_date < DATE '2026-01-01'"
+    },
+    {
+      "id": "en-top5-communities-2025",
+      "lang": "en",
+      "question": "Which 5 communities had the highest total transaction value in 2025?",
+      "match": "ordered",
+      "reference_sql": "SELECT c.name_en, SUM(t.price_aed) FROM transactions t JOIN communities c ON c.id = t.community_id WHERE t.transaction_date >= DATE '2025-01-01' AND t.transaction_date < DATE '2026-01-01' GROUP BY c.name_en ORDER BY 2 DESC LIMIT 5"
+    },
+    {
+      "id": "en-yas-avg-price-2025",
+      "lang": "en",
+      "question": "What was the average transaction price on Yas Island in 2025?",
+      "match": "scalar",
+      "reference_sql": "SELECT AVG(t.price_aed) FROM transactions t JOIN communities c ON c.id = t.community_id WHERE c.name_en = 'Yas Island' AND t.transaction_date >= DATE '2025-01-01' AND t.transaction_date < DATE '2026-01-01'"
+    },
+    {
+      "id": "en-reem-two-bedroom-rent",
+      "lang": "en",
+      "question": "What is the average annual rent for a 2 bedroom apartment on Al Reem Island?",
+      "match": "scalar",
+      "reference_sql": "SELECT AVG(r.annual_rent_aed) FROM rental_contracts r JOIN communities c ON c.id = r.community_id JOIN property_types p ON p.id = r.property_type_id JOIN layouts l ON l.id = r.layout_id WHERE c.name_en = 'Al Reem Island' AND p.name = 'Apartment' AND l.bedrooms = 2"
+    },
+    {
+      "id": "en-foreign-buyer-value-2025",
+      "lang": "en",
+      "question": "What was the total transaction value from foreign buyers in 2025?",
+      "match": "scalar",
+      "reference_sql": "SELECT SUM(price_aed) FROM transactions WHERE buyer_origin = 'Foreign' AND transaction_date >= DATE '2025-01-01' AND transaction_date < DATE '2026-01-01'"
+    },
+    {
+      "id": "en-mortgage-by-lender-2025",
+      "lang": "en",
+      "question": "What was the total mortgage value by lender type in 2025?",
+      "match": "set",
+      "reference_sql": "SELECT lender_type, SUM(mortgage_value_aed) FROM mortgages WHERE mortgage_date >= DATE '2025-01-01' AND mortgage_date < DATE '2026-01-01' GROUP BY lender_type"
+    },
+    {
+      "id": "en-offplan-value-2025",
+      "lang": "en",
+      "question": "What was the total off-plan transaction value in 2025?",
+      "match": "scalar",
+      "reference_sql": "SELECT SUM(price_aed) FROM transactions WHERE is_offplan AND transaction_date >= DATE '2025-01-01' AND transaction_date < DATE '2026-01-01'"
+    },
+    {
+      "id": "en-villa-sale-index-latest",
+      "lang": "en",
+      "question": "What is the most recent villa sale price index value?",
+      "match": "scalar",
+      "reference_sql": "SELECT pi.index_value FROM price_indices pi JOIN property_types pt ON pt.id = pi.property_type_id WHERE pt.name = 'Villa' AND pi.index_type = 'sale' ORDER BY pi.month DESC LIMIT 1"
+    },
+    {
+      "id": "en-apartment-rent-index-latest",
+      "lang": "en",
+      "question": "What is the most recent apartment rent index value?",
+      "match": "scalar",
+      "reference_sql": "SELECT pi.index_value FROM price_indices pi JOIN property_types pt ON pt.id = pi.property_type_id WHERE pt.name = 'Apartment' AND pi.index_type = 'rent' ORDER BY pi.month DESC LIMIT 1"
+    },
+    {
+      "id": "en-rental-contracts-2025",
+      "lang": "en",
+      "question": "How many rental contracts were signed in 2025?",
+      "match": "scalar",
+      "reference_sql": "SELECT COUNT(*) FROM rental_contracts WHERE contract_date >= DATE '2025-01-01' AND contract_date < DATE '2026-01-01'"
+    },
+    {
+      "id": "en-renewals-2025",
+      "lang": "en",
+      "question": "How many of the rental contracts signed in 2025 were renewals?",
+      "match": "scalar",
+      "reference_sql": "SELECT COUNT(*) FROM rental_contracts WHERE contract_type = 'renewal' AND contract_date >= DATE '2025-01-01' AND contract_date < DATE '2026-01-01'"
+    },
+    {
+      "id": "en-top3-districts-2025",
+      "lang": "en",
+      "question": "Which 3 districts had the highest total transaction value in 2025?",
+      "match": "ordered",
+      "reference_sql": "SELECT d.name_en, SUM(t.price_aed) FROM transactions t JOIN communities c ON c.id = t.community_id JOIN districts d ON d.id = c.district_id WHERE t.transaction_date >= DATE '2025-01-01' AND t.transaction_date < DATE '2026-01-01' GROUP BY d.name_en ORDER BY 2 DESC LIMIT 3"
+    },
+    {
+      "id": "en-saadiyat-rate-sqm-2025",
+      "lang": "en",
+      "question": "What was the average price per square metre on Saadiyat Island in 2025?",
+      "match": "scalar",
+      "reference_sql": "SELECT AVG(t.rate_aed_sqm) FROM transactions t JOIN communities c ON c.id = t.community_id WHERE c.name_en = 'Saadiyat Island' AND t.transaction_date >= DATE '2025-01-01' AND t.transaction_date < DATE '2026-01-01'"
+    },
+    {
+      "id": "en-broker-count",
+      "lang": "en",
+      "question": "How many brokers are registered?",
+      "match": "scalar",
+      "reference_sql": "SELECT COUNT(*) FROM brokers"
+    },
+    {
+      "id": "en-top5-developers-by-projects",
+      "lang": "en",
+      "question": "Which 5 developers have the most projects?",
+      "match": "set",
+      "note": "set rather than ordered: the top five contains a 19/19 and a 15/15 tie, so the order within them is arbitrary.",
+      "reference_sql": "SELECT d.name, COUNT(p.id) FROM developers d JOIN projects p ON p.developer_id = d.id GROUP BY d.name ORDER BY 2 DESC LIMIT 5"
+    },
+    {
+      "id": "en-yas-monthly-2025",
+      "lang": "en",
+      "question": "Show the monthly transaction value for Yas Island in 2025",
+      "match": "ordered",
+      "reference_sql": "SELECT SUM(t.price_aed) FROM transactions t JOIN communities c ON c.id = t.community_id WHERE c.name_en = 'Yas Island' AND t.transaction_date >= DATE '2025-01-01' AND t.transaction_date < DATE '2026-01-01' GROUP BY date_trunc('month', t.transaction_date) ORDER BY date_trunc('month', t.transaction_date)"
+    },
+    {
+      "id": "en-property-type-mix-2025",
+      "lang": "en",
+      "question": "What was the total transaction value by property type in 2025?",
+      "match": "set",
+      "reference_sql": "SELECT pt.name, SUM(t.price_aed) FROM transactions t JOIN property_types pt ON pt.id = t.property_type_id WHERE t.transaction_date >= DATE '2025-01-01' AND t.transaction_date < DATE '2026-01-01' GROUP BY pt.name"
+    },
+    {
+      "id": "en-al-ain-value-2025",
+      "lang": "en",
+      "question": "What was the total transaction value in Al Ain City in 2025?",
+      "match": "scalar",
+      "note": "resolves a place at the municipality level rather than the community level.",
+      "reference_sql": "SELECT SUM(t.price_aed) FROM transactions t JOIN communities c ON c.id = t.community_id JOIN districts d ON d.id = c.district_id JOIN municipalities m ON m.id = d.municipality_id WHERE m.name_en = 'Al Ain City' AND t.transaction_date >= DATE '2025-01-01' AND t.transaction_date < DATE '2026-01-01'"
+    },
+    {
+      "id": "en-khalifa-city-value-2025",
+      "lang": "en",
+      "question": "What was the total transaction value in Khalifa City in 2025?",
+      "match": "scalar",
+      "note": "'Khalifa City' is stored split across 'Khalifa City A' and 'Khalifa City B'; an equality filter silently returns nothing.",
+      "reference_sql": "SELECT SUM(t.price_aed) FROM transactions t JOIN communities c ON c.id = t.community_id WHERE c.name_en LIKE 'Khalifa City%' AND t.transaction_date >= DATE '2025-01-01' AND t.transaction_date < DATE '2026-01-01'"
+    },
+    {
+      "id": "ar-txn-value-2025",
+      "lang": "ar",
+      "question": "ما هو إجمالي قيمة المعاملات العقارية في عام 2025؟",
+      "match": "scalar",
+      "reference_sql": "SELECT SUM(price_aed) FROM transactions WHERE transaction_date >= DATE '2025-01-01' AND transaction_date < DATE '2026-01-01'"
+    },
+    {
+      "id": "ar-txn-count-2025",
+      "lang": "ar",
+      "question": "كم عدد المعاملات العقارية المسجلة في عام 2025؟",
+      "match": "scalar",
+      "reference_sql": "SELECT COUNT(*) FROM transactions WHERE transaction_date >= DATE '2025-01-01' AND transaction_date < DATE '2026-01-01'"
+    },
+    {
+      "id": "ar-top5-communities-2025",
+      "lang": "ar",
+      "question": "ما هي أعلى خمس مناطق من حيث إجمالي قيمة المبيعات في عام 2025؟",
+      "match": "ordered",
+      "note": "values only — the run may label the ranking with either name column.",
+      "reference_sql": "SELECT SUM(t.price_aed) FROM transactions t JOIN communities c ON c.id = t.community_id WHERE t.transaction_date >= DATE '2025-01-01' AND t.transaction_date < DATE '2026-01-01' GROUP BY c.id ORDER BY 1 DESC LIMIT 5"
+    },
+    {
+      "id": "ar-reem-apartment-rent",
+      "lang": "ar",
+      "question": "ما هو متوسط الإيجار السنوي للشقق في جزيرة الريم؟",
+      "match": "scalar",
+      "reference_sql": "SELECT AVG(r.annual_rent_aed) FROM rental_contracts r JOIN communities c ON c.id = r.community_id JOIN property_types p ON p.id = r.property_type_id WHERE c.name_en = 'Al Reem Island' AND p.name = 'Apartment'"
+    },
+    {
+      "id": "ar-villa-sale-index-latest",
+      "lang": "ar",
+      "question": "ما هي آخر قيمة لمؤشر أسعار بيع الفلل؟",
+      "match": "scalar",
+      "reference_sql": "SELECT pi.index_value FROM price_indices pi JOIN property_types pt ON pt.id = pi.property_type_id WHERE pt.name = 'Villa' AND pi.index_type = 'sale' ORDER BY pi.month DESC LIMIT 1"
+    },
+    {
+      "id": "ar-mortgage-value-2025",
+      "lang": "ar",
+      "question": "ما هو إجمالي قيمة الرهون العقارية في عام 2025؟",
+      "match": "scalar",
+      "reference_sql": "SELECT SUM(mortgage_value_aed) FROM mortgages WHERE mortgage_date >= DATE '2025-01-01' AND mortgage_date < DATE '2026-01-01'"
+    },
+    {
+      "id": "ar-yas-new-leases",
+      "lang": "ar",
+      "question": "كم عدد عقود الإيجار الجديدة في جزيرة ياس؟",
+      "match": "scalar",
+      "reference_sql": "SELECT COUNT(*) FROM rental_contracts r JOIN communities c ON c.id = r.community_id WHERE c.name_en = 'Yas Island' AND r.contract_type = 'new'"
+    },
+    {
+      "id": "ar-khalifa-city-value-2025",
+      "lang": "ar",
+      "question": "ما هو إجمالي قيمة المبيعات في مدينة خليفة خلال عام 2025؟",
+      "match": "scalar",
+      "reference_sql": "SELECT SUM(t.price_aed) FROM transactions t JOIN communities c ON c.id = t.community_id WHERE c.name_en LIKE 'Khalifa City%' AND t.transaction_date >= DATE '2025-01-01' AND t.transaction_date < DATE '2026-01-01'"
+    },
+    {
+      "id": "ar-foreign-buyer-value-2025",
+      "lang": "ar",
+      "question": "ما هي قيمة معاملات المشترين الأجانب في عام 2025؟",
+      "match": "scalar",
+      "reference_sql": "SELECT SUM(price_aed) FROM transactions WHERE buyer_origin = 'Foreign' AND transaction_date >= DATE '2025-01-01' AND transaction_date < DATE '2026-01-01'"
+    },
+    {
+      "id": "ar-saadiyat-rate-sqm-2025",
+      "lang": "ar",
+      "question": "ما هو متوسط سعر المتر المربع في جزيرة السعديات خلال عام 2025؟",
+      "match": "scalar",
+      "reference_sql": "SELECT AVG(t.rate_aed_sqm) FROM transactions t JOIN communities c ON c.id = t.community_id WHERE c.name_en = 'Saadiyat Island' AND t.transaction_date >= DATE '2025-01-01' AND t.transaction_date < DATE '2026-01-01'"
+    }
+  ]
+}
