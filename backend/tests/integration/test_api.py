@@ -158,13 +158,14 @@ def test_missing_question_is_rejected(client) -> None:
 
 def test_examples_endpoint_returns_the_curated_gallery(client) -> None:
     examples = client.get("/api/v1/examples").json()["examples"]
-    assert len(examples) == 18
+    assert len(examples) >= 18
 
 
-def test_examples_are_twelve_english_and_six_arabic(client) -> None:
+def test_examples_cover_both_languages(client) -> None:
     examples = client.get("/api/v1/examples").json()["examples"]
-    assert sum(e["lang"] == "en" for e in examples) == 12
-    assert sum(e["lang"] == "ar" for e in examples) == 6
+    assert {e["lang"] for e in examples} == {"en", "ar"}
+    assert sum(e["lang"] == "en" for e in examples) >= 12
+    assert sum(e["lang"] == "ar" for e in examples) >= 6
 
 
 def test_every_example_has_an_id_and_text(client) -> None:

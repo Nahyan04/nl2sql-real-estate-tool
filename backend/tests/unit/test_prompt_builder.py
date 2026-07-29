@@ -35,6 +35,28 @@ def test_system_prompt_keeps_identifiers_ascii_for_arabic_questions() -> None:
     assert "ASCII" in build_system_prompt()
 
 
+def test_system_prompt_matches_place_names_with_ilike() -> None:
+    """`name_ar = 'مدينة خليفة'` returns zero rows against 'مدينة خليفة أ' and nothing
+    in the pipeline flags an empty result, so the prompt has to rule out equality."""
+    prompt = build_system_prompt()
+    assert "ILIKE" in prompt
+    assert "never with =" in prompt
+
+
+def test_system_prompt_resolves_place_names_at_the_community_level() -> None:
+    assert "is a community unless" in build_system_prompt()
+
+
+def test_system_prompt_lists_the_property_type_values() -> None:
+    prompt = build_system_prompt()
+    for value in ("'Apartment'", "'Villa'", "'Land'", "'Building'", "'Commercial Unit'"):
+        assert value in prompt
+
+
+def test_system_prompt_points_bedroom_counts_at_the_layouts_column() -> None:
+    assert "layouts.bedrooms" in build_system_prompt()
+
+
 def test_user_prompt_includes_the_schema_context() -> None:
     prompt = build_user_prompt("how many communities", "communities(id, name_en)")
     assert "communities(id, name_en)" in prompt

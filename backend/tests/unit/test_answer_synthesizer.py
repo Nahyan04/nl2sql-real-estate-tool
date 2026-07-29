@@ -101,6 +101,12 @@ def test_prompt_asks_for_the_questions_language() -> None:
     assert "same language" in model.prompts[0].lower()
 
 
+def test_prompt_pins_arabic_answers_to_western_digits() -> None:
+    model = FakeChatModel()
+    synthesize_answer(QUESTION, SQL, _result(ROWS), model)
+    assert "Eastern Arabic numerals" in model.prompts[0]
+
+
 def test_empty_result_still_produces_an_answer() -> None:
     model = FakeChatModel("No transactions matched that filter.")
     answer = synthesize_answer(QUESTION, SQL, _result([]), model)

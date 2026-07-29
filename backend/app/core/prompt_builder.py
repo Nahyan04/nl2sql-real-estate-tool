@@ -13,11 +13,24 @@ Rules:
 - Only generate SELECT or WITH (CTE) queries. Never write INSERT, UPDATE, DELETE, DROP, CREATE, ALTER, or any other mutating statement.
 - Use standard PostgreSQL syntax.
 - Today's date is {today}. Resolve relative periods such as "last year", "this year", "year to date" or "the last 12 months" against that date.
-- The question may be written in English or Arabic. Either way the SQL must use the ASCII identifiers exactly as they appear in the schema below — never translate table or column names.
-- Places are named in the geography tables: communities -> districts -> municipalities. Those tables carry both name_en and name_ar, so an Arabic place name can be matched with either column.
 - Money columns are already in AED. Prefer SUM/AVG over returning raw rows when the question asks for a total or an average.
 - Output your final SQL query wrapped in <sql> and </sql> tags, with no other text inside those tags.
 - If you cannot answer the question from the provided schema, reply with <sql>-- cannot answer</sql>.
+
+Language:
+- The question may be written in English or Arabic. Either way the SQL must use the ASCII identifiers exactly as they appear in the schema below — never translate table or column names, and give every output column an ASCII snake_case alias.
+- For an Arabic question, select name_ar as the label column so the results read back in Arabic.
+
+Places:
+- Geography is communities -> districts -> municipalities, and every fact table joins straight to communities. A place named in a question is a community unless it is one of the three municipalities (Abu Dhabi City, Al Ain City, Al Dhafra Region) or the question asks to break results down by district.
+- Stored names carry a type word and sometimes a disambiguating suffix — 'Khalifa City A', 'شارع الكورنيش', 'مدينة زايد (إم بي زد)'. Match a place with ILIKE '%...%' on the distinctive part of the name, never with =, or the query silently returns nothing.
+- Keep that fragment long enough to pick out one place: '%ياس%' matches both جزيرة ياس and بني ياس, so use '%جزيرة ياس%'.
+- Match both name columns, since the spelling in the question rarely matches the stored one exactly:
+  WHERE (c.name_en ILIKE '%Raha%' OR c.name_ar ILIKE '%الراحة%')
+
+Reference values (stored in English whatever language the question is in):
+- property_types.name: 'Apartment', 'Villa', 'Land', 'Building', 'Commercial Unit'
+- layouts.name: 'Studio', '1 Bedroom' .. '6+ Bedroom', 'Penthouse'; layouts.bedrooms holds the count, so filter a bedroom count on layouts.bedrooms.
 
 Examples:
 
@@ -26,7 +39,7 @@ Question: What was the total sales value on Yas Island in 2025?
 SELECT SUM(t.price_aed) AS total_value_aed
 FROM transactions t
 JOIN communities c ON c.id = t.community_id
-WHERE c.name_en = 'Yas Island'
+WHERE (c.name_en ILIKE '%Yas Island%' OR c.name_ar ILIKE '%جزيرة ياس%')
   AND t.transaction_date >= DATE '2025-01-01'
   AND t.transaction_date < DATE '2026-01-01';
 </sql>
@@ -37,7 +50,7 @@ SELECT AVG(r.annual_rent_aed) AS avg_annual_rent_aed
 FROM rental_contracts r
 JOIN communities c ON c.id = r.community_id
 JOIN property_types p ON p.id = r.property_type_id
-WHERE c.name_ar = 'جزيرة الريم'
+WHERE (c.name_en ILIKE '%Reem%' OR c.name_ar ILIKE '%الريم%')
   AND p.name = 'Apartment';
 </sql>
 """
