@@ -195,13 +195,6 @@ def load_real_price_indices() -> pd.DataFrame:
 
 LEASE_KEY = ["Date", "Property Type", "Municipality", "District", "Property Layout"]
 
-# NOTE: "Sum of active_value_aed" is loaded as-is into total_annual_rent_aed.
-# Per-unit (value / Leased Units) averages ~AED 11k-25k/year by layout across the
-# file, which reads low against typical published Abu Dhabi rents -- but the raw
-# rows are too inconsistent to justify a blanket fix (e.g. 2 leased units against
-# an AED 503 sum in one row). See task-6-report.md for the open question this
-# leaves for whoever owns the rental_market_stats schema.
-
 
 def load_real_rental_stats(community_id_by_district: dict[str, int]) -> pd.DataFrame:
     units = pd.read_excel(LEASE_UNITS_XLSX)
@@ -233,6 +226,12 @@ def load_real_rental_stats(community_id_by_district: dict[str, int]) -> pd.DataF
     )[["Leased Units", "Sum of active_value_aed"]].sum()
 
     grouped["leased_units"] = grouped["Leased Units"]
+    # Loaded raw from "Sum of active_value_aed", no scaling applied. Per-unit rent
+    # derived from this column reads low against typical published Abu Dhabi
+    # averages (Date is quarterly, so a /4 -> annual conversion was investigated),
+    # but row-level data doesn't support a uniform correction factor -- e.g. one
+    # row has 2 leased units against an AED 503 sum, which no multiplier explains.
+    # Kept as the traceable, unmodified source figure; see task-6-report.md.
     grouped["total_annual_rent_aed"] = grouped["Sum of active_value_aed"]
 
     return grouped[[
