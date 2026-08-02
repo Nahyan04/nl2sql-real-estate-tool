@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pandas as pd
+from sqlalchemy import text
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 ADREC_DATA = REPO_ROOT / "ADREC_DATA"
@@ -79,3 +80,52 @@ def resolve_community_name(district: str) -> str:
     district verbatim — the caller decides whether that name already exists.
     """
     return DISTRICT_OVERRIDES.get(district.strip().lower(), district)
+
+
+def load_district_municipality_lookup() -> dict[str, str]:
+    """real district name -> real municipality name, built from the aggregate
+    workbook (recent_sales_2019-2026.csv has no municipality column at all)."""
+    df = pd.read_excel(YEARLY_SALES_XLSX)
+    pairs = df[["District", "Municipality"]].drop_duplicates()
+    return dict(zip(pairs["District"], pairs["Municipality"]))
+
+
+def sync_geography(connection) -> dict[str, int]:
+    """Ensure every real ADREC district has a communities row, and return a
+    real-district-name -> communities.id map covering all of them — curated
+    matches, spelling overrides, and newly-created rows alike."""
+    raw = pd.read_csv(TRANSACTIONS_CSV, header=None, names=TRANSACTION_COLUMNS)
+    real_districts = sorted(raw["district"].dropna().unique())
+    district_to_municipality = load_district_municipality_lookup()
+
+    existing = pd.read_sql("SELECT id, name_en FROM communities", connection)
+    existing_ids = dict(zip(existing["name_en"], existing["id"]))
+
+    municipality_ids = {
+        row[0]: row[1] for row in connection.execute(text("SELECT name_en, id FROM municipalities")).fetchall()
+    }
+    default_municipality_id = municipality_ids["Abu Dhabi City"]
+
+    result: dict[str, int] = {}
+    for district in real_districts:
+        community_name = resolve_community_name(district)
+        if community_name in existing_ids:
+            result[district] = existing_ids[community_name]
+            continue
+
+        municipality_name = district_to_municipality.get(district, "Abu Dhabi City")
+        municipality_id = municipality_ids.get(municipality_name, default_municipality_id)
+
+        district_id = connection.execute(
+            text("INSERT INTO districts (municipality_id, name_en) VALUES (:mid, :name) RETURNING id"),
+            {"mid": municipality_id, "name": community_name},
+        ).scalar_one()
+        community_id = connection.execute(
+            text("INSERT INTO communities (district_id, name_en) VALUES (:did, :name) RETURNING id"),
+            {"did": district_id, "name": community_name},
+        ).scalar_one()
+
+        existing_ids[community_name] = community_id
+        result[district] = community_id
+
+    return result
