@@ -148,3 +148,42 @@ def load_real_transactions(community_id_by_district: dict[str, int]) -> pd.DataF
         "transaction_date", "community_id", "property_type", "layout",
         "market_type", "is_offplan", "sold_area_sqm", "plot_area_sqm", "price_aed", "rate_aed_sqm",
     ]]
+
+
+def load_real_price_indices() -> pd.DataFrame:
+    frames = []
+
+    # rent_price_index.xlsx carries two overlapping series per month ('(all rents)'
+    # and 'new rents'); keep the citywide one only, or every rent row doubles.
+    sale_rent_property_map = {"apartments & duplexes": "Apartment", "villas & townhouses": "Villa"}
+    for path, index_type, app_type in [
+        (SALE_INDEX_XLSX, "sale", "(all sales)"),
+        (RENT_INDEX_XLSX, "rent", "(all rents)"),
+    ]:
+        df = pd.read_excel(path)
+        df = df[df["Property Type"].isin(sale_rent_property_map) & (df["App Type"] == app_type)].copy()
+        df["property_type"] = df["Property Type"].map(sale_rent_property_map)
+        df["index_type"] = index_type
+        df["index_value"] = df["Average of sale_index_value"]
+        df["month"] = pd.to_datetime(df["Date"]).dt.date
+        frames.append(df[["month", "index_type", "property_type", "index_value"]])
+
+    # office_price_index.xlsx and retail_price_index.xlsx carry rent-only series
+    # (App Type is '(all rents)' or 'new rents') despite the value column being
+    # named 'Sale Index Value' in the raw export. Each file also covers a single
+    # municipality, not a mix: office is Abu Dhabi City only, retail is Al Ain
+    # City only -- there is no Abu Dhabi retail rent series in this export.
+    for path, property_type, municipality in [
+        (OFFICE_INDEX_XLSX, "Office", "Abu Dhabi City"),
+        (RETAIL_INDEX_XLSX, "Retail", "Al Ain City"),
+    ]:
+        df = pd.read_excel(path)
+        df = df[(df["Municipality"] == municipality) & (df["App Type"] == "(all rents)")].copy()
+        assert len(df) > 0, f"{path} has no '(all rents)' rows for {municipality}"
+        df["property_type"] = property_type
+        df["index_type"] = "rent"
+        df["index_value"] = df["Sale Index Value"]
+        df["month"] = pd.to_datetime(df["Date"]).dt.date
+        frames.append(df[["month", "index_type", "property_type", "index_value"]])
+
+    return pd.concat(frames, ignore_index=True)
