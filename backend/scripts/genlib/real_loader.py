@@ -173,6 +173,10 @@ def load_real_price_indices() -> pd.DataFrame:
     # named 'Sale Index Value' in the raw export. Each file also covers a single
     # municipality, not a mix: office is Abu Dhabi City only, retail is Al Ain
     # City only -- there is no Abu Dhabi retail rent series in this export.
+    # Known geography inconsistency: the Retail/rent row below is therefore Al
+    # Ain City data, loaded as the closest available real substitute since
+    # price_indices has no geography column; every other row in this table is
+    # Abu Dhabi City.
     for path, property_type, municipality in [
         (OFFICE_INDEX_XLSX, "Office", "Abu Dhabi City"),
         (RETAIL_INDEX_XLSX, "Retail", "Al Ain City"),
