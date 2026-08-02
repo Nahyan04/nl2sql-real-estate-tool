@@ -191,3 +191,50 @@ def load_real_price_indices() -> pd.DataFrame:
         frames.append(df[["month", "index_type", "property_type", "index_value"]])
 
     return pd.concat(frames, ignore_index=True)
+
+
+LEASE_KEY = ["Date", "Property Type", "Municipality", "District", "Property Layout"]
+
+# NOTE: "Sum of active_value_aed" is loaded as-is into total_annual_rent_aed.
+# Per-unit (value / Leased Units) averages ~AED 11k-25k/year by layout across the
+# file, which reads low against typical published Abu Dhabi rents -- but the raw
+# rows are too inconsistent to justify a blanket fix (e.g. 2 leased units against
+# an AED 503 sum in one row). See task-6-report.md for the open question this
+# leaves for whoever owns the rental_market_stats schema.
+
+
+def load_real_rental_stats(community_id_by_district: dict[str, int]) -> pd.DataFrame:
+    units = pd.read_excel(LEASE_UNITS_XLSX)
+    value = pd.read_excel(LEASE_VALUE_XLSX)
+
+    units = units.groupby(LEASE_KEY, as_index=False)["Leased Units"].sum()
+    value = value.groupby(LEASE_KEY, as_index=False)["Sum of active_value_aed"].sum()
+    merged = units.merge(value, on=LEASE_KEY, how="inner")
+
+    merged["period_end"] = pd.to_datetime(merged["Date"]).dt.date
+    merged["community_id"] = merged["District"].map(community_id_by_district)
+    merged["property_type"] = merged["Property Type"].map(map_property_type)
+    merged["layout"] = merged["Property Layout"].map(map_layout)
+
+    dropped = int(merged["community_id"].isna().sum())
+    if dropped:
+        print(f"rental rows dropped (district has no matching community): {dropped}")
+    merged = merged[merged["community_id"].notna()].copy()
+    merged["community_id"] = merged["community_id"].astype(int)
+
+    # Property Layout values '5+ beds' and '6+ beds' both map to layout '6+
+    # Bedroom' (see LAYOUT_MAP), so two source rows can land on the same
+    # (period_end, community_id, property_type, layout) key after mapping;
+    # re-aggregate post-mapping instead of leaving split rows in an otherwise
+    # unique-keyed stats table. dropna=False keeps the 'unclassified' rows
+    # (layout maps to None) grouped together rather than dropped.
+    grouped = merged.groupby(
+        ["period_end", "community_id", "property_type", "layout"], dropna=False, as_index=False
+    )[["Leased Units", "Sum of active_value_aed"]].sum()
+
+    grouped["leased_units"] = grouped["Leased Units"]
+    grouped["total_annual_rent_aed"] = grouped["Sum of active_value_aed"]
+
+    return grouped[[
+        "period_end", "community_id", "property_type", "layout", "leased_units", "total_annual_rent_aed",
+    ]]
