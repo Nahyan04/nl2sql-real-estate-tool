@@ -129,3 +129,22 @@ def sync_geography(connection) -> dict[str, int]:
         result[district] = community_id
 
     return result
+
+
+def load_real_transactions(community_id_by_district: dict[str, int]) -> pd.DataFrame:
+    df = pd.read_csv(TRANSACTIONS_CSV, header=None, names=TRANSACTION_COLUMNS)
+    df = df[df["asset_class"].isin(["residential", "commercial"])].copy()
+
+    df["transaction_date"] = pd.to_datetime(df["date"]).dt.date
+    df["community_id"] = df["district"].map(community_id_by_district)
+    df["property_type"] = df["property_type"].map(map_property_type)
+    df["layout"] = df["layout"].map(map_layout)
+    df["is_offplan"] = df["sale_type"] == "off-plan"
+
+    unmapped = df["community_id"].isna().sum()
+    assert unmapped == 0, f"{unmapped} transaction rows have a district with no community mapping"
+
+    return df[[
+        "transaction_date", "community_id", "property_type", "layout",
+        "market_type", "is_offplan", "sold_area_sqm", "plot_area_sqm", "price_aed", "rate_aed_sqm",
+    ]]
