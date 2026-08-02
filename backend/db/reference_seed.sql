@@ -28,8 +28,7 @@ INSERT INTO communities (district_id, name_en, name_ar) VALUES
   ((SELECT id FROM districts WHERE name_en = 'Abu Dhabi Downtown'), 'Al Khalidiyah', 'الخالدية'),
   ((SELECT id FROM districts WHERE name_en = 'Abu Dhabi Downtown'), 'Al Bateen', 'البطين'),
   ((SELECT id FROM districts WHERE name_en = 'Abu Dhabi Downtown'), 'Al Zahiyah', 'الزاهية'),
-  ((SELECT id FROM districts WHERE name_en = 'Khalifa City & Al Raha'), 'Khalifa City A', 'مدينة خليفة أ'),
-  ((SELECT id FROM districts WHERE name_en = 'Khalifa City & Al Raha'), 'Khalifa City B', 'مدينة خليفة ب'),
+  ((SELECT id FROM districts WHERE name_en = 'Khalifa City & Al Raha'), 'Khalifa City', 'مدينة خليفة'),
   ((SELECT id FROM districts WHERE name_en = 'Khalifa City & Al Raha'), 'Al Raha Beach', 'شاطئ الراحة'),
   ((SELECT id FROM districts WHERE name_en = 'Masdar & Zayed City'), 'Masdar City', 'مدينة مصدر'),
   ((SELECT id FROM districts WHERE name_en = 'Masdar & Zayed City'), 'Zayed City', 'مدينة زايد (إم بي زد)'),
@@ -47,7 +46,10 @@ INSERT INTO communities (district_id, name_en, name_ar) VALUES
   ((SELECT id FROM districts WHERE name_en = 'Al Dhafra Interior'), 'Liwa', 'ليوا');
 
 INSERT INTO property_types (name) VALUES
-  ('Apartment'), ('Villa'), ('Land'), ('Building'), ('Commercial Unit');
+  ('Apartment'), ('Villa'), ('Townhouse / Attached Villa'), ('Plot for Villa'),
+  ('Residential Complex'), ('Duplex'), ('Office'), ('Plot for Residential Complex'),
+  ('Retail'), ('Plot for Townhouse / Attached Villa'), ('Mall / Market / Retail Center'),
+  ('Plot for Mall / Market / Retail Center'), ('Penthouse'), ('Office Complex'), ('Other');
 
 INSERT INTO layouts (name, bedrooms) VALUES
   ('Studio', 0),

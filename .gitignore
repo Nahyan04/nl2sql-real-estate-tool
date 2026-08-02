@@ -7,3 +7,4 @@ node_modules/
 docs/submission/
 .DS_Store
 backend/db/generated/
+ADREC_DATA/
