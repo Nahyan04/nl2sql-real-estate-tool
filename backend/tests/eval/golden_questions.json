@@ -133,7 +133,7 @@
       "lang": "en",
       "question": "What was the total transaction value in Khalifa City in 2025?",
       "match": "scalar",
-      "note": "'Khalifa City' is stored split across 'Khalifa City A' and 'Khalifa City B'; an equality filter silently returns nothing.",
+      "note": "uses a prefix match on 'Khalifa City' rather than equality, defensively — an exact community name mismatch elsewhere would otherwise silently return nothing.",
       "reference_sql": "SELECT SUM(t.price_aed) FROM transactions t JOIN communities c ON c.id = t.community_id WHERE c.name_en LIKE 'Khalifa City%' AND t.transaction_date >= DATE '2025-01-01' AND t.transaction_date < DATE '2026-01-01'"
     },
     {

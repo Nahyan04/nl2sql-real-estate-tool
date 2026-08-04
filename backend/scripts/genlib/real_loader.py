@@ -93,7 +93,19 @@ def load_district_municipality_lookup() -> dict[str, str]:
 def sync_geography(connection) -> dict[str, int]:
     """Ensure every real ADREC district has a communities row, and return a
     real-district-name -> communities.id map covering all of them — curated
-    matches, spelling overrides, and newly-created rows alike."""
+    matches, spelling overrides, and newly-created rows alike.
+
+    Known limitation: recent_sales_2019-2026.csv has no municipality column,
+    and district names aren't unique across municipalities in the real export
+    — "Al Bateen" is a real district in both Abu Dhabi City and Al Ain City
+    (confirmed via resi_sales_by_period_yearly.xlsx). Since this function
+    (and load_real_transactions/load_real_rental_stats, which reuse its
+    output) dedupes purely on district name, all "Al Bateen" rows collapse
+    into the single curated Abu Dhabi Downtown "Al Bateen" community,
+    including the Al Ain City ones. The source data gives no per-row way to
+    tell them apart, so this can't be disambiguated without an ADREC data
+    dictionary or a richer export; left as-is and documented rather than
+    guessed at."""
     raw = pd.read_csv(TRANSACTIONS_CSV, header=None, names=TRANSACTION_COLUMNS)
     real_districts = sorted(raw["district"].dropna().unique())
     district_to_municipality = load_district_municipality_lookup()

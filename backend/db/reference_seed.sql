@@ -1,5 +1,5 @@
 -- Reference/dimension data: geography, property taxonomy, developers.
--- Fact tables (transactions, mortgages, rental_contracts, price_indices, projects, brokers)
+-- Fact tables (transactions, mortgages, rental_market_stats, price_indices, projects, brokers)
 -- are populated by scripts/generate_dataset.py, not here.
 
 INSERT INTO municipalities (name_en, name_ar) VALUES
