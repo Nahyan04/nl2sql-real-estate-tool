@@ -39,10 +39,10 @@ def run_scalar(sql: str, params: dict) -> float:
 
 
 # (table[+join], date_column, value_expr, extra_where, window) for the anchors testable as a
-# single windowed aggregate. rented_units_current, the price-index anchors, the txn_value_ytd2026
-# composite, and txn_value_last12mo/txn_volume_last12mo/txn_value_fy2025 (which reconcile against
-# real data only as sales+mortgage composites -- see their calibration.json notes) each need
-# bespoke handling and get their own test below.
+# single windowed aggregate. rented_units_current, the price-index anchors, and the sales+mortgage
+# composite anchors (see COMPOSITE_SPECS below -- they only reconcile against real data as sales
+# plus mortgages combined, per their calibration.json notes) each need bespoke handling and get
+# their own test below.
 ANCHOR_SPECS = {
     "sales_value_ytd2026": ("transactions", "transaction_date", "SUM(price_aed)", None, "ytd_2026"),
     "mortgage_value_ytd2026": ("mortgages", "mortgage_date", "SUM(mortgage_value_aed)", None, "ytd_2026"),
@@ -77,76 +77,38 @@ def test_anchor_within_tolerance(key):
     assert abs(actual - expected) <= tolerance * expected, f"{key}: actual={actual}, expected={expected}, off by {off_pct:.2f}%"
 
 
-def test_txn_value_ytd2026_composite():
-    anchor = ANCHORS["txn_value_ytd2026"]
-    start, end = window_bounds("ytd_2026")
+# (anchor_key, window, sales_agg_expr, mortgage_agg_expr) for anchors that only reconcile against
+# real data as a sales+mortgages composite (see each anchor's calibration.json note). Three are
+# value sums (price_aed / mortgage_value_aed); txn_volume_last12mo is a row count instead.
+COMPOSITE_SPECS = {
+    "txn_value_ytd2026": ("ytd_2026", "SUM(price_aed)", "SUM(mortgage_value_aed)"),
+    "txn_value_fy2025": ("fy_2025", "SUM(price_aed)", "SUM(mortgage_value_aed)"),
+    "txn_value_last12mo": ("last_12mo", "SUM(price_aed)", "SUM(mortgage_value_aed)"),
+    "txn_volume_last12mo": ("last_12mo", "COUNT(*)", "COUNT(*)"),
+}
+
+
+def run_composite(window: str, sales_agg_expr: str, mortgage_agg_expr: str) -> float:
+    start, end = window_bounds(window)
     sales = run_scalar(
-        "SELECT COALESCE(SUM(price_aed), 0) FROM transactions WHERE transaction_date >= :start AND transaction_date < :end",
+        f"SELECT COALESCE({sales_agg_expr}, 0) FROM transactions WHERE transaction_date >= :start AND transaction_date < :end",
         {"start": start, "end": end},
     )
     mortgages = run_scalar(
-        "SELECT COALESCE(SUM(mortgage_value_aed), 0) FROM mortgages WHERE mortgage_date >= :start AND mortgage_date < :end",
+        f"SELECT COALESCE({mortgage_agg_expr}, 0) FROM mortgages WHERE mortgage_date >= :start AND mortgage_date < :end",
         {"start": start, "end": end},
     )
-    actual = sales + mortgages
+    return sales + mortgages
+
+
+@pytest.mark.parametrize("key", sorted(COMPOSITE_SPECS))
+def test_composite_anchor_within_tolerance(key):
+    anchor = ANCHORS[key]
+    actual = run_composite(*COMPOSITE_SPECS[key])
     expected = anchor["value"]
     tolerance = anchor["tolerance_pct"] / 100
     off_pct = 100 * (actual - expected) / expected
-    assert abs(actual - expected) <= tolerance * expected, f"txn_value_ytd2026: actual={actual}, expected={expected}, off by {off_pct:.2f}%"
-
-
-def test_txn_value_fy2025_composite():
-    anchor = ANCHORS["txn_value_fy2025"]
-    start, end = window_bounds("fy_2025")
-    sales = run_scalar(
-        "SELECT COALESCE(SUM(price_aed), 0) FROM transactions WHERE transaction_date >= :start AND transaction_date < :end",
-        {"start": start, "end": end},
-    )
-    mortgages = run_scalar(
-        "SELECT COALESCE(SUM(mortgage_value_aed), 0) FROM mortgages WHERE mortgage_date >= :start AND mortgage_date < :end",
-        {"start": start, "end": end},
-    )
-    actual = sales + mortgages
-    expected = anchor["value"]
-    tolerance = anchor["tolerance_pct"] / 100
-    off_pct = 100 * (actual - expected) / expected
-    assert abs(actual - expected) <= tolerance * expected, f"txn_value_fy2025: actual={actual}, expected={expected}, off by {off_pct:.2f}%"
-
-
-def test_txn_value_last12mo_composite():
-    anchor = ANCHORS["txn_value_last12mo"]
-    start, end = window_bounds("last_12mo")
-    sales = run_scalar(
-        "SELECT COALESCE(SUM(price_aed), 0) FROM transactions WHERE transaction_date >= :start AND transaction_date < :end",
-        {"start": start, "end": end},
-    )
-    mortgages = run_scalar(
-        "SELECT COALESCE(SUM(mortgage_value_aed), 0) FROM mortgages WHERE mortgage_date >= :start AND mortgage_date < :end",
-        {"start": start, "end": end},
-    )
-    actual = sales + mortgages
-    expected = anchor["value"]
-    tolerance = anchor["tolerance_pct"] / 100
-    off_pct = 100 * (actual - expected) / expected
-    assert abs(actual - expected) <= tolerance * expected, f"txn_value_last12mo: actual={actual}, expected={expected}, off by {off_pct:.2f}%"
-
-
-def test_txn_volume_last12mo_composite():
-    anchor = ANCHORS["txn_volume_last12mo"]
-    start, end = window_bounds("last_12mo")
-    sales_count = run_scalar(
-        "SELECT COUNT(*) FROM transactions WHERE transaction_date >= :start AND transaction_date < :end",
-        {"start": start, "end": end},
-    )
-    mortgage_count = run_scalar(
-        "SELECT COUNT(*) FROM mortgages WHERE mortgage_date >= :start AND mortgage_date < :end",
-        {"start": start, "end": end},
-    )
-    actual = sales_count + mortgage_count
-    expected = anchor["value"]
-    tolerance = anchor["tolerance_pct"] / 100
-    off_pct = 100 * (actual - expected) / expected
-    assert abs(actual - expected) <= tolerance * expected, f"txn_volume_last12mo: actual={actual}, expected={expected}, off by {off_pct:.2f}%"
+    assert abs(actual - expected) <= tolerance * expected, f"{key}: actual={actual}, expected={expected}, off by {off_pct:.2f}%"
 
 
 def test_rented_units_current():

@@ -20,7 +20,7 @@
       "tolerance_pct": 25.0,
       "source": "adrec market-data dashboard",
       "as_of": "2026-07-26",
-      "note": "checked as sales count + mortgage count combined (see txn_value_last12mo). Real transaction count alone is ~38% below this anchor; adding mortgage registrations closes it to ~24% (measured directly), still short at 20% tolerance, hence the wider 25%. The residual is presumed to be unmodeled registration categories (gifts, initial off-plan registration, etc — the same categories called out for txn_value_ytd2026's ~5bn value gap), which this dataset does not generate rows for. Mortgage count is still synthetically generated, so this check is partly self-referential for that component"
+      "note": "checked as sales count + mortgage count combined (see txn_value_last12mo). Real transaction count alone is ~38% below this anchor; adding mortgage registrations closes it to ~24% (measured directly), still short at 20% tolerance, hence the wider 25%. The residual is presumed to be unmodeled registration categories (gifts, initial off-plan registration, etc — the same categories called out for txn_value_ytd2026's ~11.2bn (~8.7%) value gap), which this dataset does not generate rows for. Mortgage count is still synthetically generated, so this check is partly self-referential for that component"
     },
     "txn_value_ytd2026": {
       "value": 128300000000,
@@ -29,7 +29,7 @@
       "tolerance_pct": 20.0,
       "source": "adrec homepage tiles",
       "as_of": "2026-07-26",
-      "note": "composite: sales value + mortgage value; ~5bn gap vs those two components combined is unmodeled registration categories (gifts, initial off-plan registration, etc). Real ADREC exports don't reconcile exactly against this dashboard aggregate either way — the combined actual is ~8.7% below anchor (measured directly) — so the anchor stays as a regression sanity check, not a tight statistical target, since there's no longer a generator tuning toward it"
+      "note": "composite: sales value + mortgage value; the combined actual is ~11.2bn (~8.7%) below the 128.3bn anchor (measured directly), presumed to be unmodeled registration categories (gifts, initial off-plan registration, etc). Real ADREC exports don't reconcile exactly against this dashboard aggregate either way, so the anchor stays as a regression sanity check, not a tight statistical target, since there's no longer a generator tuning toward it"
     },
     "sales_value_ytd2026": {
       "value": 92100000000,
