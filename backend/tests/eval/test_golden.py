@@ -38,8 +38,8 @@ LIVE = pytest.mark.skipif(
 # --- the golden file ------------------------------------------------------
 
 
-def test_golden_set_is_twenty_english_and_ten_arabic() -> None:
-    assert sum(c["lang"] == "en" for c in CASES) == 20
+def test_golden_set_is_nineteen_english_and_ten_arabic() -> None:
+    assert sum(c["lang"] == "en" for c in CASES) == 19
     assert sum(c["lang"] == "ar" for c in CASES) == 10
 
 

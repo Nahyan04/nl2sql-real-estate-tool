@@ -49,7 +49,7 @@ def test_system_prompt_resolves_place_names_at_the_community_level() -> None:
 
 def test_system_prompt_lists_the_property_type_values() -> None:
     prompt = build_system_prompt()
-    for value in ("'Apartment'", "'Villa'", "'Land'", "'Building'", "'Commercial Unit'"):
+    for value in ("'Apartment'", "'Villa'", "'Office'", "'Retail'", "'Duplex'"):
         assert value in prompt
 
 

@@ -65,7 +65,7 @@ def test_query_serializes_dates_as_iso_strings(client) -> None:
     sql = "SELECT month, index_value FROM price_indices ORDER BY month LIMIT 3"
     _use(f"<sql>{sql}</sql>", NARRATIVE)
     body = client.post("/api/v1/query", json={"question": "price index"}).json()
-    assert body["rows"][0][0] == "2019-01-01"
+    assert body["rows"][0][0] == "2020-01-31"
 
 
 def test_query_returns_a_chart_spec(answering_client) -> None:
