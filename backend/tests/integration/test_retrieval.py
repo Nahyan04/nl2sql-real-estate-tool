@@ -46,20 +46,20 @@ def test_alias_map_only_names_tables_that_exist(schema, aliases) -> None:
 
 def test_alias_map_covers_every_fact_table(schema, aliases) -> None:
     referenced = {table for tables in aliases.values() for table in tables}
-    assert {"transactions", "rental_contracts", "mortgages", "price_indices"} <= referenced
+    assert {"transactions", "rental_market_stats", "mortgages", "price_indices"} <= referenced
 
 
-def test_english_rent_question_ranks_rental_contracts(schema, aliases) -> None:
-    assert "rental_contracts" in _ranked("average rent in Al Reem", schema, aliases, top=2)
+def test_english_rent_question_ranks_rental_market_stats(schema, aliases) -> None:
+    assert "rental_market_stats" in _ranked("average rent in Al Reem", schema, aliases, top=2)
 
 
 def test_english_rent_question_ranks_the_named_community(schema, aliases) -> None:
     assert "communities" in _ranked("average rent in Al Reem", schema, aliases, top=2)
 
 
-def test_arabic_rent_question_ranks_rental_contracts(schema, aliases) -> None:
+def test_arabic_rent_question_ranks_rental_market_stats(schema, aliases) -> None:
     question = "ما هو متوسط الإيجار السنوي للشقق في جزيرة الريم؟"
-    assert "rental_contracts" in _ranked(question, schema, aliases)
+    assert "rental_market_stats" in _ranked(question, schema, aliases)
 
 
 def test_english_sales_question_ranks_transactions(schema, aliases) -> None:
@@ -119,9 +119,7 @@ def test_arabic_questions_score_nothing_without_the_alias_map(schema, question) 
     "table,column,expected",
     [
         ("price_indices", "index_type", ["sale", "rent"]),
-        ("transactions", "sale_type", ["sale", "resale"]),
-        ("transactions", "buyer_origin", ["UAE", "GCC", "Foreign"]),
-        ("rental_contracts", "contract_type", ["new", "renewal"]),
+        ("transactions", "market_type", ["primary", "secondary"]),
         (
             "mortgages",
             "lender_type",
@@ -144,7 +142,7 @@ def test_serialized_schema_carries_the_categorical_values(schema, aliases) -> No
     assert "index_type IN ('sale','rent')" in serialize_schema(selected)
 
 
-def test_retrieve_fk_expands_rental_contracts_to_its_dimensions(schema, aliases) -> None:
+def test_retrieve_fk_expands_rental_market_stats_to_its_dimensions(schema, aliases) -> None:
     question = "average rent in Al Reem"
     selected = {t["name"] for t in retrieve(question, schema, aliases=aliases, top_n=2)}
-    assert {"rental_contracts", "communities", "property_types", "layouts"} <= selected
+    assert {"rental_market_stats", "communities", "property_types", "layouts"} <= selected

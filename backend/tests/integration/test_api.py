@@ -180,7 +180,7 @@ def test_example_ids_are_unique(client) -> None:
 
 def test_schema_endpoint_lists_the_real_tables(client) -> None:
     tables = {t["name"] for t in client.get("/api/v1/schema").json()["tables"]}
-    assert {"transactions", "rental_contracts", "mortgages", "communities"} <= tables
+    assert {"transactions", "rental_market_stats", "mortgages", "communities"} <= tables
 
 
 def test_schema_endpoint_includes_columns(client) -> None:
