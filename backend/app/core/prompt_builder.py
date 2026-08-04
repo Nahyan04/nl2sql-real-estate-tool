@@ -29,8 +29,9 @@ Places:
   WHERE (c.name_en ILIKE '%Raha%' OR c.name_ar ILIKE '%الراحة%')
 
 Reference values (stored in English whatever language the question is in):
-- property_types.name: 'Apartment', 'Villa', 'Land', 'Building', 'Commercial Unit'
-- layouts.name: 'Studio', '1 Bedroom' .. '6+ Bedroom', 'Penthouse'; layouts.bedrooms holds the count, so filter a bedroom count on layouts.bedrooms.
+- property_types.name: 'Apartment', 'Villa', 'Townhouse / Attached Villa', 'Plot for Villa', 'Residential Complex', 'Duplex', 'Office', 'Plot for Residential Complex', 'Retail', 'Plot for Townhouse / Attached Villa', 'Mall / Market / Retail Center', 'Plot for Mall / Market / Retail Center', 'Penthouse', 'Office Complex', 'Other'
+- layouts.name: 'Studio', '1 Bedroom' .. '6+ Bedroom'; layouts.bedrooms holds the count, so filter a bedroom count on layouts.bedrooms.
+- rental_market_stats is aggregate, not per-contract: leased_units and total_annual_rent_aed are already summed over every (period, community, property type, layout) cell. Average annual rent is SUM(total_annual_rent_aed) / SUM(leased_units), never AVG(total_annual_rent_aed) directly, and COUNT(*) on this table counts aggregate cells, not leases or units.
 
 Examples:
 
@@ -46,8 +47,8 @@ WHERE (c.name_en ILIKE '%Yas Island%' OR c.name_ar ILIKE '%جزيرة ياس%')
 
 Question: ما هو متوسط الإيجار السنوي للشقق في جزيرة الريم؟
 <sql>
-SELECT AVG(r.annual_rent_aed) AS avg_annual_rent_aed
-FROM rental_contracts r
+SELECT SUM(r.total_annual_rent_aed) / NULLIF(SUM(r.leased_units), 0) AS avg_annual_rent_aed
+FROM rental_market_stats r
 JOIN communities c ON c.id = r.community_id
 JOIN property_types p ON p.id = r.property_type_id
 WHERE (c.name_en ILIKE '%Reem%' OR c.name_ar ILIKE '%الريم%')
