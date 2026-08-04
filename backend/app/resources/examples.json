@@ -31,9 +31,9 @@
       "text": "Which 10 communities have the highest average price per square metre?"
     },
     {
-      "id": "en-foreign-share",
+      "id": "en-yield-check",
       "lang": "en",
-      "text": "What share of transaction value came from foreign buyers this year?"
+      "text": "What's the implied rental yield for apartments on Yas Island?"
     },
     {
       "id": "en-offplan-vs-ready",
@@ -56,9 +56,9 @@
       "text": "Which 5 developers have the most projects?"
     },
     {
-      "id": "en-renewal-vs-new",
+      "id": "en-secondary-market-share",
       "lang": "en",
-      "text": "How many rental contracts were renewals versus new in the last 12 months?"
+      "text": "What share of transaction value came from the secondary market this year?"
     },
     {
       "id": "ar-reem-apartment-rent",
@@ -86,9 +86,9 @@
       "text": "ما هو إجمالي قيمة الرهن العقاري هذا العام؟"
     },
     {
-      "id": "ar-yas-new-leases",
+      "id": "ar-yas-leased-units",
       "lang": "ar",
-      "text": "كم عدد عقود الإيجار الجديدة في جزيرة ياس؟"
+      "text": "كم عدد الوحدات السكنية المؤجرة في جزيرة ياس؟"
     },
     {
       "id": "ar-khalifa-city-sales",

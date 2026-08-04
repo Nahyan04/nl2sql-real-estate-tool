@@ -40,14 +40,7 @@
       "lang": "en",
       "question": "What is the average annual rent for a 2 bedroom apartment on Al Reem Island?",
       "match": "scalar",
-      "reference_sql": "SELECT AVG(r.annual_rent_aed) FROM rental_contracts r JOIN communities c ON c.id = r.community_id JOIN property_types p ON p.id = r.property_type_id JOIN layouts l ON l.id = r.layout_id WHERE c.name_en = 'Al Reem Island' AND p.name = 'Apartment' AND l.bedrooms = 2"
-    },
-    {
-      "id": "en-foreign-buyer-value-2025",
-      "lang": "en",
-      "question": "What was the total transaction value from foreign buyers in 2025?",
-      "match": "scalar",
-      "reference_sql": "SELECT SUM(price_aed) FROM transactions WHERE buyer_origin = 'Foreign' AND transaction_date >= DATE '2025-01-01' AND transaction_date < DATE '2026-01-01'"
+      "reference_sql": "SELECT SUM(r.total_annual_rent_aed) / NULLIF(SUM(r.leased_units), 0) FROM rental_market_stats r JOIN communities c ON c.id = r.community_id JOIN property_types p ON p.id = r.property_type_id JOIN layouts l ON l.id = r.layout_id WHERE c.name_en = 'Al Reem Island' AND p.name = 'Apartment' AND l.bedrooms = 2"
     },
     {
       "id": "en-mortgage-by-lender-2025",
@@ -78,18 +71,11 @@
       "reference_sql": "SELECT pi.index_value FROM price_indices pi JOIN property_types pt ON pt.id = pi.property_type_id WHERE pt.name = 'Apartment' AND pi.index_type = 'rent' ORDER BY pi.month DESC LIMIT 1"
     },
     {
-      "id": "en-rental-contracts-2025",
+      "id": "en-avg-leased-units-2025",
       "lang": "en",
-      "question": "How many rental contracts were signed in 2025?",
+      "question": "What was the average number of leased residential units per quarter in 2025?",
       "match": "scalar",
-      "reference_sql": "SELECT COUNT(*) FROM rental_contracts WHERE contract_date >= DATE '2025-01-01' AND contract_date < DATE '2026-01-01'"
-    },
-    {
-      "id": "en-renewals-2025",
-      "lang": "en",
-      "question": "How many of the rental contracts signed in 2025 were renewals?",
-      "match": "scalar",
-      "reference_sql": "SELECT COUNT(*) FROM rental_contracts WHERE contract_type = 'renewal' AND contract_date >= DATE '2025-01-01' AND contract_date < DATE '2026-01-01'"
+      "reference_sql": "SELECT AVG(period_total) FROM (SELECT period_end, SUM(leased_units) AS period_total FROM rental_market_stats WHERE period_end >= DATE '2025-01-01' AND period_end < DATE '2026-01-01' GROUP BY period_end) sub"
     },
     {
       "id": "en-top3-districts-2025",
@@ -151,6 +137,13 @@
       "reference_sql": "SELECT SUM(t.price_aed) FROM transactions t JOIN communities c ON c.id = t.community_id WHERE c.name_en LIKE 'Khalifa City%' AND t.transaction_date >= DATE '2025-01-01' AND t.transaction_date < DATE '2026-01-01'"
     },
     {
+      "id": "en-secondary-market-share-2025",
+      "lang": "en",
+      "question": "What share of 2025 transaction value came from the secondary market?",
+      "match": "scalar",
+      "reference_sql": "SELECT SUM(CASE WHEN market_type = 'secondary' THEN price_aed ELSE 0 END) / SUM(price_aed) FROM transactions WHERE transaction_date >= DATE '2025-01-01' AND transaction_date < DATE '2026-01-01'"
+    },
+    {
       "id": "ar-txn-value-2025",
       "lang": "ar",
       "question": "ما هو إجمالي قيمة المعاملات العقارية في عام 2025؟",
@@ -177,7 +170,7 @@
       "lang": "ar",
       "question": "ما هو متوسط الإيجار السنوي للشقق في جزيرة الريم؟",
       "match": "scalar",
-      "reference_sql": "SELECT AVG(r.annual_rent_aed) FROM rental_contracts r JOIN communities c ON c.id = r.community_id JOIN property_types p ON p.id = r.property_type_id WHERE c.name_en = 'Al Reem Island' AND p.name = 'Apartment'"
+      "reference_sql": "SELECT SUM(r.total_annual_rent_aed) / NULLIF(SUM(r.leased_units), 0) FROM rental_market_stats r JOIN communities c ON c.id = r.community_id JOIN property_types p ON p.id = r.property_type_id WHERE c.name_en = 'Al Reem Island' AND p.name = 'Apartment'"
     },
     {
       "id": "ar-villa-sale-index-latest",
@@ -194,11 +187,11 @@
       "reference_sql": "SELECT SUM(mortgage_value_aed) FROM mortgages WHERE mortgage_date >= DATE '2025-01-01' AND mortgage_date < DATE '2026-01-01'"
     },
     {
-      "id": "ar-yas-new-leases",
+      "id": "ar-yas-leased-units",
       "lang": "ar",
-      "question": "كم عدد عقود الإيجار الجديدة في جزيرة ياس؟",
+      "question": "كم عدد الوحدات السكنية المؤجرة في جزيرة ياس؟",
       "match": "scalar",
-      "reference_sql": "SELECT COUNT(*) FROM rental_contracts r JOIN communities c ON c.id = r.community_id WHERE c.name_en = 'Yas Island' AND r.contract_type = 'new'"
+      "reference_sql": "SELECT SUM(r.leased_units) FROM rental_market_stats r JOIN communities c ON c.id = r.community_id WHERE c.name_en = 'Yas Island' AND r.period_end = (SELECT MAX(period_end) FROM rental_market_stats)"
     },
     {
       "id": "ar-khalifa-city-value-2025",
@@ -208,18 +201,18 @@
       "reference_sql": "SELECT SUM(t.price_aed) FROM transactions t JOIN communities c ON c.id = t.community_id WHERE c.name_en LIKE 'Khalifa City%' AND t.transaction_date >= DATE '2025-01-01' AND t.transaction_date < DATE '2026-01-01'"
     },
     {
-      "id": "ar-foreign-buyer-value-2025",
-      "lang": "ar",
-      "question": "ما هي قيمة معاملات المشترين الأجانب في عام 2025؟",
-      "match": "scalar",
-      "reference_sql": "SELECT SUM(price_aed) FROM transactions WHERE buyer_origin = 'Foreign' AND transaction_date >= DATE '2025-01-01' AND transaction_date < DATE '2026-01-01'"
-    },
-    {
       "id": "ar-saadiyat-rate-sqm-2025",
       "lang": "ar",
       "question": "ما هو متوسط سعر المتر المربع في جزيرة السعديات خلال عام 2025؟",
       "match": "scalar",
       "reference_sql": "SELECT AVG(t.rate_aed_sqm) FROM transactions t JOIN communities c ON c.id = t.community_id WHERE c.name_en = 'Saadiyat Island' AND t.transaction_date >= DATE '2025-01-01' AND t.transaction_date < DATE '2026-01-01'"
+    },
+    {
+      "id": "ar-secondary-market-share-2025",
+      "lang": "ar",
+      "question": "ما هي نسبة قيمة معاملات السوق الثانوي في عام 2025؟",
+      "match": "scalar",
+      "reference_sql": "SELECT SUM(CASE WHEN market_type = 'secondary' THEN price_aed ELSE 0 END) / SUM(price_aed) FROM transactions WHERE transaction_date >= DATE '2025-01-01' AND transaction_date < DATE '2026-01-01'"
     }
   ]
 }
