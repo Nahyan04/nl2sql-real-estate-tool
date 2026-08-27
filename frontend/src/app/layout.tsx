@@ -46,7 +46,6 @@ export default function RootLayout({
               Synthetic demonstration data, calibrated to published ADREC aggregates. Not an
               official ADREC service.
             </p>
-            <p className="label-mono text-sand">Presight Innovation Challenge</p>
           </div>
         </footer>
       </body>
