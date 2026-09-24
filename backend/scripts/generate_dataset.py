@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 import time
@@ -128,6 +129,11 @@ def load_csvs(engine) -> None:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Destructive legacy demo setup; not an ADREC snapshot importer")
+    parser.add_argument('--allow-legacy-reset', action='store_true')
+    args = parser.parse_args()
+    if not args.allow_legacy_reset:
+        parser.error('Legacy reset disabled by default. Use profile_snapshot.py for fresh data; --allow-legacy-reset explicitly enables destructive legacy setup.')
     calibration = json.loads(CALIBRATION_PATH.read_text())
     engine = get_engine()
     try:

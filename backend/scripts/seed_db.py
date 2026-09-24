@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -51,6 +52,11 @@ def ensure_readonly_role(connection, database: str, password: str) -> None:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Destructive legacy demo setup; not an ADREC snapshot importer")
+    parser.add_argument('--allow-legacy-reset', action='store_true')
+    args = parser.parse_args()
+    if not args.allow_legacy_reset:
+        parser.error('Legacy reset disabled by default. Use profile_snapshot.py for fresh data; --allow-legacy-reset explicitly enables destructive legacy setup.')
     settings = get_settings()
     engine = get_engine()
     try:

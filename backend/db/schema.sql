@@ -1,3 +1,4 @@
+-- Legacy demo schema; fresh source intake uses adrec_staging.sql until validated migration.
 CREATE TABLE municipalities (id serial PRIMARY KEY, name_en text NOT NULL, name_ar text);
 CREATE TABLE districts      (id serial PRIMARY KEY, municipality_id int REFERENCES municipalities(id), name_en text NOT NULL, name_ar text);
 CREATE TABLE communities    (id serial PRIMARY KEY, district_id int REFERENCES districts(id), name_en text NOT NULL, name_ar text);
@@ -45,7 +46,7 @@ CREATE TABLE price_indices (
   month date NOT NULL,
   index_type text NOT NULL CHECK (index_type IN ('sale','rent')),
   property_type_id int NOT NULL REFERENCES property_types(id),
-  index_value numeric(8,2) NOT NULL              -- base 2019 = 100
+  index_value numeric(8,2) NOT NULL              -- legacy series; official base methodology not established
 );
 
 CREATE TABLE brokers (

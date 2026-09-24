@@ -93,10 +93,12 @@ Validation and execution failures route back to generation with classified feedb
    docker compose up
    ```
 
-4. **Seed the database**
+4. **Legacy demo setup (destructive, disposable databases only)**
+
+   For fresh ADREC data, use the source intake guide below. These legacy commands reset data and generate synthetic records.
 
    ```bash
-   cd backend && python scripts/seed_db.py && python scripts/generate_dataset.py
+   cd backend && python scripts/seed_db.py --allow-legacy-reset && python scripts/generate_dataset.py --allow-legacy-reset
    ```
 
 5. **Start the frontend**
@@ -135,6 +137,10 @@ frontend/
 - **Bilingual support** — Arabic questions get RTL layout and Arabic answers
 - **LLM flexibility** — toggle between Anthropic (hosted) and Ollama (on-prem) from the UI
 - **Safety-first execution** — sqlglot read-only validation, DB-level read-only role, row limits, and statement timeouts
+
+## Fresh ADREC snapshot intake
+
+Use the [source contract and migration guide](backend/docs/adrec-source-contract.md) to verify fresh exports without changing PostgreSQL. The legacy seed/generator commands above destroy existing data and include synthetic records; they are not a refresh procedure. The fresh snapshot is not active in the application until staging reconciliation and promotion are complete.
 
 ## License
 
