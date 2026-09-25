@@ -56,7 +56,7 @@ export function QueryInput({ value, onChange, onSubmit, busy }: QueryInputProps)
               if (submittable) onSubmit();
             }
           }}
-          placeholder="Ask about transactions, rents, mortgages or price indices"
+          placeholder="Ask about sales, rental observations or price indices"
           className="min-w-0 flex-1 resize-none bg-transparent text-[1.5rem] font-medium leading-[1.45] text-ink placeholder:text-sand/70 focus-visible:outline-none disabled:text-sand"
         />
         <button

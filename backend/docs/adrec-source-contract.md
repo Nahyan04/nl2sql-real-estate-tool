@@ -1,6 +1,6 @@
 # ADREC native source contract
 
-The fresh-data path takes an explicit incoming snapshot and never falls back to older exports or synthetic records. Native workbooks/CSV are primary; overlapping JSON responses are evidence only. The existing application remains on its legacy schema until a separately verified staging migration and promotion. Do not point the old positional loader at these new files.
+The fresh-data path takes an explicit incoming snapshot and never falls back to older exports or synthetic records. Native workbooks/CSV are primary; overlapping JSON responses are evidence only. The application reads only the `bayan` query views over one active native snapshot. Legacy loaders, seeds, synthetic generators and the old export copies have been removed.
 
 From the repository root:
 
@@ -34,9 +34,9 @@ Preserve raw area/rate fields. Null, nonpositive and very small sold areas requi
 
 `backend/db/adrec_staging.sql` defines a separate intake schema, source provenance and lossless observation records. Dimensions and metrics retain their native names; no curated geography, developer, broker or loan rows are seeded. It intentionally grants no access to the application role. It is applied only to an explicitly named staging database; the working database is unchanged.
 
-The intake schema is a preservation layer. `adrec_views.sql` supplies typed transaction, index, rental-observation and aggregate views without losing raw source labels. `import_snapshot.py` loads every source in one transaction, checks row accounting, and rejects a reused snapshot identity with changed hashes/contracts. Repeated identical imports are no-ops after count verification. Next: establish application-facing views and metadata, back up and test restoration of the intended working target, update retrieval/SQL allowlists, then promote with rollback. A reused snapshot ID must reject changed hashes. Never treat `CREATE TABLE IF NOT EXISTS` as a schema migration system.
+The intake schema preserves native rows. `adrec_views.sql` provides source-preserving typed views; `bayan_query_v1.sql` exposes the three supported fact views and `dataset_coverage` for one active snapshot. The application role has SELECT only on those four query views. Unsupported finance aggregates remain in private source storage.
 
-Legacy `schema.sql`, `reference_seed.sql`, `real_loader.py` and the synthetic generator remain isolated compatibility code during migration. The two destructive setup commands now require `--allow-legacy-reset`; neither is appropriate for fresh-data refresh. Removing them or changing the application's tables before consumer migration would break the existing application.
+`import_snapshot.py` loads every source in one transaction, verifies row accounting, rejects changed hashes under an existing snapshot identity, and makes identical repeat imports no-ops. `prepare_query_schema.py` installs the versioned query schema and selects the validated snapshot. No curated geography or synthetic seed records are used.
 
 ## Import into an isolated staging database
 
@@ -52,3 +52,20 @@ backend/.venv/bin/python backend/scripts/import_snapshot.py \
 The importer verifies the actual database name and refuses mismatches before DDL. It never reads the application's database configuration. The staging target must be private and dedicated; no application read-only grants are created. A transaction-scoped lock serializes imports. Sources are rechecked during loading, numeric CSV strings preserve decimal precision, and all source rows survive. Schema version 1 requires a fresh staging schema; future schema changes need an explicit migration.
 
 Staging snapshot status `validated` means source shape, checksums and row accounting passed; it is not an assertion that unresolved business definitions or application acceptance have passed. Full native files are the only seed input; reference names are taken directly from source observations. No fabricated dimension relationships are seeded.
+
+## Query schema and promotion
+
+After importing, prepare the query surface in the same staging database:
+
+```sh
+backend/.venv/bin/python backend/scripts/prepare_query_schema.py \
+  --staging-url-env BAYAN_STAGING_URL \
+  --expected-database bayan_staging_review \
+  --snapshot-id 2026-09-24
+```
+
+Back up the explicitly identified working database and restore that backup in a separate target first. Export only `adrec_intake` and `bayan` from the verified staging database and restore them into the prepared working target in one transaction. Do not overwrite an unknown populated target. Keep the backup outside tracked files. Existing populated schemas require an explicit reviewed replacement; the importer does not drop them automatically.
+
+From `backend/`, run `python scripts/configure_query_role.py --expected-database <working-name>` to create/update the dedicated role using `READONLY_DB_PASSWORD` from server configuration. The script refuses unexpected public tables, privileged/inherited query roles, or residual access to private source tables. Restart the API to clear engine state and verify `/ready`, `/api/v1/schema` and a source-supported query.
+
+The configured local working database was promoted on September 25, 2026 after backup/restore verification. Its public schema had no user tables. The only application data is now the September 24 native snapshot; old source files and generation paths are removed. Rollback backups are recovery artifacts, not a runtime data source.

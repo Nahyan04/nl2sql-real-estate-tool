@@ -18,6 +18,7 @@ class ExecResult:
     rows: list[list[Any]] = field(default_factory=list)
     row_count: int = 0
     truncated: bool = False
+    executed_sql: str = ""
 
 
 def inject_limit(sql: str, cap: int) -> tuple[str, bool]:
@@ -53,10 +54,15 @@ def execute_readonly(
     limit: int = DEFAULT_LIMIT,
     timeout_s: int = DEFAULT_TIMEOUT_S,
 ) -> ExecResult:
+    from app.services.sql_validator import validate_product_query
+    if not validate_product_query(sql).is_safe:
+        raise ValueError("Query is outside the fresh-data surface")
     bounded_sql, capped = inject_limit(sql, limit)
 
     with engine_ro.connect() as connection, connection.begin():
         if connection.dialect.name == "postgresql":
+            connection.execute(text("SET TRANSACTION READ ONLY"))
+            connection.execute(text("SET LOCAL search_path = bayan, pg_catalog"))
             # SET LOCAL takes no bind parameters; the int cast is what keeps it safe
             connection.execute(text(f"SET LOCAL statement_timeout = {int(timeout_s * 1000)}"))
         result = connection.execute(text(bounded_sql))
@@ -72,4 +78,5 @@ def execute_readonly(
         rows=rows,
         row_count=len(rows),
         truncated=truncated,
+        executed_sql=bounded_sql,
     )

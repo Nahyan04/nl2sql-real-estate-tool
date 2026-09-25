@@ -24,4 +24,4 @@ def get_readonly_engine() -> Engine:
         username=READONLY_ROLE,
         password=settings.readonly_db_password,
     )
-    return create_engine(url, pool_pre_ping=True)
+    return create_engine(url, pool_pre_ping=True, connect_args={"options": "-csearch_path=bayan,pg_catalog -cdefault_transaction_read_only=on"})

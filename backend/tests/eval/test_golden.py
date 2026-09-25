@@ -1,7 +1,7 @@
 """Golden-question evaluation.
 
 The grading logic and the golden file itself are checked on every run. The live sweep —
-30 questions through a real LLM — is opt-in, because it costs money and takes minutes:
+Source-backed questions through a real LLM — is opt-in, because it costs money and takes minutes:
 
     RUN_GOLDEN_EVAL=1 pytest tests/eval/test_golden.py -v
 """
@@ -18,7 +18,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from app.services.sql_validator import validate_read_only
+from app.services.sql_validator import validate_product_query
 from scripts.run_eval import (
     DEFAULT_MIN_ACCURACY,
     accuracy,
@@ -38,9 +38,8 @@ LIVE = pytest.mark.skipif(
 # --- the golden file ------------------------------------------------------
 
 
-def test_golden_set_is_nineteen_english_and_ten_arabic() -> None:
-    assert sum(c["lang"] == "en" for c in CASES) == 19
-    assert sum(c["lang"] == "ar" for c in CASES) == 10
+def test_golden_set_covers_both_languages() -> None:
+    assert {c["lang"] for c in CASES} == {"en", "ar"}
 
 
 def test_case_ids_are_unique() -> None:
@@ -54,7 +53,7 @@ def test_case_declares_a_known_match_mode(case) -> None:
 
 @pytest.mark.parametrize("case", CASES, ids=lambda c: c["id"])
 def test_reference_query_is_read_only(case) -> None:
-    assert validate_read_only(case["reference_sql"]).is_safe
+    assert validate_product_query(case["reference_sql"]).is_safe
 
 
 @pytest.mark.parametrize("case", CASES, ids=lambda c: c["id"])

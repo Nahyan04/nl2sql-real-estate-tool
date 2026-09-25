@@ -117,8 +117,9 @@ def grade(
 
 
 def reference_rows(sql: str) -> list[tuple]:
-    with get_readonly_engine().connect() as connection:
-        return [tuple(_normalize(v) for v in row) for row in connection.execute(text(sql))]
+    from app.services.executor import execute_readonly
+    result = execute_readonly(get_readonly_engine(), sql)
+    return [tuple(_normalize(v) for v in row) for row in result.rows]
 
 
 @dataclass

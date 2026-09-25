@@ -14,6 +14,7 @@ from app.api.routes import query as query_routes
 from app.api.routes import schema as schema_routes
 from app.config import get_settings
 from app.core.database import get_engine
+from app.services.product_schema import introspect_product_schema
 
 API_PREFIX = "/api/v1"
 
@@ -30,8 +31,7 @@ async def lifespan(app: FastAPI):
 
     engine = get_engine()
     # fail fast: verify the database is reachable before accepting traffic
-    with engine.connect():
-        pass
+    introspect_product_schema(engine)
 
     app.state.engine = engine
     app.state.settings = settings

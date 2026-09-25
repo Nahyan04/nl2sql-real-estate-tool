@@ -17,3 +17,14 @@ def health_check(request: Request) -> dict[str, str]:
     except SQLAlchemyError:
         database_status = "error"
     return {"status": "ok", "database": database_status}
+
+
+@router.get("/ready")
+def readiness(request: Request):
+    from fastapi.responses import JSONResponse
+    from app.services.product_schema import introspect_product_schema
+    try:
+        schema = introspect_product_schema(request.app.state.engine)
+        return {"status": "ready", "snapshot_id": schema["snapshot_id"]}
+    except (SQLAlchemyError, ValueError):
+        return JSONResponse(status_code=503, content={"status": "not_ready"})

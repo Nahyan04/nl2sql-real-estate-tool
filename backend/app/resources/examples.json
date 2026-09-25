@@ -1,104 +1,39 @@
 {
   "examples": [
     {
-      "id": "en-total-value-12mo",
+      "id": "en-fresh-0",
       "lang": "en",
-      "text": "What was the total transaction value in the last 12 months?"
+      "text": "What was the total value of exported sales observations in 2025?"
     },
     {
-      "id": "en-top-communities",
+      "id": "en-fresh-1",
       "lang": "en",
-      "text": "Top 5 communities by total sales value this year"
+      "text": "Compare off-plan, ready and court-mandated sales value in 2025."
     },
     {
-      "id": "en-apartment-price-index",
+      "id": "en-fresh-2",
       "lang": "en",
-      "text": "How did apartment sale prices move over the last year?"
+      "text": "Which source districts had the highest sales value in 2025?"
     },
     {
-      "id": "en-reem-rent",
+      "id": "en-fresh-3",
       "lang": "en",
-      "text": "What is the average annual rent for a 2 bedroom apartment in Al Reem Island?"
+      "text": "Show monthly sales value in 2025."
     },
     {
-      "id": "en-transaction-count-2025",
+      "id": "en-fresh-4",
       "lang": "en",
-      "text": "How many property transactions were registered in 2025?"
+      "text": "What dates does each source dataset cover?"
     },
     {
-      "id": "en-rate-per-sqm",
-      "lang": "en",
-      "text": "Which 10 communities have the highest average price per square metre?"
-    },
-    {
-      "id": "en-yield-check",
-      "lang": "en",
-      "text": "What's the implied rental yield for apartments on Yas Island?"
-    },
-    {
-      "id": "en-offplan-vs-ready",
-      "lang": "en",
-      "text": "Compare off-plan versus ready sales value in 2025"
-    },
-    {
-      "id": "en-mortgage-by-lender",
-      "lang": "en",
-      "text": "What is the total mortgage value by lender type this year?"
-    },
-    {
-      "id": "en-yas-monthly-trend",
-      "lang": "en",
-      "text": "Show the monthly transaction value trend for Yas Island in 2025"
-    },
-    {
-      "id": "en-top-developers",
-      "lang": "en",
-      "text": "Which 5 developers have the most projects?"
-    },
-    {
-      "id": "en-secondary-market-share",
-      "lang": "en",
-      "text": "What share of transaction value came from the secondary market this year?"
-    },
-    {
-      "id": "ar-reem-apartment-rent",
+      "id": "ar-fresh-5",
       "lang": "ar",
-      "text": "ما هو متوسط الإيجار السنوي للشقق في جزيرة الريم؟"
+      "text": "ما إجمالي قيمة المبيعات الواردة في البيانات لعام 2025؟"
     },
     {
-      "id": "ar-total-sales-this-year",
+      "id": "ar-fresh-6",
       "lang": "ar",
-      "text": "ما هو إجمالي قيمة المبيعات العقارية في السنة الحالية؟"
-    },
-    {
-      "id": "ar-top-communities",
-      "lang": "ar",
-      "text": "أعلى خمس مناطق من حيث إجمالي قيمة المبيعات"
-    },
-    {
-      "id": "ar-villa-price-index",
-      "lang": "ar",
-      "text": "كيف تغير مؤشر أسعار بيع الفلل خلال العام الماضي؟"
-    },
-    {
-      "id": "ar-mortgage-total",
-      "lang": "ar",
-      "text": "ما هو إجمالي قيمة الرهن العقاري هذا العام؟"
-    },
-    {
-      "id": "ar-yas-leased-units",
-      "lang": "ar",
-      "text": "كم عدد الوحدات السكنية المؤجرة في جزيرة ياس؟"
-    },
-    {
-      "id": "ar-khalifa-city-sales",
-      "lang": "ar",
-      "text": "ما هو إجمالي قيمة المبيعات في مدينة خليفة خلال عام 2025؟"
-    },
-    {
-      "id": "ar-raha-two-bedroom",
-      "lang": "ar",
-      "text": "ما متوسط سعر بيع الشقق المكونة من غرفتين في شاطئ الراحة؟"
+      "text": "قارن قيمة المبيعات على المخطط والجاهزة والمبيعات بأمر المحكمة لعام 2025."
     }
   ]
 }

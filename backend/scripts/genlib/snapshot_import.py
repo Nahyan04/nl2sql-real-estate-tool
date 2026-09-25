@@ -1,4 +1,4 @@
-"""Transactional fresh-source staging import, isolated from legacy setup."""
+"""Transactional native-source staging import."""
 from __future__ import annotations
 
 import hashlib

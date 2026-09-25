@@ -13,7 +13,6 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.config import Settings, get_settings
-from app.core.aliases import load_default_aliases
 from app.core.database import get_engine, get_readonly_engine
 from app.core.llm import get_chat_model, message_text
 from app.core.prompt_builder import build_system_prompt, build_user_prompt
@@ -22,9 +21,9 @@ from app.services.chart_spec import ChartSpec, build_chart_spec
 from app.services.executor import ExecResult, execute_readonly
 from app.services.response_parser import parse_response
 from app.services.retrieval.lexical import retrieve
-from app.services.schema_introspector import introspect_schema
 from app.services.schema_serializer import serialize_schema
-from app.services.sql_validator import validate_read_only
+from app.services.sql_validator import validate_product_query, product_tables_used
+from app.services.product_schema import introspect_product_schema, ALIASES
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +108,7 @@ def _dep(config: RunnableConfig, name: str) -> Any:
 
 def retrieve_schema(state: PipelineState, config: RunnableConfig) -> dict[str, Any]:
     engine: Engine = _dep(config, "engine")
-    schema = introspect_schema(engine)
+    schema = introspect_product_schema(engine)
     selected = retrieve(
         state["question"],
         schema,
@@ -127,18 +126,23 @@ def generate_sql(state: PipelineState, config: RunnableConfig) -> dict[str, Any]
     failure = state.get("failure")
     attempts = state.get("attempts", 0) + 1
 
+    system_prompt = build_system_prompt()
     messages = [
-        SystemMessage(content=build_system_prompt()),
+        SystemMessage(content=system_prompt),
         HumanMessage(
             content=build_user_prompt(
                 state["question"],
                 state["schema_context"],
                 feedback=_retry_feedback(failure) if failure else "",
+                system_prompt=system_prompt,
             )
         ),
     ]
 
     raw = message_text(chat_model.invoke(messages))
+    unsupported = re.fullmatch(r"\s*<unsupported>(.*?)</unsupported>\s*", raw, re.DOTALL)
+    if unsupported:
+        return {"attempts": attempts, "sql": None, "failure": Failure(type="UNSUPPORTED", detail=unsupported.group(1)[:DETAIL_LIMIT])}
     parsed = parse_response(raw)
 
     if parsed is None:
@@ -157,9 +161,9 @@ def generate_sql(state: PipelineState, config: RunnableConfig) -> dict[str, Any]
 
 
 def validate_sql(state: PipelineState, config: RunnableConfig) -> dict[str, Any]:
-    result = validate_read_only(state["sql"] or "")
+    result = validate_product_query(state["sql"] or "")
     if result.is_safe:
-        return {"failure": None}
+        return {"failure": None, "tables_used": product_tables_used(state["sql"])}
 
     logger.warning("sql rejected as unsafe", extra={"reason": result.reason})
     return {"sql": None, "failure": Failure(type=UNSAFE_SQL, detail=result.reason)}
@@ -184,7 +188,7 @@ def execute_sql(state: PipelineState, config: RunnableConfig) -> dict[str, Any]:
             "failure": Failure(type=EXECUTION_ERROR, detail=detail),
         }
 
-    return {"exec_result": result, "failure": None}
+    return {"exec_result": result, "failure": None, "sql": result.executed_sql}
 
 
 def synthesize_answer_node(state: PipelineState, config: RunnableConfig) -> dict[str, Any]:
@@ -210,6 +214,8 @@ def build_chart_node(state: PipelineState, config: RunnableConfig) -> dict[str, 
 def _route(state: PipelineState, on_success: str) -> str:
     if not state.get("failure"):
         return on_success
+    if state.get("failure", {}).get("type") == "UNSUPPORTED":
+        return END
     if state.get("attempts", 0) < MAX_ATTEMPTS:
         return "generate_sql"
     return END
@@ -287,7 +293,7 @@ def run_pipeline(
                 "chat_model": chat_model or get_chat_model(provider, settings),
                 "engine": engine or get_engine(),
                 "engine_ro": engine_ro or get_readonly_engine(),
-                "aliases": load_default_aliases(),
+                "aliases": ALIASES,
                 "settings": settings,
             }
         },

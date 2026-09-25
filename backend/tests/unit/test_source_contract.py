@@ -63,12 +63,3 @@ def test_contract_keeps_all_31_sources_and_index_dimensions():
     sales = sources['Transactions/recent_sales_2019-2026.csv']
     assert sales['candidate_key'] == []
     assert 'Property Sold Share' in sales['numeric_columns']
-
-
-@pytest.mark.parametrize('script', ['seed_db.py', 'generate_dataset.py'])
-def test_legacy_setup_requires_explicit_opt_in(script):
-    import subprocess
-    backend = Path(__file__).resolve().parents[2]
-    result = subprocess.run([sys.executable, str(backend / 'scripts' / script)], capture_output=True, text=True)
-    assert result.returncode == 2
-    assert 'Legacy reset disabled by default' in result.stderr
