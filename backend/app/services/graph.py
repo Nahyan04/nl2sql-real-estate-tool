@@ -47,6 +47,11 @@ EMPTY_RESPONSE = "EMPTY_RESPONSE"
 # model produced something SQL-shaped that the parser still rejected — i.e. a
 # validation failure, not a parse miss.
 _HAS_SQL_SHAPE = re.compile(r"<sql>|```|^[ \t]*(?:SELECT|WITH)\b", re.IGNORECASE | re.MULTILINE)
+_UNSUPPORTED_YIELD = re.compile(
+    r"\b(?:rental yield|rent-to-price ratio|return on rent)\b|"
+    r"(?:العائد|عائد|مردود)\s*(?:الإيجاري|الايجاري|الإيجار|الايجار)",
+    re.IGNORECASE,
+)
 
 
 class Failure(TypedDict):
@@ -345,6 +350,20 @@ def run_pipeline(
 ) -> PipelineState:
     settings = settings or get_settings()
     started = time.perf_counter()
+
+    if _UNSUPPORTED_YIELD.search(question):
+        return {
+            "question": question,
+            "provider": provider,
+            "dry_run": dry_run,
+            "attempts": 0,
+            "sql": None,
+            "failure": Failure(
+                type="UNSUPPORTED",
+                detail="Rental yield needs comparable sale prices and annual rent for the same properties and period; the exports do not establish that match.",
+            ),
+            "latency_ms": int((time.perf_counter() - started) * 1000),
+        }
 
     state: PipelineState = GRAPH.invoke(
         {

@@ -3,7 +3,7 @@ from app.core.prompt_builder import build_system_prompt, build_user_prompt, MAX_
 
 def test_source_semantics_and_unsupported_contract():
     prompt = build_system_prompt()
-    assert 'active_value_aed is not annual rent' in prompt
+    assert 'active_value_aed is lease value accrued in the quarter, not total annual rent' in prompt
     assert 'Sales municipality is unknown' in prompt
     assert '<unsupported>' in prompt
     assert 'community_id' not in prompt

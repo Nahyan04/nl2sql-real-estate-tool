@@ -45,6 +45,15 @@ def test_unsupported_stops_without_execution(run):
     assert model.calls == 1 and state['exec_result'] is None
 
 
+@pytest.mark.parametrize('question', ['What is the rental yield?', 'ما العائد الإيجاري في أبوظبي؟'])
+def test_unsupported_rental_yield_is_declined_before_model_or_database(question):
+    model = Model('<sql>SELECT 1</sql>')
+    state = run_pipeline(question, chat_model=model,
+                         settings=Settings(database_url='postgresql://unused/unused', readonly_db_password='unused'))
+    assert state['failure']['type'] == 'UNSUPPORTED'
+    assert state['attempts'] == 0 and model.calls == 0
+
+
 def test_dry_run_validates_without_execution(run):
     state, model = run('<sql>SELECT count(*) FROM transactions</sql>', dry_run=True)
     assert not state['failure'] and state['exec_result'] is None and model.calls == 1

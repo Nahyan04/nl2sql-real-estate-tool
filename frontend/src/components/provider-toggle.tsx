@@ -3,8 +3,8 @@
 import type { Provider } from "@/lib/types";
 
 const OPTIONS: { value: Provider; label: string; hint: string }[] = [
-  { value: "anthropic", label: "Hosted", hint: "Runs against a hosted model" },
-  { value: "ollama", label: "On-prem", hint: "Runs against a local model — no data leaves the environment" },
+  { value: "anthropic", label: "Cloud API", hint: "Questions and answer context are sent to the configured cloud model" },
+  { value: "ollama", label: "Self-hosted", hint: "Uses the configured Ollama endpoint when it is available" },
 ];
 
 interface ProviderToggleProps {
