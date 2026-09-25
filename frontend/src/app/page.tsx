@@ -107,6 +107,7 @@ export default function Home() {
                 rows={result.rows}
                 rowCount={result.row_count}
                 truncated={result.truncated}
+                truncationReason={result.truncation_reason}
               />
             )}
             <SqlPanel

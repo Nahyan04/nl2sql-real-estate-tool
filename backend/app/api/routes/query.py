@@ -84,6 +84,7 @@ def query(
         rows=_jsonable_rows(result.rows),
         row_count=result.row_count,
         truncated=result.truncated,
+        truncation_reason=result.truncation_reason,
         chart=ChartSpecPayload(**asdict(chart)) if chart else None,
         tables_used=state.get("tables_used") or [],
         retry_count=max(state.get("attempts", 1) - 1, 0),

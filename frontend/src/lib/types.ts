@@ -27,6 +27,7 @@ export interface QueryResponse {
   rows: Cell[][];
   row_count: number;
   truncated: boolean;
+  truncation_reason: "row_limit" | "cell_size" | "result_bytes" | null;
   chart: ChartSpec | null;
   tables_used: string[];
   retry_count: number;
@@ -83,6 +84,9 @@ export type ApiErrorCode =
   | "UNSAFE_SQL"
   | "EMPTY_RESPONSE"
   | "EXECUTION_ERROR"
+  | "DATABASE_BUSY"
+  | "QUERY_TIMEOUT"
+  | "RESULT_TOO_LARGE"
   | "UNKNOWN_PROVIDER"
   | "UPSTREAM_ERROR"
   | "NETWORK_ERROR";

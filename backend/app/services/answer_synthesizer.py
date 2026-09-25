@@ -52,7 +52,7 @@ def synthesize_answer(
     notes = ""
     if result.truncated:
         notes = (
-            "\nNote: the result was truncated at the row limit, so these are "
+            "\nNote: the result was truncated at a row or response-size limit, so these are "
             "the first rows only — say so if it affects the answer.\n"
         )
 

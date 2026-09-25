@@ -6,13 +6,14 @@ interface ResultsTableProps {
   rows: Cell[][];
   rowCount: number;
   truncated: boolean;
+  truncationReason: "row_limit" | "cell_size" | "result_bytes" | null;
 }
 
 function firstValue(rows: Cell[][], index: number): Cell {
   return rows.find((row) => row[index] !== null)?.[index] ?? null;
 }
 
-export function ResultsTable({ columns, rows, rowCount, truncated }: ResultsTableProps) {
+export function ResultsTable({ columns, rows, rowCount, truncated, truncationReason }: ResultsTableProps) {
   if (columns.length === 0) return null;
 
   const numeric = columns.map((column, index) => looksNumericColumn(column, firstValue(rows, index)));
@@ -68,7 +69,9 @@ export function ResultsTable({ columns, rows, rowCount, truncated }: ResultsTabl
 
       {truncated ? (
         <p className="mt-3 text-[0.9375rem] text-sand">
-          Capped at {rowCount} rows. Add a filter or a time range to see a complete set.
+          {truncationReason === "row_limit"
+            ? `Capped at ${rowCount} rows.`
+            : "The response was capped by its size."} Add a filter or a time range to see a complete set.
         </p>
       ) : null}
     </section>

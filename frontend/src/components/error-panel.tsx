@@ -22,6 +22,18 @@ const EXPLANATIONS: Record<ApiErrorCode, { title: string; guidance: string }> = 
     title: "Query failed to run",
     guidance: "The database rejected the query. A shorter time range or fewer joins usually fixes it.",
   },
+  DATABASE_BUSY: {
+    title: "Database is busy",
+    guidance: "Too many queries are running. Try again in a moment or narrow the question.",
+  },
+  QUERY_TIMEOUT: {
+    title: "Query took too long",
+    guidance: "Use a shorter time range or a more specific subject so the database can finish the query.",
+  },
+  RESULT_TOO_LARGE: {
+    title: "Result is too large",
+    guidance: "Add a filter, time range, or grouping so the response contains less data.",
+  },
   UNKNOWN_PROVIDER: {
     title: "Model not configured",
     guidance: "The server does not have that model option set up.",

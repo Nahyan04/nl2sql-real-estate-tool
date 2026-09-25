@@ -25,6 +25,7 @@ class QueryResponse(BaseModel):
     rows: list[list[Any]] = Field(default_factory=list)
     row_count: int = 0
     truncated: bool = False
+    truncation_reason: str | None = None
     chart: ChartSpecPayload | None = None
     tables_used: list[str] = Field(default_factory=list)
     retry_count: int = 0
