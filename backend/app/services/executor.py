@@ -57,7 +57,7 @@ def execute_readonly(
     engine_ro: Engine,
     sql: str,
     limit: int = DEFAULT_LIMIT,
-    timeout_s: int = DEFAULT_TIMEOUT_S,
+    timeout_s: float = DEFAULT_TIMEOUT_S,
     max_result_bytes: int = 1_048_576,
     max_cell_bytes: int = 65_536,
 ) -> ExecResult:

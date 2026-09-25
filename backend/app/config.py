@@ -21,11 +21,19 @@ class Settings(BaseSettings):
     query_cell_bytes: int = Field(default=65_536, ge=256, le=1_048_576)
     query_connections: int = Field(default=4, ge=1, le=16)
     query_pool_wait_s: float = Field(default=1, gt=0, le=5)
+    model_call_timeout_s: float = Field(default=12, gt=0, le=60)
+    request_timeout_s: float = Field(default=25, gt=0, le=120)
+    model_max_output_tokens: int = Field(default=1200, ge=128, le=4096)
+    model_generation_attempts: int = Field(default=2, ge=1, le=3)
+    model_concurrency: int = Field(default=2, ge=1, le=16)
+    model_queue_size: int = Field(default=4, ge=0, le=64)
+    model_queue_wait_s: float = Field(default=2, gt=0, le=10)
 
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
+        protected_namespaces=("settings_",),
     )
 
 

@@ -43,10 +43,24 @@ def _error(status_code: int, error: str, detail: str = "") -> JSONResponse:
     )
 
 
+def _failure_status(failure_type: str) -> int:
+    if failure_type == "MODEL_BUSY":
+        return 429
+    if failure_type == "REQUEST_TIMEOUT":
+        return 504
+    return 422
+
+
 @router.post(
     "/query",
     response_model=QueryResponse,
-    responses={400: {"model": ErrorResponse}, 422: {"model": ErrorResponse}, 502: {"model": ErrorResponse}},
+    responses={
+        400: {"model": ErrorResponse},
+        422: {"model": ErrorResponse},
+        429: {"model": ErrorResponse},
+        502: {"model": ErrorResponse},
+        504: {"model": ErrorResponse},
+    },
 )
 def query(
     payload: QueryRequest,
@@ -72,7 +86,11 @@ def query(
 
     failure = state.get("failure")
     if failure:
-        return _error(422, failure["type"], failure["detail"])
+        return _error(
+            _failure_status(failure["type"]),
+            failure["type"],
+            failure["detail"],
+        )
 
     result: ExecResult = state.get("exec_result") or ExecResult()
     chart = state.get("chart")

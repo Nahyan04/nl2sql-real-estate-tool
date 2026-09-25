@@ -1,5 +1,6 @@
 import pytest
 from langchain_core.messages import AIMessage
+from app.config import Settings
 from app.services import graph
 from app.services.graph import run_pipeline
 from app.services.schema_introspector import introspect_schema
@@ -47,3 +48,45 @@ def test_unsupported_stops_without_execution(run):
 def test_dry_run_validates_without_execution(run):
     state, model = run('<sql>SELECT count(*) FROM transactions</sql>', dry_run=True)
     assert not state['failure'] and state['exec_result'] is None and model.calls == 1
+
+
+def test_generation_attempt_limit_is_configurable(sqlite_engine, monkeypatch):
+    monkeypatch.setattr(
+        graph, 'introspect_product_schema', lambda _: introspect_schema(sqlite_engine)
+    )
+    model = Model(
+        '<sql>SELECT * FROM mortgages</sql>',
+        '<sql>SELECT count(*) FROM transactions</sql>',
+    )
+    settings = Settings(model_generation_attempts=1)
+
+    state = run_pipeline(
+        'sales count',
+        chat_model=model,
+        engine=sqlite_engine,
+        engine_ro=sqlite_engine,
+        settings=settings,
+    )
+
+    assert state['failure']['type'] == 'UNSAFE_SQL'
+    assert state['attempts'] == 1
+    assert model.calls == 1
+
+
+def test_expired_total_deadline_stops_before_model_call(sqlite_engine, monkeypatch):
+    monkeypatch.setattr(
+        graph, 'introspect_product_schema', lambda _: introspect_schema(sqlite_engine)
+    )
+    model = Model('<sql>SELECT count(*) FROM transactions</sql>')
+    settings = Settings(request_timeout_s=0.000001)
+
+    state = run_pipeline(
+        'sales count',
+        chat_model=model,
+        engine=sqlite_engine,
+        engine_ro=sqlite_engine,
+        settings=settings,
+    )
+
+    assert state['failure']['type'] == 'REQUEST_TIMEOUT'
+    assert model.calls == 0

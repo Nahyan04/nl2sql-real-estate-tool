@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from langchain_core.language_models import BaseChatModel
+from typing import Any, Callable
+
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.core.llm import message_text
@@ -47,7 +48,7 @@ def synthesize_answer(
     question: str,
     sql: str,
     result: ExecResult,
-    chat_model: BaseChatModel,
+    invoke: Callable[[list[Any]], Any] | Any,
 ) -> str:
     notes = ""
     if result.truncated:
@@ -63,4 +64,5 @@ def synthesize_answer(
     )
 
     messages = [SystemMessage(content=_SYSTEM_PROMPT), HumanMessage(content=human)]
-    return message_text(chat_model.invoke(messages)).strip()
+    caller = invoke if callable(invoke) else invoke.invoke
+    return message_text(caller(messages)).strip()

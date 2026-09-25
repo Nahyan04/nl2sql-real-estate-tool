@@ -31,6 +31,9 @@ def get_chat_model(provider: str | None, settings: Settings) -> BaseChatModel:
             model=settings.anthropic_model,
             temperature=0,
             api_key=settings.anthropic_api_key,
+            max_tokens=settings.model_max_output_tokens,
+            timeout=settings.model_call_timeout_s,
+            max_retries=0,
         )
 
     if name == OLLAMA:
@@ -38,6 +41,9 @@ def get_chat_model(provider: str | None, settings: Settings) -> BaseChatModel:
             model=settings.ollama_model,
             base_url=settings.llm_base_url,
             temperature=0,
+            num_predict=settings.model_max_output_tokens,
+            sync_client_kwargs={"timeout": settings.model_call_timeout_s},
+            async_client_kwargs={"timeout": settings.model_call_timeout_s},
         )
 
     raise ValueError(f"unknown llm provider: {name!r}")

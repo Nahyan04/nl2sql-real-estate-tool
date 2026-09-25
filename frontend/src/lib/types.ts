@@ -87,6 +87,8 @@ export type ApiErrorCode =
   | "DATABASE_BUSY"
   | "QUERY_TIMEOUT"
   | "RESULT_TOO_LARGE"
+  | "MODEL_BUSY"
+  | "REQUEST_TIMEOUT"
   | "UNKNOWN_PROVIDER"
   | "UPSTREAM_ERROR"
   | "NETWORK_ERROR";

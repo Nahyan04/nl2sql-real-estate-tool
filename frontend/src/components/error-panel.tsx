@@ -34,6 +34,14 @@ const EXPLANATIONS: Record<ApiErrorCode, { title: string; guidance: string }> = 
     title: "Result is too large",
     guidance: "Add a filter, time range, or grouping so the response contains less data.",
   },
+  MODEL_BUSY: {
+    title: "Model is busy",
+    guidance: "The inference queue is full. Try again in a moment.",
+  },
+  REQUEST_TIMEOUT: {
+    title: "Request timed out",
+    guidance: "The full analysis exceeded its time limit. Try a narrower question.",
+  },
   UNKNOWN_PROVIDER: {
     title: "Model not configured",
     guidance: "The server does not have that model option set up.",

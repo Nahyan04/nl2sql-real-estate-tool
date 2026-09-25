@@ -35,6 +35,16 @@ def test_anthropic_temperature_is_zero() -> None:
     assert get_chat_model("anthropic", _settings()).temperature == 0
 
 
+def test_anthropic_calls_are_bounded_without_hidden_retries() -> None:
+    model = get_chat_model(
+        "anthropic",
+        _settings(model_call_timeout_s=7, model_max_output_tokens=900),
+    )
+    assert model.default_request_timeout == 7
+    assert model.max_retries == 0
+    assert model.max_tokens == 900
+
+
 def test_anthropic_api_key_comes_from_settings() -> None:
     model = get_chat_model("anthropic", _settings(anthropic_api_key="sk-plumbed"))
     assert model.anthropic_api_key.get_secret_value() == "sk-plumbed"
@@ -56,6 +66,15 @@ def test_ollama_base_url_comes_from_settings() -> None:
 
 def test_ollama_temperature_is_zero() -> None:
     assert get_chat_model("ollama", _settings()).temperature == 0
+
+
+def test_ollama_output_and_http_timeout_are_bounded() -> None:
+    model = get_chat_model(
+        "ollama",
+        _settings(model_call_timeout_s=7, model_max_output_tokens=900),
+    )
+    assert model.num_predict == 900
+    assert model.sync_client_kwargs["timeout"] == 7
 
 
 def test_missing_provider_falls_back_to_settings_provider() -> None:

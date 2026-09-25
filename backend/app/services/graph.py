@@ -19,6 +19,12 @@ from app.core.prompt_builder import build_system_prompt, build_user_prompt
 from app.services.answer_synthesizer import synthesize_answer
 from app.services.chart_spec import ChartSpec, build_chart_spec
 from app.services.executor import ExecResult, execute_readonly, QueryDeadlineError, ResultSizeError
+from app.services.model_runtime import (
+    ModelBusyError,
+    ModelRuntime,
+    RequestDeadlineError,
+    get_model_runtime,
+)
 from app.services.response_parser import parse_response
 from app.services.retrieval.lexical import retrieve
 from app.services.schema_serializer import serialize_schema
@@ -27,7 +33,6 @@ from app.services.product_schema import introspect_product_schema, ALIASES
 
 logger = logging.getLogger(__name__)
 
-MAX_ATTEMPTS = 3
 TOP_N_TABLES = 5
 SCHEMA_CHAR_BUDGET = 4000
 DETAIL_LIMIT = 500
@@ -62,6 +67,8 @@ class PipelineState(TypedDict, total=False):
     answer: str
     chart: ChartSpec | None
     latency_ms: int
+    deadline: float
+    max_attempts: int
 
 
 def _classify_raw(raw: str) -> str:
@@ -106,6 +113,13 @@ def _dep(config: RunnableConfig, name: str) -> Any:
     return config["configurable"][name]
 
 
+def _invoke_model(state: PipelineState, config: RunnableConfig, messages: list[Any]) -> Any:
+    runtime: ModelRuntime = _dep(config, "model_runtime")
+    chat_model: BaseChatModel = _dep(config, "chat_model")
+    with runtime.admit(state["deadline"]):
+        return chat_model.invoke(messages)
+
+
 def retrieve_schema(state: PipelineState, config: RunnableConfig) -> dict[str, Any]:
     engine: Engine = _dep(config, "engine")
     schema = introspect_product_schema(engine)
@@ -122,7 +136,6 @@ def retrieve_schema(state: PipelineState, config: RunnableConfig) -> dict[str, A
 
 
 def generate_sql(state: PipelineState, config: RunnableConfig) -> dict[str, Any]:
-    chat_model: BaseChatModel = _dep(config, "chat_model")
     failure = state.get("failure")
     attempts = state.get("attempts", 0) + 1
 
@@ -139,7 +152,26 @@ def generate_sql(state: PipelineState, config: RunnableConfig) -> dict[str, Any]
         ),
     ]
 
-    raw = message_text(chat_model.invoke(messages))
+    try:
+        raw = message_text(_invoke_model(state, config, messages))
+    except ModelBusyError:
+        return {
+            "attempts": attempts,
+            "sql": None,
+            "failure": Failure(
+                type="MODEL_BUSY",
+                detail="Model capacity is temporarily unavailable; try again shortly.",
+            ),
+        }
+    except RequestDeadlineError:
+        return {
+            "attempts": attempts,
+            "sql": None,
+            "failure": Failure(
+                type="REQUEST_TIMEOUT",
+                detail="The request exceeded its total time limit.",
+            ),
+        }
     unsupported = re.fullmatch(r"\s*<unsupported>(.*?)</unsupported>\s*", raw, re.DOTALL)
     if unsupported:
         return {"attempts": attempts, "sql": None, "failure": Failure(type="UNSUPPORTED", detail=unsupported.group(1)[:DETAIL_LIMIT])}
@@ -172,21 +204,41 @@ def validate_sql(state: PipelineState, config: RunnableConfig) -> dict[str, Any]
 def execute_sql(state: PipelineState, config: RunnableConfig) -> dict[str, Any]:
     engine_ro: Engine = _dep(config, "engine_ro")
     settings: Settings = _dep(config, "settings")
+    remaining = state["deadline"] - time.monotonic()
+    if remaining <= 0:
+        return {
+            "sql": None,
+            "exec_result": None,
+            "failure": Failure(
+                type="REQUEST_TIMEOUT",
+                detail="The request exceeded its total time limit.",
+            ),
+        }
+    request_budget_limited = remaining < settings.query_timeout_s
     try:
         result = execute_readonly(
             engine_ro,
             state["sql"],
             limit=settings.query_row_limit,
-            timeout_s=settings.query_timeout_s,
+            timeout_s=min(settings.query_timeout_s, remaining),
             max_result_bytes=settings.query_result_bytes,
             max_cell_bytes=settings.query_cell_bytes,
         )
     except (PoolTimeout, QueryDeadlineError, ResultSizeError) as exc:
-        kind = "DATABASE_BUSY" if isinstance(exc, PoolTimeout) else "QUERY_TIMEOUT" if isinstance(exc, QueryDeadlineError) else "RESULT_TOO_LARGE"
+        kind = (
+            "DATABASE_BUSY"
+            if isinstance(exc, PoolTimeout)
+            else "REQUEST_TIMEOUT"
+            if isinstance(exc, QueryDeadlineError) and request_budget_limited
+            else "QUERY_TIMEOUT"
+            if isinstance(exc, QueryDeadlineError)
+            else "RESULT_TOO_LARGE"
+        )
         return {"sql": None, "exec_result": None, "failure": Failure(type=kind, detail="Query resource limit reached; narrow the question or try again shortly.")}
     except SQLAlchemyError as exc:
         if getattr(getattr(exc, "orig", None), "pgcode", None) in {"57014", "53300"}:
-            return {"sql": None, "exec_result": None, "failure": Failure(type="QUERY_TIMEOUT", detail="Database query timed out or capacity is unavailable.")}
+            kind = "REQUEST_TIMEOUT" if request_budget_limited else "QUERY_TIMEOUT"
+            return {"sql": None, "exec_result": None, "failure": Failure(type=kind, detail="Database query timed out or capacity is unavailable.")}
         detail = str(getattr(exc, "orig", exc))[:DETAIL_LIMIT]
         logger.warning("sql execution failed", extra={"detail": detail})
         return {
@@ -199,11 +251,21 @@ def execute_sql(state: PipelineState, config: RunnableConfig) -> dict[str, Any]:
 
 
 def synthesize_answer_node(state: PipelineState, config: RunnableConfig) -> dict[str, Any]:
-    chat_model: BaseChatModel = _dep(config, "chat_model")
     try:
         answer = synthesize_answer(
-            state["question"], state["sql"] or "", state["exec_result"], chat_model
+            state["question"],
+            state["sql"] or "",
+            state["exec_result"],
+            lambda messages: _invoke_model(state, config, messages),
         )
+    except (ModelBusyError, RequestDeadlineError) as exc:
+        kind = "MODEL_BUSY" if isinstance(exc, ModelBusyError) else "REQUEST_TIMEOUT"
+        detail = (
+            "Model capacity is temporarily unavailable; try again shortly."
+            if isinstance(exc, ModelBusyError)
+            else "The request exceeded its total time limit."
+        )
+        return {"answer": "", "failure": Failure(type=kind, detail=detail)}
     except Exception:  # noqa: BLE001 - best effort; the rows and SQL still stand alone
         logger.exception("answer synthesis failed")
         return {"answer": ""}
@@ -221,9 +283,9 @@ def build_chart_node(state: PipelineState, config: RunnableConfig) -> dict[str, 
 def _route(state: PipelineState, on_success: str) -> str:
     if not state.get("failure"):
         return on_success
-    if state.get("failure", {}).get("type") in {"UNSUPPORTED", "DATABASE_BUSY", "QUERY_TIMEOUT", "RESULT_TOO_LARGE"}:
+    if state.get("failure", {}).get("type") in {"UNSUPPORTED", "DATABASE_BUSY", "QUERY_TIMEOUT", "RESULT_TOO_LARGE", "MODEL_BUSY", "REQUEST_TIMEOUT"}:
         return END
-    if state.get("attempts", 0) < MAX_ATTEMPTS:
+    if state.get("attempts", 0) < state.get("max_attempts", 1):
         return "generate_sql"
     return END
 
@@ -279,6 +341,7 @@ def run_pipeline(
     engine: Engine | None = None,
     engine_ro: Engine | None = None,
     settings: Settings | None = None,
+    model_runtime: ModelRuntime | None = None,
 ) -> PipelineState:
     settings = settings or get_settings()
     started = time.perf_counter()
@@ -294,6 +357,8 @@ def run_pipeline(
             "exec_result": None,
             "answer": "",
             "chart": None,
+            "deadline": started + settings.request_timeout_s,
+            "max_attempts": settings.model_generation_attempts,
         },
         config={
             "configurable": {
@@ -302,6 +367,11 @@ def run_pipeline(
                 "engine_ro": engine_ro or get_readonly_engine(),
                 "aliases": ALIASES,
                 "settings": settings,
+                "model_runtime": model_runtime or get_model_runtime(
+                    settings.model_concurrency,
+                    settings.model_queue_size,
+                    settings.model_queue_wait_s,
+                ),
             }
         },
     )
