@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -28,6 +29,15 @@ class Settings(BaseSettings):
     model_concurrency: int = Field(default=2, ge=1, le=16)
     model_queue_size: int = Field(default=4, ge=0, le=64)
     model_queue_wait_s: float = Field(default=2, gt=0, le=10)
+    request_session_minute_limit: int = Field(default=30, ge=1)
+    request_session_day_limit: int = Field(default=300, ge=1)
+    request_ip_minute_limit: int = Field(default=120, ge=1)
+    request_ip_day_limit: int = Field(default=1200, ge=1)
+    request_global_concurrency: int = Field(default=8, ge=1, le=128)
+    trusted_proxy_cidrs: str = ""
+    session_cookie_secure: bool = False
+    session_cookie_samesite: Literal["lax", "none", "strict"] = "lax"
+    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
 
     model_config = SettingsConfigDict(
         env_file=".env",

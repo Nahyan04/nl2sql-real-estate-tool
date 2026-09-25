@@ -29,9 +29,12 @@ Generated queries can access only `bayan.transactions`, `bayan.rental_observatio
 2. Start PostgreSQL with `docker compose up -d postgres`.
 3. Import and verify the native snapshot in a separate staging database using the guide. Back up the intended working database, test restoration, then promote the verified `adrec_intake` and `bayan` schemas. There is no generated-data seed command.
 4. From `backend/`, run `python scripts/configure_query_role.py --expected-database <database-name>` after promotion. It uses the existing configured read-only password and refuses unexpected public tables.
-5. Start the API with `uvicorn app.main:app --reload` and the frontend with `npm run dev` from `frontend/`.
+5. From `backend/`, run `python -m scripts.init_runtime_store --database <database-name>` to install the shared request guard tables. This command checks the database name and does not modify source observations.
+6. Start the API with `uvicorn app.main:app --reload --no-proxy-headers` and the frontend with `npm run dev` from `frontend/`.
 
-Startup requires an installed source query schema and validated active snapshot. `/health` reports process/database connectivity; `/ready` checks the source query schema and returns the active snapshot. `/api/v1/schema` exposes only the four query views.
+Startup requires an installed source query schema and validated active snapshot. `/health` reports process/database connectivity; `/ready` checks the source query schema and shared request guard tables, then returns the active snapshot. `/api/v1/schema` exposes only the four query views.
+
+The query route uses PostgreSQL for atomic limits across API workers. Default allowances are 30 requests/minute and 300/day per browser session, plus 120/minute and 1,200/day per client IP; at most eight requests run concurrently across workers. These are configurable server-side. A rejected request returns HTTP 429 and `Retry-After`; an unavailable guard returns HTTP 503 and no model call. Direct API requests are subject to the IP limit. Configure `CORS_ORIGINS` for the frontend and `TRUSTED_PROXY_CIDRS` only for proxies you control; keep Uvicorn proxy-header rewriting disabled so untrusted forwarding headers cannot choose their own rate-limit identity. Use the same hostname for local frontend/API URLs so the session cookie persists. For a cross-site HTTPS frontend, set `SESSION_COOKIE_SECURE=true` and `SESSION_COOKIE_SAMESITE=none`. Anthropic credit restrictions are managed in the provider console; Bayan does not impose a separate dollar cap.
 
 ## Verification
 

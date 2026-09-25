@@ -48,11 +48,11 @@ app.include_router(query_routes.router, prefix=API_PREFIX)
 app.include_router(examples_routes.router, prefix=API_PREFIX)
 app.include_router(schema_routes.router, prefix=API_PREFIX)
 
-# TODO: restrict allow_origins in production
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[origin.strip() for origin in get_settings().cors_origins.split(",") if origin.strip()],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Retry-After"],
 )

@@ -92,7 +92,7 @@ export default function Home() {
           </>
         )}
 
-        {error ? <ErrorPanel error={error} /> : null}
+        {error ? <ErrorPanel error={error} question={question} /> : null}
 
         {result ? (
           <>

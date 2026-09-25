@@ -14,13 +14,15 @@ export class ApiError extends Error {
   readonly code: ApiErrorCode;
   readonly detail: string;
   readonly status: number;
+  readonly retryAfter: number | null;
 
-  constructor(code: ApiErrorCode, detail: string, status: number) {
+  constructor(code: ApiErrorCode, detail: string, status: number, retryAfter: number | null = null) {
     super(detail || code);
     this.name = "ApiError";
     this.code = code;
     this.detail = detail;
     this.status = status;
+    this.retryAfter = retryAfter;
   }
 }
 
@@ -33,6 +35,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   try {
     response = await fetch(`${BASE_URL}${API_PREFIX}${path}`, {
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       ...init,
     });
   } catch (cause) {
@@ -44,8 +47,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const body: unknown = await response.json().catch(() => null);
 
   if (!response.ok) {
+    const retryValue = Number(response.headers.get("Retry-After"));
+    const retryAfter = Number.isFinite(retryValue) && retryValue > 0 ? retryValue : null;
     if (isErrorPayload(body)) {
-      throw new ApiError(body.error as ApiErrorCode, body.detail, response.status);
+      throw new ApiError(body.error as ApiErrorCode, body.detail, response.status, retryAfter);
     }
     throw new ApiError("UPSTREAM_ERROR", `Request failed with status ${response.status}`, response.status);
   }

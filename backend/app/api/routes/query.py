@@ -5,7 +5,7 @@ from dataclasses import asdict
 from decimal import Decimal
 from typing import Any, Callable
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request, Response
 from fastapi.responses import JSONResponse
 from langchain_core.language_models import BaseChatModel
 
@@ -14,6 +14,15 @@ from app.core.llm import get_chat_model
 from app.models.contracts import ChartSpecPayload, ErrorResponse, QueryRequest, QueryResponse
 from app.services.executor import ExecResult
 from app.services.graph import run_pipeline
+from app.services.request_limiter import (
+    SESSION_COOKIE,
+    LimitRejected,
+    LimiterUnavailable,
+    RequestLimiter,
+    client_ip,
+    get_request_limiter,
+    session_id,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -36,10 +45,11 @@ def _jsonable_rows(rows: list[list[Any]]) -> list[list[Any]]:
     return [[float(v) if isinstance(v, Decimal) else v for v in row] for row in rows]
 
 
-def _error(status_code: int, error: str, detail: str = "") -> JSONResponse:
+def _error(status_code: int, error: str, detail: str = "", retry_after: int | None = None) -> JSONResponse:
     return JSONResponse(
         status_code=status_code,
         content=ErrorResponse(error=error, detail=detail).model_dump(),
+        headers={"Retry-After": str(retry_after)} if retry_after is not None else None,
     )
 
 
@@ -58,39 +68,66 @@ def _failure_status(failure_type: str) -> int:
         400: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
         429: {"model": ErrorResponse},
+        503: {"model": ErrorResponse},
         502: {"model": ErrorResponse},
         504: {"model": ErrorResponse},
     },
 )
 def query(
     payload: QueryRequest,
+    request: Request,
+    response: Response,
     settings: Settings = Depends(get_settings),
     factory: ChatModelFactory = Depends(chat_model_factory),
+    limiter: RequestLimiter = Depends(get_request_limiter),
 ):
+    def attach_cookie(target: Response, value: str) -> None:
+        target.set_cookie(
+            SESSION_COOKIE, value, max_age=86_400, httponly=True,
+            secure=settings.session_cookie_secure,
+            samesite=settings.session_cookie_samesite,
+        )
+
     try:
         chat_model = factory(payload.provider)
     except ValueError as exc:
         return _error(400, UNKNOWN_PROVIDER, str(exc))
 
+    session, fresh_session = session_id(request)
+    ip = client_ip(request, settings.trusted_proxy_cidrs)
     try:
-        state = run_pipeline(
-            payload.question,
-            payload.provider,
-            dry_run=payload.dry_run,
-            chat_model=chat_model,
-            settings=settings,
-        )
+        with limiter.admit(session, ip):
+            state = run_pipeline(
+                payload.question,
+                payload.provider,
+                dry_run=payload.dry_run,
+                chat_model=chat_model,
+                settings=settings,
+            )
+    except LimitRejected as exc:
+        result = _error(429, exc.code, "Request allowance reached; retry after the indicated delay.", exc.retry_after)
+        if fresh_session:
+            attach_cookie(result, session)
+        return result
+    except LimiterUnavailable:
+        return _error(503, "LIMITER_UNAVAILABLE", "Requests are temporarily unavailable; try again shortly.", 5)
     except Exception as exc:  # noqa: BLE001 - one boundary for provider/database outages
         logger.exception("pipeline failed")
         return _error(502, UPSTREAM_ERROR, str(exc))
 
+    if fresh_session:
+        attach_cookie(response, session)
     failure = state.get("failure")
     if failure:
-        return _error(
+        result = _error(
             _failure_status(failure["type"]),
             failure["type"],
             failure["detail"],
+            2 if failure["type"] == "MODEL_BUSY" else None,
         )
+        if fresh_session:
+            attach_cookie(result, session)
+        return result
 
     result: ExecResult = state.get("exec_result") or ExecResult()
     chart = state.get("chart")
