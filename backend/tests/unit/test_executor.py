@@ -115,3 +115,21 @@ def test_custom_limit_is_honoured(sqlite_engine) -> None:
 def test_sql_errors_propagate_to_the_caller(sqlite_engine) -> None:
     with pytest.raises(SQLAlchemyError):
         execute_readonly(sqlite_engine, "SELECT nonexistent_column FROM transactions")
+
+
+def test_result_byte_cap_keeps_complete_rows_and_marks_truncation(sqlite_engine) -> None:
+    result = execute_readonly(
+        sqlite_engine,
+        "SELECT 'abcdefghijklmnopqrstuvwxyz' AS label FROM transactions",
+        max_result_bytes=100,
+    )
+    assert result.truncated is True
+    assert result.truncation_reason == "result_bytes"
+    assert 0 < len(result.rows) < 500
+
+
+def test_oversized_first_cell_is_rejected(sqlite_engine) -> None:
+    from app.services.executor import ResultSizeError
+
+    with pytest.raises(ResultSizeError):
+        execute_readonly(sqlite_engine, "SELECT 'abcdefghijklmnopqrstuvwxyz' AS label", max_cell_bytes=10)

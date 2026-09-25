@@ -39,14 +39,17 @@ def prepare_query_schema(engine, expected_database: str, snapshot_id: str, *, re
             grant_query_role(connection)
 
 
-def grant_query_role(connection) -> None:
+def grant_query_role(connection, connection_limit: int = 4) -> None:
     """Grant an existing dedicated role only the four product views."""
+    if not 1 <= connection_limit <= 16:
+        raise ContractError("Connection limit must be between 1 and 16")
     role = connection.execute(text("SELECT rolsuper,rolcreaterole,rolcreatedb,rolbypassrls FROM pg_roles WHERE rolname='nl2sql_readonly'")).first()
     if role is None or any(role):
         raise ContractError('A dedicated non-privileged nl2sql_readonly role is required')
     inherited = connection.execute(text("SELECT count(*) FROM pg_auth_members WHERE member='nl2sql_readonly'::regrole")).scalar_one()
     if inherited:
         raise ContractError('Read-only role must not inherit other roles')
+    connection.execute(text(f'ALTER ROLE nl2sql_readonly CONNECTION LIMIT {int(connection_limit)}'))
     connection.execute(text('REVOKE ALL ON SCHEMA public, adrec_intake FROM nl2sql_readonly'))
     connection.execute(text('REVOKE ALL ON ALL TABLES IN SCHEMA public, adrec_intake, bayan FROM nl2sql_readonly'))
     connection.execute(text('GRANT USAGE ON SCHEMA bayan TO nl2sql_readonly'))

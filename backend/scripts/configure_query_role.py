@@ -27,7 +27,7 @@ def main():
             exists = connection.execute(text("SELECT 1 FROM pg_roles WHERE rolname='nl2sql_readonly'")).scalar()
             command = 'ALTER' if exists else 'CREATE'
             connection.execute(text(f'{command} ROLE nl2sql_readonly LOGIN PASSWORD :password'), {'password': settings.readonly_db_password})
-            grant_query_role(connection)
+            grant_query_role(connection, settings.query_connections)
         print('Fresh-data read-only role configured')
     except Exception as exc:
         parser.exit(1, f'Role configuration failed ({type(exc).__name__}); transaction rolled back.\n')

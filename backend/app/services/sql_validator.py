@@ -30,6 +30,8 @@ class SQLValidationResult:
 
 
 def validate_read_only(sql: str) -> SQLValidationResult:
+    if len(sql) > 16_000:
+        return SQLValidationResult(False, 'SQL exceeds the size limit')
     try:
         # parse() rather than parse_one() so a stacked "SELECT 1; DROP TABLE x;"
         # can't slip through by hiding a second statement after the first
@@ -74,6 +76,8 @@ def validate_product_query(sql: str) -> SQLValidationResult:
         return basic
     try:
         statement = sqlglot.parse_one(sql, read='postgres')
+        if sum(1 for _ in statement.walk()) > 500:
+            return SQLValidationResult(False, 'SQL exceeds the complexity limit')
         if statement.find(exp.Lock) or any(cte.args.get('recursive') for cte in statement.find_all(exp.With)):
             return SQLValidationResult(False, 'locking and recursive queries are unavailable')
         for cast in statement.find_all(exp.Cast):

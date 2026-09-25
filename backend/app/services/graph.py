@@ -10,7 +10,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
 from sqlalchemy.engine import Engine
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, TimeoutError as PoolTimeout
 
 from app.config import Settings, get_settings
 from app.core.database import get_engine, get_readonly_engine
@@ -18,7 +18,7 @@ from app.core.llm import get_chat_model, message_text
 from app.core.prompt_builder import build_system_prompt, build_user_prompt
 from app.services.answer_synthesizer import synthesize_answer
 from app.services.chart_spec import ChartSpec, build_chart_spec
-from app.services.executor import ExecResult, execute_readonly
+from app.services.executor import ExecResult, execute_readonly, QueryDeadlineError, ResultSizeError
 from app.services.response_parser import parse_response
 from app.services.retrieval.lexical import retrieve
 from app.services.schema_serializer import serialize_schema
@@ -178,8 +178,15 @@ def execute_sql(state: PipelineState, config: RunnableConfig) -> dict[str, Any]:
             state["sql"],
             limit=settings.query_row_limit,
             timeout_s=settings.query_timeout_s,
+            max_result_bytes=settings.query_result_bytes,
+            max_cell_bytes=settings.query_cell_bytes,
         )
+    except (PoolTimeout, QueryDeadlineError, ResultSizeError) as exc:
+        kind = "DATABASE_BUSY" if isinstance(exc, PoolTimeout) else "QUERY_TIMEOUT" if isinstance(exc, QueryDeadlineError) else "RESULT_TOO_LARGE"
+        return {"sql": None, "exec_result": None, "failure": Failure(type=kind, detail="Query resource limit reached; narrow the question or try again shortly.")}
     except SQLAlchemyError as exc:
+        if getattr(getattr(exc, "orig", None), "pgcode", None) in {"57014", "53300"}:
+            return {"sql": None, "exec_result": None, "failure": Failure(type="QUERY_TIMEOUT", detail="Database query timed out or capacity is unavailable.")}
         detail = str(getattr(exc, "orig", exc))[:DETAIL_LIMIT]
         logger.warning("sql execution failed", extra={"detail": detail})
         return {
@@ -214,7 +221,7 @@ def build_chart_node(state: PipelineState, config: RunnableConfig) -> dict[str, 
 def _route(state: PipelineState, on_success: str) -> str:
     if not state.get("failure"):
         return on_success
-    if state.get("failure", {}).get("type") == "UNSUPPORTED":
+    if state.get("failure", {}).get("type") in {"UNSUPPORTED", "DATABASE_BUSY", "QUERY_TIMEOUT", "RESULT_TOO_LARGE"}:
         return END
     if state.get("attempts", 0) < MAX_ATTEMPTS:
         return "generate_sql"
