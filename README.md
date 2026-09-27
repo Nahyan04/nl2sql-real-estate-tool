@@ -34,6 +34,8 @@ Generated queries can access only `bayan.transactions`, `bayan.rental_observatio
 
 Startup requires an installed source query schema and validated active snapshot. `/health` reports process/database connectivity; `/ready` checks the source query schema and shared request guard tables, then returns the active snapshot. `/api/v1/schema` exposes only the four query views.
 
+Query errors use a stable `error` code, a safe user-facing `detail`, and a `request_id` also returned in `X-Request-ID`. Keep the request ID when investigating server logs; raw provider and database exception text is not returned to clients. Malformed requests return `INVALID_REQUEST` with HTTP 422.
+
 The query route uses PostgreSQL for atomic limits across API workers. Default allowances are 30 requests/minute and 300/day per browser session, plus 120/minute and 1,200/day per client IP; at most eight requests run concurrently across workers. These are configurable server-side. A rejected request returns HTTP 429 and `Retry-After`; an unavailable guard returns HTTP 503 and no model call. Direct API requests are subject to the IP limit. Configure `CORS_ORIGINS` for the frontend and `TRUSTED_PROXY_CIDRS` only for proxies you control; keep Uvicorn proxy-header rewriting disabled so untrusted forwarding headers cannot choose their own rate-limit identity. Use the same hostname for local frontend/API URLs so the session cookie persists. For a cross-site HTTPS frontend, set `SESSION_COOKIE_SECURE=true` and `SESSION_COOKIE_SAMESITE=none`. Anthropic credit restrictions are managed in the provider console; Bayan does not impose a separate dollar cap.
 
 ## Verification

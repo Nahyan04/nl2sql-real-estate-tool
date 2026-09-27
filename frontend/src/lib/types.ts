@@ -48,6 +48,7 @@ export interface ExamplesResponse {
 export interface ErrorPayload {
   error: string;
   detail: string;
+  request_id?: string | null;
 }
 
 export interface SchemaColumn {
@@ -97,5 +98,6 @@ export type ApiErrorCode =
   | "LIMITER_UNAVAILABLE"
   | "REQUEST_TIMEOUT"
   | "UNKNOWN_PROVIDER"
+  | "INVALID_REQUEST"
   | "UPSTREAM_ERROR"
   | "NETWORK_ERROR";

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from uuid import uuid4
 from dataclasses import asdict
 from decimal import Decimal
 from typing import Any, Callable
@@ -45,19 +46,41 @@ def _jsonable_rows(rows: list[list[Any]]) -> list[list[Any]]:
     return [[float(v) if isinstance(v, Decimal) else v for v in row] for row in rows]
 
 
-def _error(status_code: int, error: str, detail: str = "", retry_after: int | None = None) -> JSONResponse:
+SAFE_FAILURE_DETAILS = {
+    "PARSE_ERROR": "The model did not produce a usable query. Try a more specific question.",
+    "EMPTY_RESPONSE": "The model did not produce a query. Please try again.",
+    "VALIDATION_ERROR": "The generated query could not be validated. Try a narrower question.",
+    "UNSAFE_SQL": "The generated query was rejected by the read-only validator.",
+    "UNSUPPORTED": "The available data does not support this question as asked.",
+    "EXECUTION_ERROR": "The query could not be completed. Try a narrower question.",
+    "DATABASE_BUSY": "The database is busy. Please try again shortly.",
+    "QUERY_TIMEOUT": "The query exceeded its time limit. Try a narrower question.",
+    "RESULT_TOO_LARGE": "The result is too large. Add a filter or grouping.",
+    "MODEL_BUSY": "The model is busy. Please try again shortly.",
+    "REQUEST_TIMEOUT": "The analysis exceeded its time limit. Try a narrower question.",
+}
+
+
+def _error(
+    status_code: int, error: str, detail: str, request_id: str, retry_after: int | None = None,
+) -> JSONResponse:
+    headers = {"X-Request-ID": request_id}
+    if retry_after is not None:
+        headers["Retry-After"] = str(retry_after)
     return JSONResponse(
         status_code=status_code,
-        content=ErrorResponse(error=error, detail=detail).model_dump(),
-        headers={"Retry-After": str(retry_after)} if retry_after is not None else None,
+        content=ErrorResponse(error=error, detail=detail, request_id=request_id).model_dump(),
+        headers=headers,
     )
 
 
 def _failure_status(failure_type: str) -> int:
     if failure_type == "MODEL_BUSY":
         return 429
-    if failure_type == "REQUEST_TIMEOUT":
+    if failure_type in {"REQUEST_TIMEOUT", "QUERY_TIMEOUT"}:
         return 504
+    if failure_type == "DATABASE_BUSY":
+        return 503
     return 422
 
 
@@ -81,6 +104,7 @@ def query(
     factory: ChatModelFactory = Depends(chat_model_factory),
     limiter: RequestLimiter = Depends(get_request_limiter),
 ):
+    request_id = uuid4().hex
     def attach_cookie(target: Response, value: str) -> None:
         target.set_cookie(
             SESSION_COOKIE, value, max_age=86_400, httponly=True,
@@ -90,8 +114,8 @@ def query(
 
     try:
         chat_model = factory(payload.provider)
-    except ValueError as exc:
-        return _error(400, UNKNOWN_PROVIDER, str(exc))
+    except ValueError:
+        return _error(400, UNKNOWN_PROVIDER, "That provider is not available.", request_id)
 
     session, fresh_session = session_id(request)
     ip = client_ip(request, settings.trusted_proxy_cidrs)
@@ -105,25 +129,29 @@ def query(
                 settings=settings,
             )
     except LimitRejected as exc:
-        result = _error(429, exc.code, "Request allowance reached; retry after the indicated delay.", exc.retry_after)
+        result = _error(429, exc.code, "Request allowance reached; retry after the indicated delay.", request_id, exc.retry_after)
         if fresh_session:
             attach_cookie(result, session)
         return result
     except LimiterUnavailable:
-        return _error(503, "LIMITER_UNAVAILABLE", "Requests are temporarily unavailable; try again shortly.", 5)
+        return _error(503, "LIMITER_UNAVAILABLE", "Requests are temporarily unavailable; try again shortly.", request_id, 5)
     except Exception as exc:  # noqa: BLE001 - one boundary for provider/database outages
-        logger.exception("pipeline failed")
-        return _error(502, UPSTREAM_ERROR, str(exc))
+        logger.error("pipeline failed request_id=%s exception_type=%s", request_id, type(exc).__name__)
+        return _error(502, UPSTREAM_ERROR, "The analysis service is temporarily unavailable.", request_id)
 
     if fresh_session:
         attach_cookie(response, session)
+    response.headers["X-Request-ID"] = request_id
     failure = state.get("failure")
     if failure:
+        failure_type = failure["type"]
+        logger.info("pipeline outcome request_id=%s code=%s", request_id, failure_type)
         result = _error(
-            _failure_status(failure["type"]),
-            failure["type"],
-            failure["detail"],
-            2 if failure["type"] == "MODEL_BUSY" else None,
+            _failure_status(failure_type),
+            failure_type,
+            SAFE_FAILURE_DETAILS.get(failure_type, "The analysis could not be completed."),
+            request_id,
+            2 if failure_type == "MODEL_BUSY" else None,
         )
         if fresh_session:
             attach_cookie(result, session)

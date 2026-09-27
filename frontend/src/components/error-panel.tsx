@@ -74,6 +74,10 @@ const EXPLANATIONS: Record<ApiErrorCode, { title: string; guidance: string }> = 
     title: "Model not configured",
     guidance: "The server does not have that model option set up.",
   },
+  INVALID_REQUEST: {
+    title: "Check your request",
+    guidance: "Enter a question and choose one of the available providers.",
+  },
   UPSTREAM_ERROR: {
     title: "Request failed upstream",
     guidance: "The model provider or the database did not respond. For Self-hosted, check that the configured Ollama server is running.",
@@ -109,6 +113,7 @@ export function ErrorPanel({ error, question }: { error: ApiError; question: str
           {error.detail}
         </p>
       ) : null}
+      {error.requestId ? <p className="mt-3 label-mono text-sand">Request ID: {error.requestId}</p> : null}
     </section>
   );
 }
