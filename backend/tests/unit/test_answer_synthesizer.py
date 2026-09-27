@@ -81,6 +81,7 @@ def test_prompt_says_how_many_rows_were_withheld() -> None:
     model = FakeChatModel()
     synthesize_answer(QUESTION, SQL, _result(rows), model)
     assert str(200 - MAX_ANSWER_ROWS) in model.prompts[0]
+    assert "full-result conclusion" in model.prompts[0]
 
 
 def test_prompt_flags_a_truncated_result_set() -> None:
@@ -92,7 +93,7 @@ def test_prompt_flags_a_truncated_result_set() -> None:
 def test_prompt_does_not_flag_truncation_when_complete() -> None:
     model = FakeChatModel()
     synthesize_answer(QUESTION, SQL, _result(ROWS), model)
-    assert "truncated" not in model.prompts[0].lower()
+    assert "Note: the result was truncated" not in model.prompts[0]
 
 
 def test_prompt_asks_for_the_questions_language() -> None:

@@ -14,6 +14,7 @@ from app.config import Settings, get_settings
 from app.core.llm import get_chat_model
 from app.models.contracts import ChartSpecPayload, ErrorResponse, QueryRequest, QueryResponse
 from app.services.executor import ExecResult
+from app.services.answer_synthesizer import MAX_ANSWER_ROWS
 from app.services.graph import run_pipeline
 from app.services.request_limiter import (
     SESSION_COOKIE,
@@ -52,6 +53,7 @@ SAFE_FAILURE_DETAILS = {
     "VALIDATION_ERROR": "The generated query could not be validated. Try a narrower question.",
     "UNSAFE_SQL": "The generated query was rejected by the read-only validator.",
     "UNSUPPORTED": "The available data does not support this question as asked.",
+    "CLARIFICATION": "Specify an exact period or an unambiguous source place so this question can be answered.",
     "EXECUTION_ERROR": "The query could not be completed. Try a narrower question.",
     "DATABASE_BUSY": "The database is busy. Please try again shortly.",
     "QUERY_TIMEOUT": "The query exceeded its time limit. Try a narrower question.",
@@ -159,9 +161,23 @@ def query(
 
     result: ExecResult = state.get("exec_result") or ExecResult()
     chart = state.get("chart")
+    answer_limited = result.truncated or result.row_count > MAX_ANSWER_ROWS
+    answer = state.get("answer") or ""
+    if answer_limited and not payload.dry_run:
+        arabic = any("\u0600" <= character <= "\u06FF" for character in payload.question)
+        if result.truncated:
+            limitation = "نتيجة الاستعلام مقتطعة؛ لا تمثل بالضرورة جميع السجلات." if arabic else "The query result was truncated and may not represent all matching records."
+        else:
+            limitation = (
+                f"استند الشرح إلى أول {MAX_ANSWER_ROWS} صفًا من النتائج المُعادة فقط."
+                if arabic else f"The explanation used only the first {MAX_ANSWER_ROWS} returned rows."
+            )
+        answer = f"{answer} {limitation}".strip()
 
     return QueryResponse(
-        answer=state.get("answer") or "",
+        answer=answer,
+        outcome=state.get("outcome") or "answer",
+        answer_limited=answer_limited,
         sql=state.get("sql") or "",
         columns=result.columns,
         rows=_jsonable_rows(result.rows),

@@ -9,6 +9,9 @@ def test_source_semantics_and_unsupported_contract():
     assert 'fraction of ownership interest transferred' in prompt
     assert 'Sales municipality is unknown' in prompt
     assert '<unsupported>' in prompt
+    assert '<clarification>' in prompt
+    assert 'percentage-point change' in prompt
+    assert 'NULLIF for division' in prompt
     assert 'community_id' not in prompt
 
 

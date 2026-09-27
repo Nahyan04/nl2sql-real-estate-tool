@@ -45,12 +45,42 @@ def test_unsupported_stops_without_execution(run):
     assert model.calls == 1 and state['exec_result'] is None
 
 
+def test_model_clarification_stops_without_retry(run):
+    state, model = run('<clarification>Which period?</clarification>')
+    assert state['failure']['type'] == 'CLARIFICATION'
+    assert model.calls == 1 and state['exec_result'] is None
+
+
+def test_empty_result_has_explicit_outcome_without_synthesis(run):
+    state, model = run('<sql>SELECT id FROM transactions WHERE id < 0</sql>')
+    assert state['failure'] is None
+    assert state['outcome'] == 'no_data'
+    assert state['answer'] == 'No matching data was returned for this question.'
+    assert model.calls == 1
+
+
+def test_zero_count_is_a_valid_answer(run):
+    state, model = run('<sql>SELECT count(*) AS observation_count FROM transactions WHERE id < 0</sql>', 'Zero observations.')
+    assert state['outcome'] == 'answer'
+    assert state['exec_result'].rows == [[0]]
+    assert model.calls == 2
+
+
 @pytest.mark.parametrize('question', ['What is the net rental yield?', 'ما صافي العائد الإيجاري في أبوظبي؟'])
 def test_unsupported_net_rental_yield_is_declined_before_model_or_database(question):
     model = Model('<sql>SELECT 1</sql>')
     state = run_pipeline(question, chat_model=model,
                          settings=Settings(database_url='postgresql://unused/unused', readonly_db_password='unused'))
     assert state['failure']['type'] == 'UNSUPPORTED'
+    assert state['attempts'] == 0 and model.calls == 0
+
+
+@pytest.mark.parametrize('question', ['What were the latest sales?', 'كم بلغت مبيعات البطين في 2025؟'])
+def test_clarification_preflight_avoids_model_and_database(question):
+    model = Model('<sql>SELECT 1</sql>')
+    state = run_pipeline(question, chat_model=model,
+                         settings=Settings(database_url='postgresql://unused/unused', readonly_db_password='unused'))
+    assert state['failure']['type'] == 'CLARIFICATION'
     assert state['attempts'] == 0 and model.calls == 0
 
 

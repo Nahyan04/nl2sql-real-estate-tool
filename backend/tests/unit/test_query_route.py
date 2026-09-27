@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 from app.api.routes.query import _failure_status, chat_model_factory
 from app.main import app
+from app.services.executor import ExecResult
 from app.services.request_limiter import get_request_limiter
 
 query_route = import_module("app.api.routes.query")
@@ -75,3 +76,43 @@ def test_malformed_direct_request_has_stable_error(client) -> None:
     assert response.status_code == 422
     assert response.json()["error"] == "INVALID_REQUEST"
     assert response.headers["X-Request-ID"] == response.json()["request_id"]
+
+
+def test_clarification_response_is_safe_and_actionable(client, monkeypatch) -> None:
+    monkeypatch.setattr(query_route, "run_pipeline", lambda *args, **kwargs: {
+        "failure": {"type": "CLARIFICATION", "detail": "internal source text"},
+        "attempts": 0,
+    })
+    response = client.post("/api/v1/query", json={"question": "What were the latest sales?"})
+    assert response.status_code == 422
+    assert response.json()["error"] == "CLARIFICATION"
+    assert "exact period" in response.json()["detail"]
+    assert "internal source text" not in response.text
+
+
+def test_query_result_limitation_is_added_even_if_synthesis_omits_it(client, monkeypatch) -> None:
+    monkeypatch.setattr(query_route, "run_pipeline", lambda *args, **kwargs: {
+        "failure": None,
+        "outcome": "answer",
+        "answer": "The leading district is Example.",
+        "exec_result": ExecResult(columns=["district"], rows=[["Example"]], row_count=51),
+        "sql": "SELECT district FROM transactions",
+    })
+    response = client.post("/api/v1/query", json={"question": "Show districts in 2025"})
+    assert response.status_code == 200
+    assert response.json()["answer_limited"] is True
+    assert "first 50 returned rows" in response.json()["answer"]
+
+
+def test_no_data_outcome_is_returned_with_executed_sql(client, monkeypatch) -> None:
+    monkeypatch.setattr(query_route, "run_pipeline", lambda *args, **kwargs: {
+        "failure": None,
+        "outcome": "no_data",
+        "answer": "No matching data was returned for this question.",
+        "exec_result": ExecResult(columns=["sale_count"], rows=[], row_count=0),
+        "sql": "SELECT sale_count FROM transactions WHERE false",
+    })
+    response = client.post("/api/v1/query", json={"question": "Show sales in 2035"})
+    assert response.status_code == 200
+    assert response.json()["outcome"] == "no_data"
+    assert response.json()["sql"].startswith("SELECT")

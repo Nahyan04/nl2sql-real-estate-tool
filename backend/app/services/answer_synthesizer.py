@@ -28,6 +28,8 @@ even in an Arabic answer. Never transliterate them.
 an indicative gross segment yield, not an individual property's realized or net return. \
 If SQL weights rent by leased units, call it a leased-unit-weighted annual rent estimate.
 - If the result contains no rows, say plainly that no records matched.
+- Describe percentage change, percentage-point change and index-level change with their correct units and denominator. A null ratio is unavailable, not zero.
+- If only a sample of rows is supplied, describe conclusions as applying only to those rows. Do not claim a full-population result from a sample or a truncated query.
 - Do not describe the SQL or mention that you were given a table.
 """
 
@@ -59,6 +61,8 @@ def synthesize_answer(
             "\nNote: the result was truncated at a row or response-size limit, so these are "
             "the first rows only — say so if it affects the answer.\n"
         )
+    elif result.row_count > MAX_ANSWER_ROWS:
+        notes = f"\nNote: only the first {MAX_ANSWER_ROWS} returned rows are provided for this explanation; do not claim a full-result conclusion.\n"
 
     human = (
         f"Question: {question}\n\n"

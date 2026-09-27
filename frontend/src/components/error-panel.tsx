@@ -20,7 +20,11 @@ const EXPLANATIONS: Record<ApiErrorCode, { title: string; guidance: string }> = 
   },
   UNSUPPORTED: {
     title: "That calculation is not supported",
-    guidance: "The available exports cannot support this comparison. Try a source lease value, quarter-end leased-unit count, or one rent-index series.",
+    guidance: "The verified exports do not support that question. Try a source-backed sales, rent, index, or indicative gross segment yield question.",
+  },
+  CLARIFICATION: {
+    title: "Please clarify the question",
+    guidance: "Give exact dates or a named reporting period, and specify any ambiguous source place name.",
   },
   EXECUTION_ERROR: {
     title: "Query failed to run",
@@ -89,17 +93,19 @@ const EXPLANATIONS: Record<ApiErrorCode, { title: string; guidance: string }> = 
 };
 
 export function ErrorPanel({ error, question }: { error: ApiError; question: string }) {
-  const arabicUnsupported = error.code === "UNSUPPORTED" && /[\u0600-\u06FF]/.test(question);
-  const explanation = arabicUnsupported ? {
-    title: "هذا الحساب غير مدعوم",
-    guidance: "لا تثبت البيانات المتاحة أن الإيجار السنوي وسعر البيع يخصان العقارات نفسها والفترة نفسها. يمكنك السؤال عن قيمة الإيجارات في فترة محددة أو مؤشر إيجارات واحد.",
+  const arabicOutcome = (error.code === "UNSUPPORTED" || error.code === "CLARIFICATION") && /[\u0600-\u06FF]/.test(question);
+  const explanation = arabicOutcome ? {
+    title: error.code === "CLARIFICATION" ? "يرجى توضيح السؤال" : "هذا السؤال غير مدعوم",
+    guidance: error.code === "CLARIFICATION"
+      ? "حدد فترة زمنية دقيقة واسم مكان واضح كما يظهر في المصدر."
+      : "البيانات المتاحة لا تدعم هذا السؤال. يمكنك السؤال عن المبيعات أو الإيجارات أو المؤشرات أو تقدير العائد الإجمالي للمجموعة.",
   } : EXPLANATIONS[error.code] ?? {
     title: "Request failed",
     guidance: "Something went wrong before an answer could be produced.",
   };
 
   return (
-    <section dir={arabicUnsupported ? "rtl" : undefined} className="mt-12 border-s-2 border-destructive ps-5">
+    <section dir={arabicOutcome ? "rtl" : undefined} className="mt-12 border-s-2 border-destructive ps-5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
         <h2 className="label-mono text-destructive">{explanation.title}</h2>
         <span className="label-mono text-sand">{error.code}</span>
@@ -108,7 +114,7 @@ export function ErrorPanel({ error, question }: { error: ApiError; question: str
         {explanation.guidance}
         {error.retryAfter !== null ? ` Retry after ${error.retryAfter} seconds.` : ""}
       </p>
-      {error.detail && !arabicUnsupported ? (
+      {error.detail && !arabicOutcome ? (
         <p className="mt-3 max-w-[44rem] font-mono text-[0.9375rem] leading-relaxed break-words text-sand">
           {error.detail}
         </p>

@@ -30,6 +30,7 @@ from app.services.retrieval.lexical import retrieve
 from app.services.schema_serializer import serialize_schema
 from app.services.sql_validator import validate_product_query, product_tables_used
 from app.services.product_schema import introspect_product_schema, ALIASES
+from app.services.question_policy import classify_question
 
 logger = logging.getLogger(__name__)
 
@@ -47,13 +48,6 @@ EMPTY_RESPONSE = "EMPTY_RESPONSE"
 # model produced something SQL-shaped that the parser still rejected — i.e. a
 # validation failure, not a parse miss.
 _HAS_SQL_SHAPE = re.compile(r"<sql>|```|^[ \t]*(?:SELECT|WITH)\b", re.IGNORECASE | re.MULTILINE)
-_UNSUPPORTED_NET_YIELD = re.compile(
-    r"\b(?:net rental yield|net yield|net return on rent)\b|"
-    r"(?:صافي|صافى)\s*(?:العائد|عائد|مردود)\s*(?:الإيجاري|الايجاري|الإيجار|الايجار)",
-    re.IGNORECASE,
-)
-
-
 class Failure(TypedDict):
     type: str
     detail: str
@@ -72,6 +66,7 @@ class PipelineState(TypedDict, total=False):
     answer: str
     chart: ChartSpec | None
     latency_ms: int
+    outcome: str
     deadline: float
     max_attempts: int
 
@@ -180,6 +175,9 @@ def generate_sql(state: PipelineState, config: RunnableConfig) -> dict[str, Any]
     unsupported = re.fullmatch(r"\s*<unsupported>(.*?)</unsupported>\s*", raw, re.DOTALL)
     if unsupported:
         return {"attempts": attempts, "sql": None, "failure": Failure(type="UNSUPPORTED", detail=unsupported.group(1)[:DETAIL_LIMIT])}
+    clarification = re.fullmatch(r"\s*<clarification>(.*?)</clarification>\s*", raw, re.DOTALL)
+    if clarification:
+        return {"attempts": attempts, "sql": None, "failure": Failure(type="CLARIFICATION", detail=clarification.group(1)[:DETAIL_LIMIT])}
     parsed = parse_response(raw)
 
     if parsed is None:
@@ -252,10 +250,19 @@ def execute_sql(state: PipelineState, config: RunnableConfig) -> dict[str, Any]:
             "failure": Failure(type=EXECUTION_ERROR, detail=detail),
         }
 
-    return {"exec_result": result, "failure": None, "sql": result.executed_sql}
+    no_data = not result.rows or all(all(value is None for value in row) for row in result.rows)
+    return {
+        "exec_result": result,
+        "failure": None,
+        "sql": result.executed_sql,
+        "outcome": "no_data" if no_data else "answer",
+    }
 
 
 def synthesize_answer_node(state: PipelineState, config: RunnableConfig) -> dict[str, Any]:
+    if state.get("outcome") == "no_data":
+        arabic = bool(re.search(r"[\u0600-\u06FF]", state["question"]))
+        return {"answer": "لم تُرجع البيانات صفوفًا مطابقة لهذا السؤال." if arabic else "No matching data was returned for this question."}
     try:
         answer = synthesize_answer(
             state["question"],
@@ -288,7 +295,7 @@ def build_chart_node(state: PipelineState, config: RunnableConfig) -> dict[str, 
 def _route(state: PipelineState, on_success: str) -> str:
     if not state.get("failure"):
         return on_success
-    if state.get("failure", {}).get("type") in {"UNSUPPORTED", "DATABASE_BUSY", "QUERY_TIMEOUT", "RESULT_TOO_LARGE", "MODEL_BUSY", "REQUEST_TIMEOUT"}:
+    if state.get("failure", {}).get("type") in {"UNSUPPORTED", "CLARIFICATION", "DATABASE_BUSY", "QUERY_TIMEOUT", "RESULT_TOO_LARGE", "MODEL_BUSY", "REQUEST_TIMEOUT"}:
         return END
     if state.get("attempts", 0) < state.get("max_attempts", 1):
         return "generate_sql"
@@ -351,17 +358,15 @@ def run_pipeline(
     settings = settings or get_settings()
     started = time.perf_counter()
 
-    if _UNSUPPORTED_NET_YIELD.search(question):
+    decision = classify_question(question)
+    if decision:
         return {
             "question": question,
             "provider": provider,
             "dry_run": dry_run,
             "attempts": 0,
             "sql": None,
-            "failure": Failure(
-                type="UNSUPPORTED",
-                detail="Net rental yield needs property-level costs, which are not in the exported data. An indicative gross segment yield is available.",
-            ),
+            "failure": Failure(type=decision.code, detail=decision.detail),
             "latency_ms": int((time.perf_counter() - started) * 1000),
         }
 

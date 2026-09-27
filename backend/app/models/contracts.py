@@ -20,6 +20,8 @@ class ChartSpecPayload(BaseModel):
 
 class QueryResponse(BaseModel):
     answer: str = ""
+    outcome: str = "answer"
+    answer_limited: bool = False
     sql: str = ""
     columns: list[str] = Field(default_factory=list)
     rows: list[list[Any]] = Field(default_factory=list)

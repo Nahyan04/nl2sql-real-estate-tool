@@ -22,6 +22,8 @@ export interface ChartSpec {
 
 export interface QueryResponse {
   answer: string;
+  outcome: "answer" | "no_data";
+  answer_limited: boolean;
   sql: string;
   columns: string[];
   rows: Cell[][];
@@ -84,6 +86,7 @@ export type ApiErrorCode =
   | "VALIDATION_ERROR"
   | "UNSAFE_SQL"
   | "UNSUPPORTED"
+  | "CLARIFICATION"
   | "EMPTY_RESPONSE"
   | "EXECUTION_ERROR"
   | "DATABASE_BUSY"

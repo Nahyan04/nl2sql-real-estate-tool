@@ -72,13 +72,13 @@ def test_unsupported_stops_without_retry_or_execution(runtime):
     model = Model('<unsupported>Lender-level mortgage records are unavailable.</unsupported>')
     state = run_pipeline('Mortgage totals by lender?', chat_model=model, engine=engine, engine_ro=readonly, settings=settings)
     assert state['failure']['type'] == 'UNSUPPORTED'
-    assert state['exec_result'] is None and model.calls == 1
+    assert state['exec_result'] is None and model.calls == 0
 
 
 def test_synthetic_relation_never_executes(runtime):
     engine, readonly, settings = runtime
     model = Model(*(['<sql>SELECT * FROM mortgages</sql>']*3))
-    state = run_pipeline('Mortgage totals?', chat_model=model, engine=engine, engine_ro=readonly, settings=settings)
+    state = run_pipeline('Show available records', chat_model=model, engine=engine, engine_ro=readonly, settings=settings)
     assert state['failure']['type'] == 'UNSAFE_SQL'
     assert state['exec_result'] is None
 
