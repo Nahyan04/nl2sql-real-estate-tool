@@ -45,13 +45,23 @@ def test_unsupported_stops_without_execution(run):
     assert model.calls == 1 and state['exec_result'] is None
 
 
-@pytest.mark.parametrize('question', ['What is the rental yield?', 'ما العائد الإيجاري في أبوظبي؟'])
-def test_unsupported_rental_yield_is_declined_before_model_or_database(question):
+@pytest.mark.parametrize('question', ['What is the net rental yield?', 'ما صافي العائد الإيجاري في أبوظبي؟'])
+def test_unsupported_net_rental_yield_is_declined_before_model_or_database(question):
     model = Model('<sql>SELECT 1</sql>')
     state = run_pipeline(question, chat_model=model,
                          settings=Settings(database_url='postgresql://unused/unused', readonly_db_password='unused'))
     assert state['failure']['type'] == 'UNSUPPORTED'
     assert state['attempts'] == 0 and model.calls == 0
+
+
+@pytest.mark.parametrize('question', ['What is the rental yield?', 'ما العائد الإيجاري؟'])
+def test_gross_segment_yield_can_reach_query_generation(sqlite_engine, monkeypatch, question):
+    monkeypatch.setattr(graph, 'introspect_product_schema', lambda _: introspect_schema(sqlite_engine))
+    model = Model("<sql>SELECT 100 * source_annual_rent / NULLIF(source_average_sale_price_aed, 0) AS gross_yield_proxy_pct FROM rental_observations WHERE source_file = 'Price Indices/average_sale_rent_prices_by_product_area.xlsx' AND period_end = DATE '2026-06-30' AND source_annual_rent > 0 AND source_average_sale_price_aed > 0</sql>")
+    state = run_pipeline(question, chat_model=model, engine=sqlite_engine,
+                         engine_ro=sqlite_engine, dry_run=True)
+    assert state['failure'] is None
+    assert state['attempts'] == 1 and model.calls == 1
 
 
 def test_dry_run_validates_without_execution(run):

@@ -47,9 +47,9 @@ EMPTY_RESPONSE = "EMPTY_RESPONSE"
 # model produced something SQL-shaped that the parser still rejected — i.e. a
 # validation failure, not a parse miss.
 _HAS_SQL_SHAPE = re.compile(r"<sql>|```|^[ \t]*(?:SELECT|WITH)\b", re.IGNORECASE | re.MULTILINE)
-_UNSUPPORTED_YIELD = re.compile(
-    r"\b(?:rental yield|rent-to-price ratio|return on rent)\b|"
-    r"(?:العائد|عائد|مردود)\s*(?:الإيجاري|الايجاري|الإيجار|الايجار)",
+_UNSUPPORTED_NET_YIELD = re.compile(
+    r"\b(?:net rental yield|net yield|net return on rent)\b|"
+    r"(?:صافي|صافى)\s*(?:العائد|عائد|مردود)\s*(?:الإيجاري|الايجاري|الإيجار|الايجار)",
     re.IGNORECASE,
 )
 
@@ -351,7 +351,7 @@ def run_pipeline(
     settings = settings or get_settings()
     started = time.perf_counter()
 
-    if _UNSUPPORTED_YIELD.search(question):
+    if _UNSUPPORTED_NET_YIELD.search(question):
         return {
             "question": question,
             "provider": provider,
@@ -360,7 +360,7 @@ def run_pipeline(
             "sql": None,
             "failure": Failure(
                 type="UNSUPPORTED",
-                detail="Rental yield needs comparable sale prices and annual rent for the same properties and period; the exports do not establish that match.",
+                detail="Net rental yield needs property-level costs, which are not in the exported data. An indicative gross segment yield is available.",
             ),
             "latency_ms": int((time.perf_counter() - started) * 1000),
         }

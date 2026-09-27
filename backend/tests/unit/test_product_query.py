@@ -40,6 +40,7 @@ def test_fresh_prompt_uses_source_fields_without_legacy_hierarchy():
     prompt = build_system_prompt()
     assert 'community_id' not in prompt and 'name_ar' not in prompt
     assert 'active_value_aed is lease value accrued in the quarter, not total annual rent' in prompt
+    assert 'same exact-key leased-unit weights' in prompt
     assert '5+ beds versus 6+ beds' in prompt
     assert '<unsupported>' in prompt
     user = build_user_prompt('q', 'x'*50000, system_prompt=prompt)

@@ -8,9 +8,9 @@ The application uses the real ADREC native exports received on September 24, 202
 
 The active snapshot contains 240,490 source observations across 31 native files, including 122,936 Recent Sales observations. The query surface exposes sales, source rental observations, geographically distinct price indices and per-source coverage. Raw imports are private to the importer.
 
-- Sales preserve district, community, project, asset class, source sale type, layout and fractional Share. Municipality is unknown when absent from the source.
+- Sales preserve district, community, project, asset class, source sale type, layout and fractional Share. Bayan treats Share as the ownership fraction transferred; recorded sale price and area are not rescaled. Municipality is unknown when absent from the source.
 - Repeated-looking sales remain separate observations because no stable transaction ID is provided.
-- Rental values retain source labels. Annualization, yield and weighted rent comparisons remain unsupported until definitions are confirmed.
+- Quarterly lease values can be summed across distinct periods; leased-unit counts describe a quarter end. For broader annual-rent estimates, Bayan weights same-quarter, same-segment comparison rents by exported leased-unit counts. Indicative gross yield compares annual rent and sale price from the same segment row, then weights matched segment ratios by leased units. It is not an individual property's net return.
 - Indices preserve geography, property grouping and all-rents/new-rents distinctions.
 - There are no fabricated developer, broker or lender records. Financing aggregates remain in source storage but are not exposed while their units are unresolved.
 - Download date is not data completeness. Use `dataset_coverage` to inspect each source's actual dates; a future period-end label does not prove a complete period.

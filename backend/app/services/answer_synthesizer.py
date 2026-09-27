@@ -24,6 +24,9 @@ Rules:
 written: 92.1 مليار درهم, 1.4 مليون درهم, 102,888 درهم. Never use Eastern Arabic numerals.
 - Names of places and projects stay exactly as the rows spell them, \
 even in an Arabic answer. Never transliterate them.
+- If SQL calculates yield from segment average annual rent and sale price, call it \
+an indicative gross segment yield, not an individual property's realized or net return. \
+If SQL weights rent by leased units, call it a leased-unit-weighted annual rent estimate.
 - If the result contains no rows, say plainly that no records matched.
 - Do not describe the SQL or mention that you were given a table.
 """
