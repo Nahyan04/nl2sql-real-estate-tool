@@ -23,6 +23,16 @@ export function formatCell(value: Cell): string {
   return String(value);
 }
 
+export function formatMetricCell(value: Cell, column: string): string {
+  if (!isNumeric(value)) return formatCell(value);
+  const name = column.toLowerCase();
+  if (name.endsWith("_aed")) return `AED ${grouped(value)}`;
+  if (name.endsWith("_pct") || name.endsWith("_percent")) return `${GROUPED.format(value)}%`;
+  if (name.endsWith("_sqm")) return `${grouped(value)} sqm`;
+  if (name.endsWith("_count") || name === "count") return WHOLE.format(value);
+  return formatCell(value);
+}
+
 /** Axis and tick labels: AED 203bn reads where 203,000,000,000 does not. */
 export function formatCompact(value: number): string {
   const abs = Math.abs(value);

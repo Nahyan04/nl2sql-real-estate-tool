@@ -16,6 +16,11 @@ class Model:
         return AIMessage(content=next(self.responses, ''))
 
 
+class FailingModel:
+    def invoke(self, messages):
+        raise ConnectionError('internal-provider-url:secret')
+
+
 @pytest.fixture
 def run(sqlite_engine, monkeypatch):
     monkeypatch.setattr(graph, 'introspect_product_schema', lambda _: introspect_schema(sqlite_engine))
@@ -64,6 +69,27 @@ def test_zero_count_is_a_valid_answer(run):
     assert state['outcome'] == 'answer'
     assert state['exec_result'].rows == [[0]]
     assert model.calls == 2
+
+
+def test_generation_provider_failure_is_explicit(sqlite_engine, monkeypatch):
+    monkeypatch.setattr(graph, 'introspect_product_schema', lambda _: introspect_schema(sqlite_engine))
+    state = run_pipeline('sales count', chat_model=FailingModel(), engine=sqlite_engine, engine_ro=sqlite_engine)
+    assert state['failure']['type'] == 'PROVIDER_UNAVAILABLE'
+    assert state['attempts'] == 1
+
+
+def test_synthesis_provider_failure_is_explicit(sqlite_engine, monkeypatch):
+    monkeypatch.setattr(graph, 'introspect_product_schema', lambda _: introspect_schema(sqlite_engine))
+    class FirstCallModel:
+        calls = 0
+        def invoke(self, messages):
+            self.calls += 1
+            if self.calls == 1:
+                return AIMessage(content='<sql>SELECT count(*) AS observation_count FROM transactions</sql>')
+            raise ConnectionError('internal-provider-url:secret')
+    state = run_pipeline('sales count', chat_model=FirstCallModel(), engine=sqlite_engine, engine_ro=sqlite_engine)
+    assert state['failure']['type'] == 'PROVIDER_UNAVAILABLE'
+    assert state['exec_result'].rows == [[600]]
 
 
 @pytest.mark.parametrize('question', ['What is the net rental yield?', 'ما صافي العائد الإيجاري في أبوظبي؟'])

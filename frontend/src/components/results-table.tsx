@@ -1,4 +1,4 @@
-import { formatCell, humanizeColumn, looksNumericColumn } from "@/lib/format";
+import { formatMetricCell, humanizeColumn, looksNumericColumn } from "@/lib/format";
 import type { Cell } from "@/lib/types";
 
 interface ResultsTableProps {
@@ -58,7 +58,7 @@ export function ResultsTable({ columns, rows, rowCount, truncated, truncationRea
                         : "text-start text-sand"
                     }`}
                   >
-                    {formatCell(cell)}
+                    {formatMetricCell(cell, columns[cellIndex])}
                   </td>
                 ))}
               </tr>

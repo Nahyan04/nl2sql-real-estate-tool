@@ -24,6 +24,8 @@ export interface QueryResponse {
   answer: string;
   outcome: "answer" | "no_data";
   answer_limited: boolean;
+  snapshot_id: string | null;
+  date_conditions: string[];
   sql: string;
   columns: string[];
   rows: Cell[][];
@@ -77,7 +79,18 @@ export interface SchemaTable {
 
 export interface SchemaResponse {
   schema: string;
+  snapshot_id: string;
   tables: SchemaTable[];
+  coverage: SourceCoverage[];
+}
+
+export interface SourceCoverage {
+  source_file: string;
+  grain: string | null;
+  measure: string | null;
+  observed_from: string | null;
+  observed_through: string | null;
+  complete_through: string | null;
 }
 
 /** Codes the pipeline and the route can return in `ErrorPayload.error`. */
@@ -101,6 +114,7 @@ export type ApiErrorCode =
   | "LIMITER_UNAVAILABLE"
   | "REQUEST_TIMEOUT"
   | "UNKNOWN_PROVIDER"
+  | "PROVIDER_UNAVAILABLE"
   | "INVALID_REQUEST"
   | "UPSTREAM_ERROR"
   | "NETWORK_ERROR";

@@ -16,6 +16,7 @@ from app.models.contracts import ChartSpecPayload, ErrorResponse, QueryRequest, 
 from app.services.executor import ExecResult
 from app.services.answer_synthesizer import MAX_ANSWER_ROWS
 from app.services.graph import run_pipeline
+from app.services.query_metadata import date_conditions
 from app.services.request_limiter import (
     SESSION_COOKIE,
     LimitRejected,
@@ -60,6 +61,7 @@ SAFE_FAILURE_DETAILS = {
     "RESULT_TOO_LARGE": "The result is too large. Add a filter or grouping.",
     "MODEL_BUSY": "The model is busy. Please try again shortly.",
     "REQUEST_TIMEOUT": "The analysis exceeded its time limit. Try a narrower question.",
+    "PROVIDER_UNAVAILABLE": "The selected model provider is unavailable. Try again when it is online.",
 }
 
 
@@ -82,6 +84,8 @@ def _failure_status(failure_type: str) -> int:
     if failure_type in {"REQUEST_TIMEOUT", "QUERY_TIMEOUT"}:
         return 504
     if failure_type == "DATABASE_BUSY":
+        return 503
+    if failure_type == "PROVIDER_UNAVAILABLE":
         return 503
     return 422
 
@@ -178,6 +182,8 @@ def query(
         answer=answer,
         outcome=state.get("outcome") or "answer",
         answer_limited=answer_limited,
+        snapshot_id=state.get("snapshot_id"),
+        date_conditions=date_conditions(state.get("sql") or ""),
         sql=state.get("sql") or "",
         columns=result.columns,
         rows=_jsonable_rows(result.rows),

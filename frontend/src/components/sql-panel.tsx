@@ -48,8 +48,7 @@ export function SqlPanel({ sql, tablesUsed, retryCount, latencyMs, provider }: S
       <div className="pb-2">
         {tablesUsed.length > 0 ? (
           <div className="flex flex-wrap items-baseline gap-x-8 gap-y-2 pb-4">
-            {/* the retrieval shortlist, not the tables the query touched */}
-            <span className="label-mono text-sand">Tables considered</span>
+            <span className="label-mono text-sand">Tables used</span>
             <span className="font-mono text-[0.9375rem] text-sand">
               {tablesUsed.join("  ·  ")}
             </span>

@@ -8,25 +8,30 @@ import { ErrorPanel } from "@/components/error-panel";
 import { ExampleQuestions } from "@/components/example-questions";
 import { Header } from "@/components/header";
 import { HistoryPanel } from "@/components/history-panel";
-import { PipelineTrace } from "@/components/pipeline-trace";
+import { ProcessOverview } from "@/components/process-overview";
+import { EvidencePanel } from "@/components/evidence-panel";
 import { QueryInput } from "@/components/query-input";
 import { ResultChart } from "@/components/result-chart";
 import { ResultsTable } from "@/components/results-table";
 import { SqlPanel } from "@/components/sql-panel";
 import { ApiError, getExamples, getSchema, postQuery } from "@/lib/api";
 import { clearHistory, getHistory, getServerHistory, pushHistory, subscribeHistory } from "@/lib/history";
-import type { ExampleQuestion, Provider, QueryResponse, SchemaTable } from "@/lib/types";
+import type { ExampleQuestion, Provider, QueryResponse, SchemaTable, SourceCoverage } from "@/lib/types";
 
 export default function Home() {
   const [question, setQuestion] = useState("");
   const [provider, setProvider] = useState<Provider>("anthropic");
   const [examples, setExamples] = useState<ExampleQuestion[]>([]);
   const [tables, setTables] = useState<SchemaTable[]>([]);
+  const [coverage, setCoverage] = useState<SourceCoverage[]>([]);
+  const [schemaSnapshotId, setSchemaSnapshotId] = useState<string | null>(null);
   const history = useSyncExternalStore(subscribeHistory, getHistory, getServerHistory);
   const [result, setResult] = useState<QueryResponse | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   const [busy, setBusy] = useState(false);
   const [runId, setRunId] = useState(0);
+  const [startedAt, setStartedAt] = useState(0);
+  const [finishedAt, setFinishedAt] = useState<number | null>(null);
   const pending = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -35,7 +40,11 @@ export default function Home() {
       .then((response) => setExamples(response.examples))
       .catch(() => setExamples([]));
     getSchema(controller.signal)
-      .then((response) => setTables(response.tables))
+      .then((response) => {
+        setTables(response.tables);
+        setCoverage(response.coverage ?? []);
+        setSchemaSnapshotId(response.snapshot_id);
+      })
       .catch(() => setTables([]));
     return () => controller.abort();
   }, []);
@@ -54,6 +63,8 @@ export default function Home() {
       setError(null);
       setResult(null);
       setRunId((id) => id + 1);
+      setStartedAt(performance.now());
+      setFinishedAt(null);
       pushHistory(asked);
 
       try {
@@ -62,13 +73,17 @@ export default function Home() {
         if (cause instanceof Error && cause.name === "AbortError") return;
         setError(cause instanceof ApiError ? cause : new ApiError("UPSTREAM_ERROR", String(cause), 0));
       } finally {
-        if (pending.current === controller) setBusy(false);
+        if (pending.current === controller) {
+          setFinishedAt(performance.now());
+          setBusy(false);
+        }
       }
     },
     [provider],
   );
 
-  const showTrace = busy || result !== null;
+  const showProcess = busy || result !== null || error !== null;
+  const arabicQuestion = /[\u0600-\u06FF]/.test(question);
 
   return (
     <>
@@ -77,14 +92,15 @@ export default function Home() {
       <main className="mx-auto w-full max-w-[68rem] flex-1 px-5 sm:px-8 pt-16 pb-24">
         <QueryInput value={question} onChange={setQuestion} onSubmit={() => run(question)} busy={busy} />
 
-        {showTrace ? (
-          <div className="mt-10">
-            <PipelineTrace
-              key={runId}
-              state={busy ? "running" : "done"}
-              attempts={(result?.retry_count ?? 0) + 1}
-            />
-          </div>
+        {showProcess ? (
+          <ProcessOverview
+            key={runId}
+            running={busy}
+            failed={error !== null}
+            startedAt={startedAt}
+            finishedAt={finishedAt}
+            arabic={arabicQuestion}
+          />
         ) : error ? null : (
           <>
             <ExampleQuestions examples={examples} onPick={run} busy={busy} />
@@ -92,16 +108,17 @@ export default function Home() {
           </>
         )}
 
-        {error ? <ErrorPanel error={error} question={question} /> : null}
+        {error ? <ErrorPanel error={error} question={question} onRetry={() => run(question)} /> : null}
 
         {result ? (
           <>
-            <AnswerPanel answer={result.answer} />
-            {result.chart ? (
+            <AnswerPanel answer={result.answer} title={result.outcome === "no_data" ? "No matching data" : "Answer"} />
+            <EvidencePanel result={result} coverage={coverage} schemaSnapshotId={schemaSnapshotId} arabic={arabicQuestion} />
+            {result.outcome !== "no_data" && result.chart ? (
               <ResultChart chart={result.chart} columns={result.columns} rows={result.rows} />
             ) : null}
             {/* a scalar is already shown whole by the stat figure */}
-            {result.chart?.type === "stat" && result.columns.length === 1 ? null : (
+            {result.outcome === "no_data" || (result.chart?.type === "stat" && result.columns.length === 1) ? null : (
               <ResultsTable
                 columns={result.columns}
                 rows={result.rows}

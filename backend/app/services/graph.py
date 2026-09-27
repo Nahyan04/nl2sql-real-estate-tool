@@ -67,6 +67,7 @@ class PipelineState(TypedDict, total=False):
     chart: ChartSpec | None
     latency_ms: int
     outcome: str
+    snapshot_id: str | None
     deadline: float
     max_attempts: int
 
@@ -132,6 +133,7 @@ def retrieve_schema(state: PipelineState, config: RunnableConfig) -> dict[str, A
     return {
         "schema_context": serialize_schema(selected, char_budget=SCHEMA_CHAR_BUDGET),
         "tables_used": [table["name"] for table in selected],
+        "snapshot_id": schema.get("snapshot_id"),
     }
 
 
@@ -171,6 +173,13 @@ def generate_sql(state: PipelineState, config: RunnableConfig) -> dict[str, Any]
                 type="REQUEST_TIMEOUT",
                 detail="The request exceeded its total time limit.",
             ),
+        }
+    except Exception as exc:  # noqa: BLE001 - provider transport and SDK errors vary
+        logger.error("sql generation provider failure exception_type=%s", type(exc).__name__)
+        return {
+            "attempts": attempts,
+            "sql": None,
+            "failure": Failure(type="PROVIDER_UNAVAILABLE", detail="The selected model provider is unavailable."),
         }
     unsupported = re.fullmatch(r"\s*<unsupported>(.*?)</unsupported>\s*", raw, re.DOTALL)
     if unsupported:
@@ -278,13 +287,15 @@ def synthesize_answer_node(state: PipelineState, config: RunnableConfig) -> dict
             else "The request exceeded its total time limit."
         )
         return {"answer": "", "failure": Failure(type=kind, detail=detail)}
-    except Exception:  # noqa: BLE001 - best effort; the rows and SQL still stand alone
-        logger.exception("answer synthesis failed")
-        return {"answer": ""}
+    except Exception as exc:  # noqa: BLE001 - provider transport and SDK errors vary
+        logger.error("answer synthesis provider failure exception_type=%s", type(exc).__name__)
+        return {"answer": "", "failure": Failure(type="PROVIDER_UNAVAILABLE", detail="The selected model provider is unavailable.")}
     return {"answer": answer}
 
 
 def build_chart_node(state: PipelineState, config: RunnableConfig) -> dict[str, Any]:
+    if state.get("failure") or state.get("outcome") == "no_data":
+        return {"chart": None}
     try:
         return {"chart": build_chart_spec(state["exec_result"])}
     except Exception:  # noqa: BLE001 - a missing chart must not fail the request
@@ -295,7 +306,7 @@ def build_chart_node(state: PipelineState, config: RunnableConfig) -> dict[str, 
 def _route(state: PipelineState, on_success: str) -> str:
     if not state.get("failure"):
         return on_success
-    if state.get("failure", {}).get("type") in {"UNSUPPORTED", "CLARIFICATION", "DATABASE_BUSY", "QUERY_TIMEOUT", "RESULT_TOO_LARGE", "MODEL_BUSY", "REQUEST_TIMEOUT"}:
+    if state.get("failure", {}).get("type") in {"UNSUPPORTED", "CLARIFICATION", "DATABASE_BUSY", "QUERY_TIMEOUT", "RESULT_TOO_LARGE", "MODEL_BUSY", "REQUEST_TIMEOUT", "PROVIDER_UNAVAILABLE"}:
         return END
     if state.get("attempts", 0) < state.get("max_attempts", 1):
         return "generate_sql"

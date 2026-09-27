@@ -32,9 +32,13 @@ def introspect_product_schema(engine):
         populated = connection.execute(text('SELECT EXISTS(SELECT 1 FROM bayan.transactions) AND EXISTS(SELECT 1 FROM bayan.price_indices) AND EXISTS(SELECT 1 FROM bayan.rental_observations)')).scalar_one()
         if version != [1] or len(active) != 1 or not populated:
             raise ValueError('Fresh-data snapshot is not ready')
+        coverage = [dict(row._mapping) for row in connection.execute(text('''
+            SELECT source_file, grain, measure, observed_from, observed_through, complete_through
+            FROM bayan.dataset_coverage ORDER BY source_file
+        '''))]
     tables = []
     for name in sorted(PRODUCT_RELATIONS):
         table = build_table_metadata(inspector, name, 'bayan')
         table['description'] = DESCRIPTIONS[name]
         tables.append(table)
-    return {'schema': 'bayan', 'snapshot_id': active[0], 'tables': tables}
+    return {'schema': 'bayan', 'snapshot_id': active[0], 'tables': tables, 'coverage': coverage}

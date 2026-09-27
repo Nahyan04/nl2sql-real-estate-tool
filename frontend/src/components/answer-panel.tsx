@@ -24,12 +24,12 @@ const MARKDOWN = {
   ),
 };
 
-export function AnswerPanel({ answer }: { answer: string }) {
+export function AnswerPanel({ answer, title = "Answer" }: { answer: string; title?: string }) {
   if (!answer) return null;
 
   return (
     <section className="mt-12">
-      <h2 className="label-mono">Answer</h2>
+      <h2 className="label-mono">{title}</h2>
       {/* an Arabic answer reads from the column's right edge, not from a
           left-anchored measure */}
       <div

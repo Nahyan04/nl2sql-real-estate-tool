@@ -30,6 +30,8 @@ export function ExampleQuestions({ examples, onPick, busy }: ExampleQuestionsPro
             <button
               key={code}
               type="button"
+              aria-label={code === "en" ? "English examples" : "Arabic examples"}
+              aria-pressed={lang === code}
               onClick={() => {
                 setLang(code);
                 setExpanded(false);

@@ -12,7 +12,7 @@ import {
   YAxis,
 } from "recharts";
 
-import { formatCell, formatCompact, humanizeColumn, sentenceCase } from "@/lib/format";
+import { formatCompact, formatMetricCell, humanizeColumn, sentenceCase } from "@/lib/format";
 import type { Cell, ChartSpec } from "@/lib/types";
 
 /** Fixed order, never cycled. One series wears the brand gold; more than one
@@ -141,7 +141,7 @@ function StatFigure({ chart, columns, rows }: ResultChartProps) {
     <section className="mt-12">
       <h2 className="label-mono">Result</h2>
       <p className="mt-4 text-[3.25rem] leading-none font-semibold text-ink">
-        {formatCell(value)}
+        {formatMetricCell(value, key)}
       </p>
       <p className="mt-3 text-[1.0625rem] text-sand">{chart.title}</p>
     </section>
@@ -273,7 +273,7 @@ function ChartTooltip({ active, label, payload, keys, colorFor }: TooltipProps) 
                 style={{ background: colorFor(keys.indexOf(key)) }}
               />
               <span className="text-sand">{humanizeColumn(key)}</span>
-              <span className="ms-auto font-mono text-ink">{formatCell(entry.value ?? null)}</span>
+              <span className="ms-auto font-mono text-ink">{formatMetricCell(entry.value ?? null, key)}</span>
             </li>
           );
         })}

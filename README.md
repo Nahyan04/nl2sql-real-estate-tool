@@ -38,6 +38,10 @@ Query errors use a stable `error` code, a safe user-facing `detail`, and a `requ
 
 Unsupported questions and ambiguous places or relative dates stop before SQL execution; the latter return `CLARIFICATION` so the user can name an exact period or source place. Successful responses include `outcome` (`answer` or `no_data`) and `answer_limited` when the synthesis saw only part of the returned rows or the query result was truncated. For relative dates, the app requests an explicit reporting period because the source datasets have different observed and complete-through dates.
 
+The frontend shows a high-level process overview with elapsed browser wait time. Its four steps describe the workflow and do not indicate live backend stage completion. Results include the executed SQL's date conditions, actual used tables, metric units inferred from result aliases, the snapshot ID and relevant source coverage. A missing date condition is displayed as unknown scope rather than an inferred reporting window.
+
+If the selected model fails during SQL generation or answer synthesis, the API returns `PROVIDER_UNAVAILABLE` instead of an empty answer. The question remains in the input for retry.
+
 The query route uses PostgreSQL for atomic limits across API workers. Default allowances are 30 requests/minute and 300/day per browser session, plus 120/minute and 1,200/day per client IP; at most eight requests run concurrently across workers. These are configurable server-side. A rejected request returns HTTP 429 and `Retry-After`; an unavailable guard returns HTTP 503 and no model call. Direct API requests are subject to the IP limit. Configure `CORS_ORIGINS` for the frontend and `TRUSTED_PROXY_CIDRS` only for proxies you control; keep Uvicorn proxy-header rewriting disabled so untrusted forwarding headers cannot choose their own rate-limit identity. Use the same hostname for local frontend/API URLs so the session cookie persists. For a cross-site HTTPS frontend, set `SESSION_COOKIE_SECURE=true` and `SESSION_COOKIE_SAMESITE=none`. Anthropic credit restrictions are managed in the provider console; Bayan does not impose a separate dollar cap.
 
 ## Verification

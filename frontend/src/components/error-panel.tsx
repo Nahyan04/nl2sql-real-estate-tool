@@ -78,6 +78,10 @@ const EXPLANATIONS: Record<ApiErrorCode, { title: string; guidance: string }> = 
     title: "Model not configured",
     guidance: "The server does not have that model option set up.",
   },
+  PROVIDER_UNAVAILABLE: {
+    title: "Model temporarily unavailable",
+    guidance: "The selected provider could not complete the analysis. Keep your question and try again when that provider is online.",
+  },
   INVALID_REQUEST: {
     title: "Check your request",
     guidance: "Enter a question and choose one of the available providers.",
@@ -92,7 +96,7 @@ const EXPLANATIONS: Record<ApiErrorCode, { title: string; guidance: string }> = 
   },
 };
 
-export function ErrorPanel({ error, question }: { error: ApiError; question: string }) {
+export function ErrorPanel({ error, question, onRetry }: { error: ApiError; question: string; onRetry: () => void }) {
   const arabicOutcome = (error.code === "UNSUPPORTED" || error.code === "CLARIFICATION") && /[\u0600-\u06FF]/.test(question);
   const explanation = arabicOutcome ? {
     title: error.code === "CLARIFICATION" ? "يرجى توضيح السؤال" : "هذا السؤال غير مدعوم",
@@ -120,6 +124,9 @@ export function ErrorPanel({ error, question }: { error: ApiError; question: str
         </p>
       ) : null}
       {error.requestId ? <p className="mt-3 label-mono text-sand">Request ID: {error.requestId}</p> : null}
+      <button type="button" onClick={onRetry} className="mt-5 cursor-pointer rounded-md border border-rule px-4 py-2 text-sm font-medium text-ink transition-colors hover:border-sage hover:text-sage">
+        {arabicOutcome ? "حاول مرة أخرى" : "Try again"}
+      </button>
     </section>
   );
 }

@@ -22,6 +22,8 @@ class QueryResponse(BaseModel):
     answer: str = ""
     outcome: str = "answer"
     answer_limited: bool = False
+    snapshot_id: str | None = None
+    date_conditions: list[str] = Field(default_factory=list)
     sql: str = ""
     columns: list[str] = Field(default_factory=list)
     rows: list[list[Any]] = Field(default_factory=list)
