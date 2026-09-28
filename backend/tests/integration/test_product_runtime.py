@@ -72,7 +72,28 @@ def test_unsupported_stops_without_retry_or_execution(runtime):
     model = Model('<unsupported>Lender-level mortgage records are unavailable.</unsupported>')
     state = run_pipeline('Mortgage totals by lender?', chat_model=model, engine=engine, engine_ro=readonly, settings=settings)
     assert state['failure']['type'] == 'UNSUPPORTED'
-    assert state['exec_result'] is None and model.calls == 0
+    assert state.get('exec_result') is None and model.calls == 0
+
+
+@pytest.mark.parametrize('case_id,expected_value', [
+    ('en-rent-index-yoy-june-2026', 9.261324914965726),
+    ('en-reem-weighted-rent-q2-2026', 92865.53658765565),
+    ('en-reem-net-yield-proxy-q2-2026', 5.950492118327959),
+])
+def test_source_answerable_rental_queries(runtime, case_id, expected_value):
+    from scripts.run_eval import load_cases
+
+    engine, readonly, settings = runtime
+    case = next(case for case in load_cases() if case['id'] == case_id)
+    model = Model(f"<sql>{case['reference_sql']}</sql>", 'Source-backed estimate.')
+    state = run_pipeline(case['question'], chat_model=model, engine=engine, engine_ro=readonly, settings=settings)
+    assert state.get('failure') is None
+    assert abs(float(state['exec_result'].rows[0][0]) - expected_value) < 0.001
+    assert state['snapshot_id'] == '2026-09-24'
+    assert 'LIMIT 501' in state['sql']
+    assert model.calls == 0
+    assert state['query_method'].startswith('source_plan:')
+    assert state['answer']
 
 
 def test_synthetic_relation_never_executes(runtime):

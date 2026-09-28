@@ -31,8 +31,8 @@ def test_anthropic_model_comes_from_settings() -> None:
     assert model.model == "claude-opus-5"
 
 
-def test_anthropic_temperature_is_zero() -> None:
-    assert get_chat_model("anthropic", _settings()).temperature == 0
+def test_anthropic_uses_model_default_temperature() -> None:
+    assert get_chat_model("anthropic", _settings()).temperature is None
 
 
 def test_anthropic_calls_are_bounded_without_hidden_retries() -> None:

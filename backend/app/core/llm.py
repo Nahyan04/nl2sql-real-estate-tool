@@ -29,7 +29,6 @@ def get_chat_model(provider: str | None, settings: Settings) -> BaseChatModel:
     if name == ANTHROPIC:
         return ChatAnthropic(
             model=settings.anthropic_model,
-            temperature=0,
             api_key=settings.anthropic_api_key,
             max_tokens=settings.model_max_output_tokens,
             timeout=settings.model_call_timeout_s,

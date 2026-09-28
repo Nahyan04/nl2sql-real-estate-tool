@@ -12,11 +12,6 @@ class QuestionDecision:
     detail: str
 
 
-_NET_YIELD = re.compile(
-    r"\b(?:net rental yield|net yield|net return on rent)\b|"
-    r"(?:صافي|صافى)\s*(?:العائد|عائد|مردود)\s*(?:الإيجاري|الايجاري|الإيجار|الايجار)",
-    re.IGNORECASE,
-)
 _UNAVAILABLE_TOPIC = re.compile(
     r"\b(?:mortgages?|lenders?|brokers?|developer ownership|financ(?:e|ing|ed) sales)\b|"
     r"(?:رهن|رهون|تمويل|ممول|وسيط|وسطاء|بنك|مصرف|المطور|المطوّر)",
@@ -31,11 +26,6 @@ _RELATIVE_PERIOD = re.compile(
 
 
 def classify_question(question: str) -> QuestionDecision | None:
-    if _NET_YIELD.search(question):
-        return QuestionDecision(
-            "UNSUPPORTED",
-            "Net rental yield needs property-level costs absent from the exports. An indicative gross segment yield is available.",
-        )
     if _UNAVAILABLE_TOPIC.search(question):
         return QuestionDecision(
             "UNSUPPORTED",

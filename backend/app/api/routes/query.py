@@ -195,4 +195,5 @@ def query(
         retry_count=max(state.get("attempts", 1) - 1, 0),
         latency_ms=state.get("latency_ms", 0),
         provider=payload.provider or settings.llm_provider,
+        query_method=state.get("query_method") or "model",
     )

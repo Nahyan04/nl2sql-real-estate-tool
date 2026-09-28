@@ -31,6 +31,7 @@ from app.services.schema_serializer import serialize_schema
 from app.services.sql_validator import validate_product_query, product_tables_used
 from app.services.product_schema import introspect_product_schema, ALIASES
 from app.services.question_policy import classify_question
+from app.services.rental_query_plans import source_rental_plan, render_rental_plan_answer
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +49,9 @@ EMPTY_RESPONSE = "EMPTY_RESPONSE"
 # model produced something SQL-shaped that the parser still rejected — i.e. a
 # validation failure, not a parse miss.
 _HAS_SQL_SHAPE = re.compile(r"<sql>|```|^[ \t]*(?:SELECT|WITH)\b", re.IGNORECASE | re.MULTILINE)
+_EXPLICIT_YEAR = re.compile(r"\b(?:19|20)\d{2}\b")
+
+
 class Failure(TypedDict):
     type: str
     detail: str
@@ -70,6 +74,8 @@ class PipelineState(TypedDict, total=False):
     snapshot_id: str | None
     deadline: float
     max_attempts: int
+    model_usage: dict[str, Any]
+    query_method: str
 
 
 def _classify_raw(raw: str) -> str:
@@ -104,6 +110,12 @@ def _retry_feedback(failure: Failure) -> str:
             "Fix the query — check table and column names against the schema above — "
             "and output the corrected SQL inside <sql>...</sql> tags."
         )
+    if failure_type == "CLARIFICATION_RETRY":
+        return (
+            "The question already gives a year or reporting period. Use that period to produce SQL "
+            "when the remaining scope is source-matchable. Ask for clarification only if a place "
+            "or another necessary filter is genuinely ambiguous."
+        )
     return (
         "Previous attempt could not be parsed. "
         "Output your SQL strictly inside <sql>...</sql> tags."
@@ -118,7 +130,16 @@ def _invoke_model(state: PipelineState, config: RunnableConfig, messages: list[A
     runtime: ModelRuntime = _dep(config, "model_runtime")
     chat_model: BaseChatModel = _dep(config, "chat_model")
     with runtime.admit(state["deadline"]):
-        return chat_model.invoke(messages)
+        response = chat_model.invoke(messages)
+    usage = _dep(config, "model_usage")
+    metadata = getattr(response, "usage_metadata", None) or {}
+    usage["calls"] += 1
+    usage["input_tokens"] += metadata.get("input_tokens", 0)
+    usage["output_tokens"] += metadata.get("output_tokens", 0)
+    model = (getattr(response, "response_metadata", None) or {}).get("model_name")
+    if model:
+        usage["model"] = model
+    return response
 
 
 def retrieve_schema(state: PipelineState, config: RunnableConfig) -> dict[str, Any]:
@@ -140,6 +161,12 @@ def retrieve_schema(state: PipelineState, config: RunnableConfig) -> dict[str, A
 def generate_sql(state: PipelineState, config: RunnableConfig) -> dict[str, Any]:
     failure = state.get("failure")
     attempts = state.get("attempts", 0) + 1
+
+    if not failure:
+        plan = source_rental_plan(state["question"])
+        if plan:
+            return {"attempts": 0, "sql": plan.sql, "failure": None,
+                    "query_method": f"source_plan:{plan.kind}"}
 
     system_prompt = build_system_prompt()
     messages = [
@@ -186,6 +213,9 @@ def generate_sql(state: PipelineState, config: RunnableConfig) -> dict[str, Any]
         return {"attempts": attempts, "sql": None, "failure": Failure(type="UNSUPPORTED", detail=unsupported.group(1)[:DETAIL_LIMIT])}
     clarification = re.fullmatch(r"\s*<clarification>(.*?)</clarification>\s*", raw, re.DOTALL)
     if clarification:
+        if attempts < state.get("max_attempts", 1) and _EXPLICIT_YEAR.search(state["question"]):
+            return {"attempts": attempts, "sql": None,
+                    "failure": Failure(type="CLARIFICATION_RETRY", detail=clarification.group(1)[:DETAIL_LIMIT])}
         return {"attempts": attempts, "sql": None, "failure": Failure(type="CLARIFICATION", detail=clarification.group(1)[:DETAIL_LIMIT])}
     parsed = parse_response(raw)
 
@@ -201,7 +231,8 @@ def generate_sql(state: PipelineState, config: RunnableConfig) -> dict[str, Any]
             "failure": Failure(type=failure_type, detail=raw[:DETAIL_LIMIT]),
         }
 
-    return {"attempts": attempts, "sql": parsed.query, "failure": None}
+    return {"attempts": attempts, "sql": parsed.query, "failure": None,
+            "query_method": "model"}
 
 
 def validate_sql(state: PipelineState, config: RunnableConfig) -> dict[str, Any]:
@@ -260,6 +291,8 @@ def execute_sql(state: PipelineState, config: RunnableConfig) -> dict[str, Any]:
         }
 
     no_data = not result.rows or all(all(value is None for value in row) for row in result.rows)
+    if state.get("query_method", "").startswith("source_plan:") and result.rows:
+        no_data = no_data or all(row[0] is None for row in result.rows)
     return {
         "exec_result": result,
         "failure": None,
@@ -272,6 +305,11 @@ def synthesize_answer_node(state: PipelineState, config: RunnableConfig) -> dict
     if state.get("outcome") == "no_data":
         arabic = bool(re.search(r"[\u0600-\u06FF]", state["question"]))
         return {"answer": "لم تُرجع البيانات صفوفًا مطابقة لهذا السؤال." if arabic else "No matching data was returned for this question."}
+    method = state.get("query_method", "")
+    if method.startswith("source_plan:"):
+        return {"answer": render_rental_plan_answer(
+            state["question"], method.partition(":")[2], state["exec_result"].rows,
+        )}
     try:
         answer = synthesize_answer(
             state["question"],
@@ -368,6 +406,7 @@ def run_pipeline(
 ) -> PipelineState:
     settings = settings or get_settings()
     started = time.perf_counter()
+    model_usage = {"calls": 0, "input_tokens": 0, "output_tokens": 0, "model": None}
 
     decision = classify_question(question)
     if decision:
@@ -379,6 +418,8 @@ def run_pipeline(
             "sql": None,
             "failure": Failure(type=decision.code, detail=decision.detail),
             "latency_ms": int((time.perf_counter() - started) * 1000),
+            "model_usage": model_usage,
+            "query_method": "policy",
         }
 
     state: PipelineState = GRAPH.invoke(
@@ -394,6 +435,7 @@ def run_pipeline(
             "chart": None,
             "deadline": started + settings.request_timeout_s,
             "max_attempts": settings.model_generation_attempts,
+            "query_method": "model",
         },
         config={
             "configurable": {
@@ -407,9 +449,11 @@ def run_pipeline(
                     settings.model_queue_size,
                     settings.model_queue_wait_s,
                 ),
+                "model_usage": model_usage,
             }
         },
     )
 
     state["latency_ms"] = int((time.perf_counter() - started) * 1000)
+    state["model_usage"] = model_usage
     return state

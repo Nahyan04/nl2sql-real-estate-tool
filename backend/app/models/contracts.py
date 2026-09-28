@@ -35,6 +35,7 @@ class QueryResponse(BaseModel):
     retry_count: int = 0
     latency_ms: int = 0
     provider: str = ""
+    query_method: str = "model"
 
 
 class ErrorResponse(BaseModel):

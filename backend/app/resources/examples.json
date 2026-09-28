@@ -3,32 +3,37 @@
     {
       "id": "en-fresh-0",
       "lang": "en",
-      "text": "Show monthly sales value from January to December 2025."
+      "text": "Which five source districts had the highest sales value in 2025?"
     },
     {
       "id": "en-fresh-1",
       "lang": "en",
-      "text": "What was the leased-unit-weighted annual rent in Q2 2026?"
+      "text": "For Al Reem Island apartments in Q2 2026, what was the leased-unit-weighted annual rent estimate?"
     },
     {
       "id": "en-fresh-2",
       "lang": "en",
-      "text": "Compare off-plan, ready and court-mandated sales value in 2025."
+      "text": "What is the net rental yield for an individual Al Reem Island apartment in Q2 2026?"
+    },
+    {
+      "id": "en-fresh-3",
+      "lang": "en",
+      "text": "What was the percentage change from June 2025 to June 2026 in the Abu Dhabi City all-rents index for all residential property types and all zones?"
     },
     {
       "id": "en-fresh-4",
       "lang": "en",
-      "text": "What dates does each source dataset cover?"
+      "text": "Compare off-plan, ready and court-mandated sales value in 2025."
     },
     {
       "id": "ar-fresh-5",
       "lang": "ar",
-      "text": "ما إجمالي قيمة المبيعات الواردة في البيانات لعام 2025؟"
+      "text": "كم عدد سجلات المبيعات الواردة في البيانات لعام 2025؟"
     },
     {
       "id": "ar-fresh-6",
       "lang": "ar",
-      "text": "قارن قيمة المبيعات على المخطط والجاهزة والمبيعات بأمر المحكمة لعام 2025."
+      "text": "ما نسبة التغير من يونيو 2025 إلى يونيو 2026 في مؤشر جميع الإيجارات لجميع أنواع العقارات السكنية وجميع المناطق في مدينة أبوظبي؟"
     }
   ]
 }

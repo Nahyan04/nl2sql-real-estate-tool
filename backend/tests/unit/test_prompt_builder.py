@@ -6,6 +6,8 @@ def test_source_semantics_and_unsupported_contract():
     assert 'active_value_aed is lease value accrued in the quarter, not total annual rent' in prompt
     assert 'leased-unit-weighted annual rent estimate' in prompt
     assert 'indicative gross rental-yield percentage' in prompt
+    assert 'Do not return unsupported solely because the question says net or individual' in prompt
+    assert 'return <clarification>Ask for the place name' in prompt
     assert 'fraction of ownership interest transferred' in prompt
     assert 'Sales municipality is unknown' in prompt
     assert '<unsupported>' in prompt
