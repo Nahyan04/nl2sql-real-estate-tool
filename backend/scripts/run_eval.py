@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import re
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
@@ -26,6 +27,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from sqlalchemy import text
 
 from app.core.database import get_readonly_engine
+from app.config import get_settings
 from app.services.graph import run_pipeline
 
 GOLDEN_PATH = PROJECT_ROOT / "tests" / "eval" / "golden_questions.json"
@@ -134,23 +136,43 @@ class CaseResult:
     latency_ms: int = 0
     expected: list[tuple] = field(default_factory=list)
     actual: list[tuple] = field(default_factory=list)
+    model: str | None = None
+    input_tokens: int = 0
+    output_tokens: int = 0
+    model_calls: int = 0
+    estimated_cost_usd: float | None = None
+    snapshot_id: str | None = None
+    answer: str = ""
+    query_method: str | None = None
 
 
 def run_case(case: dict[str, Any], provider: str | None = None) -> CaseResult:
     result = CaseResult(case["id"], case["lang"], case["question"], passed=False)
-    result.expected = reference_rows(case["reference_sql"])
-
     try:
+        if "reference_sql" in case:
+            result.expected = reference_rows(case["reference_sql"])
         state = run_pipeline(case["question"], provider)
     except Exception as exc:  # noqa: BLE001 - a crashed run is a failed case, not a crashed sweep
-        result.reason = f"pipeline raised {type(exc).__name__}: {exc}"
+        result.reason = f"case raised {type(exc).__name__}: {exc}"
         return result
 
     result.sql = state.get("sql")
+    result.snapshot_id = state.get("snapshot_id")
     result.attempts = state.get("attempts", 0)
     result.latency_ms = state.get("latency_ms", 0)
+    result.answer = state.get("answer", "")
+    result.query_method = state.get("query_method")
+    usage = state.get("model_usage") or {}
+    result.model = usage.get("model")
+    result.model_calls = usage.get("calls", 0)
+    result.input_tokens = usage.get("input_tokens", 0)
+    result.output_tokens = usage.get("output_tokens", 0)
 
     failure = state.get("failure")
+    if "expected_failure" in case:
+        result.passed = bool(failure and failure["type"] == case["expected_failure"])
+        result.reason = "" if result.passed else f"expected {case['expected_failure']}, got {failure}"
+        return result
     if failure:
         result.reason = f"{failure['type']}: {failure['detail'][:160]}"
         return result
@@ -167,6 +189,12 @@ def run_case(case: dict[str, Any], provider: str | None = None) -> CaseResult:
         case["match"],
         case.get("tolerance", DEFAULT_TOLERANCE),
     )
+    if result.passed and bool(re.search(r"[\u0600-\u06FF]", result.answer)) != (case["lang"] == "ar"):
+        result.passed, result.reason = False, "answer language differs from question"
+    if result.passed:
+        missing = [term for term in case.get("required_answer_terms", []) if term.lower() not in result.answer.lower()]
+        if missing:
+            result.passed, result.reason = False, f"answer missing required terms: {', '.join(missing)}"
     return result
 
 
@@ -202,7 +230,7 @@ def _scoreboard(results: list[CaseResult], provider: str) -> str:
     retried = sum(r.attempts > 1 for r in results)
     lines.append("-" * 58)
     lines.append(f"  overall  {passed:>2}/{len(results):<2}  {accuracy(results):>6.1%}")
-    lines.append(f"  self-healed on retry: {retried}/{len(results)} runs needed a second attempt")
+    lines.append(f"  retried: {retried}/{len(results)} runs needed another generation attempt")
     return "\n".join(lines)
 
 
@@ -212,43 +240,78 @@ def main() -> int:
     parser.add_argument("--lang", choices=["en", "ar"], help="run one language only")
     parser.add_argument("--case", action="append", dest="cases", help="run one case id (repeatable)")
     parser.add_argument("--workers", type=int, default=4)
+    parser.add_argument("--input-rate", type=float, help="USD per million input tokens for the configured model")
+    parser.add_argument("--output-rate", type=float, help="USD per million output tokens for the configured model")
     parser.add_argument("--json", dest="json_path", help="write the full report here")
     parser.add_argument(
         "--min-en", type=float, default=DEFAULT_MIN_ACCURACY["en"], help="exit non-zero below this"
     )
     parser.add_argument("--min-ar", type=float, default=DEFAULT_MIN_ACCURACY["ar"])
     args = parser.parse_args()
+    if (args.input_rate is None) != (args.output_rate is None):
+        parser.error("provide both input and output rates to estimate cost")
 
     cases = load_cases(args.lang, args.cases)
     if not cases:
         parser.error("no cases matched")
 
     provider = args.provider or "default"
+    settings = get_settings()
+    configured_model = settings.anthropic_model if (args.provider or settings.llm_provider) == "anthropic" else settings.ollama_model
     print(f"running {len(cases)} golden questions against {provider}...\n")
     results = run_all(cases, args.provider, args.workers)
+    if args.input_rate is not None:
+        for result in results:
+            if result.model_calls and result.model and not result.model.startswith(configured_model):
+                continue
+            result.estimated_cost_usd = (
+                result.input_tokens * args.input_rate + result.output_tokens * args.output_rate
+            ) / 1_000_000
 
     for result in results:
         mark = "PASS" if result.passed else "FAIL"
         print(f"  {mark}  {result.case_id:<32} {result.latency_ms / 1000:>5.1f}s  {result.reason}")
 
     print(_scoreboard(results, provider))
+    estimated_total = None
+    if args.input_rate is not None and all(r.estimated_cost_usd is not None for r in results):
+        estimated_total = sum(r.estimated_cost_usd for r in results if r.estimated_cost_usd is not None)
+        print(f"  estimated model cost: USD {estimated_total:.4f} (uncached token rates supplied on CLI)")
+    elif args.input_rate is not None:
+        print("  estimated model cost: unavailable for a response from a different model")
 
     if args.json_path:
         Path(args.json_path).write_text(
             json.dumps(
                 {
                     "provider": provider,
+                    "configured_model": configured_model,
+                    "snapshot_id": results[0].snapshot_id if results else None,
+                    "estimated_cost_usd": estimated_total,
+                    "input_rate_usd_per_million": args.input_rate,
+                    "output_rate_usd_per_million": args.output_rate,
                     "accuracy": {"overall": accuracy(results), "en": accuracy(results, "en"), "ar": accuracy(results, "ar")},
                     "cases": [
                         {
                             "id": r.case_id,
                             "lang": r.lang,
                             "question": r.question,
+                            "grade_mode": next((c.get("match", c.get("expected_failure")) for c in cases if c["id"] == r.case_id), None),
                             "passed": r.passed,
                             "reason": r.reason,
+                            "expected_rows": r.expected,
+                            "actual_rows": r.actual,
                             "sql": r.sql,
                             "attempts": r.attempts,
                             "latency_ms": r.latency_ms,
+                            "model": r.model,
+                            "snapshot_id": r.snapshot_id,
+                            "model_calls": r.model_calls,
+                            "input_tokens": r.input_tokens,
+                            "output_tokens": r.output_tokens,
+                            "estimated_cost_usd": r.estimated_cost_usd,
+                            "answer": r.answer,
+                            "query_method": r.query_method,
                         }
                         for r in results
                     ],

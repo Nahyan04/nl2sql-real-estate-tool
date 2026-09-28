@@ -10,7 +10,7 @@ The active snapshot contains 240,490 source observations across 31 native files,
 
 - Sales preserve district, community, project, asset class, source sale type, layout and fractional Share. Bayan treats Share as the ownership fraction transferred; recorded sale price and area are not rescaled. Municipality is unknown when absent from the source.
 - Repeated-looking sales remain separate observations because no stable transaction ID is provided.
-- Quarterly lease values can be summed across distinct periods; leased-unit counts describe a quarter end. For broader annual-rent estimates, Bayan weights same-quarter, same-segment comparison rents by exported leased-unit counts. Indicative gross yield compares annual rent and sale price from the same segment row, then weights matched segment ratios by leased units. It is not an individual property's net return.
+- Quarterly lease values can be summed across distinct periods; leased-unit counts describe a quarter end. For broader annual-rent estimates, Bayan weights same-quarter, same-segment comparison rents by exported leased-unit counts. Indicative gross yield compares annual rent and sale price from the same segment row, then weights matched segment ratios by leased units. For an individual or net yield question, Bayan can show this gross segment estimate as a proxy while stating that property costs and individual prices are needed for the requested net figure.
 - Indices preserve geography, property grouping and all-rents/new-rents distinctions.
 - There are no fabricated developer, broker or lender records. Financing aggregates remain in source storage but are not exposed while their units are unresolved.
 - Download date is not data completeness. Use `dataset_coverage` to inspect each source's actual dates; a future period-end label does not prove a complete period.
@@ -19,7 +19,7 @@ See the [source contract and import guide](backend/docs/adrec-source-contract.md
 
 ## Architecture
 
-Python/FastAPI and a thin LangGraph pipeline retrieve the source schema, generate SQL, validate permitted relations/functions, execute a bounded read-only transaction, and synthesize the answer. Next.js/React renders the SQL, table and appropriate chart. Anthropic and self-hosted Ollama are configured server-side; provider selection never silently falls back.
+Python/FastAPI and a thin LangGraph pipeline retrieve the source schema, generate SQL, validate permitted relations/functions, execute a bounded read-only transaction, and synthesize the answer. Narrow verified query plans cover explicit Al Reem Island apartment rent/yield and Abu Dhabi City rent-index comparisons; their SQL passes the same validation and execution path, and the UI identifies the plan. Other questions use the selected model. Next.js/React renders the SQL, table and appropriate chart. Anthropic and self-hosted Ollama are configured server-side; provider selection never silently falls back.
 
 Generated queries can access only `bayan.transactions`, `bayan.rental_observations`, `bayan.price_indices` and `bayan.dataset_coverage`. These views select one active snapshot. The read-only database role cannot select raw intake tables. Unsupported model responses terminate without executing SQL or retrying generation.
 
@@ -36,7 +36,7 @@ Startup requires an installed source query schema and validated active snapshot.
 
 Query errors use a stable `error` code, a safe user-facing `detail`, and a `request_id` also returned in `X-Request-ID`. Keep the request ID when investigating server logs; raw provider and database exception text is not returned to clients. Malformed requests return `INVALID_REQUEST` with HTTP 422.
 
-Unsupported questions and ambiguous places or relative dates stop before SQL execution; the latter return `CLARIFICATION` so the user can name an exact period or source place. Successful responses include `outcome` (`answer` or `no_data`) and `answer_limited` when the synthesis saw only part of the returned rows or the query result was truncated. For relative dates, the app requests an explicit reporting period because the source datasets have different observed and complete-through dates.
+Unsupported topics and ambiguous places or relative dates stop before SQL execution; the latter return `CLARIFICATION` so the user can name an exact period or source place. If a model asks for a period already present in the question, one bounded generation retry points out the stated year; a remaining ambiguity still returns `CLARIFICATION`. Explicit years and quarters remain queryable even when source completeness is unconfirmed. Successful responses include `outcome` (`answer` or `no_data`) and `answer_limited` when the synthesis saw only part of the returned rows or the query result was truncated.
 
 The frontend shows a high-level process overview with elapsed browser wait time. Its four steps describe the workflow and do not indicate live backend stage completion. Results include the executed SQL's date conditions, actual used tables, metric units inferred from result aliases, the snapshot ID and relevant source coverage. A missing date condition is displayed as unknown scope rather than an inferred reporting window.
 
@@ -48,7 +48,7 @@ The query route uses PostgreSQL for atomic limits across API workers. Default al
 
 Run backend unit tests from `backend/` with `python -m pytest tests/unit -q`. The focused API smoke test uses a mocked model and the configured populated fresh database. Staging integration tests require explicit `BAYAN_DISPOSABLE_STAGING_URL` and, for source reconciliation, `BAYAN_TEST_SNAPSHOT`.
 
-The reference questions were replaced with source-supported sales queries. Previous evaluation scores no longer describe this build. Live model evaluation remains opt-in and requires a separate agreed budget.
+The reference set covers sales, rental value, leased units, rent-index growth, weighted rent, indicative yield and EN/AR boundary cases. Previous evaluation scores no longer describe this build. Run `python scripts/run_eval.py --provider anthropic --workers 1 --input-rate <USD per million> --output-rate <USD per million> --json <private report path>` only with an agreed live budget and model-specific current rates. The report records model, snapshot, row grade, answer language, tokens, latency and estimated uncached token cost; manually review narrative claims and preserve failed cases.
 
 For frontend changes, run `npm run lint` and `npx tsc --noEmit` from `frontend/`.
 
