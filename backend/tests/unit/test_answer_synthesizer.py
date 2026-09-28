@@ -133,10 +133,10 @@ def test_prompt_does_not_flag_truncation_when_complete() -> None:
     assert "Note: the result was truncated" not in model.prompts[0]
 
 
-def test_prompt_asks_for_the_questions_language() -> None:
+def test_prompt_pins_the_answer_language() -> None:
     model = FakeChatModel()
     synthesize_answer(QUESTION, SQL, _result(ROWS), model)
-    assert "same language" in model.prompts[0].lower()
+    assert "required answer language: english" in model.prompts[0].lower()
 
 
 def test_prompt_pins_arabic_answers_to_western_digits() -> None:

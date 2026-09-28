@@ -132,6 +132,19 @@ def test_clarification_preflight_avoids_model_and_database(question):
     assert state['attempts'] == 0 and model.calls == 0
 
 
+def test_arabic_bateen_district_uses_validated_source_plan(sqlite_engine, monkeypatch):
+    monkeypatch.setattr(graph, 'introspect_product_schema', lambda _: introspect_schema(sqlite_engine))
+    model = Model('unneeded')
+    state = run_pipeline('كم قيمة المبيعات في منطقه البطين عام 2025؟',
+                         chat_model=model, engine=sqlite_engine, engine_ro=sqlite_engine,
+                         dry_run=True)
+    assert state['failure'] is None
+    assert state['query_method'] == 'source_plan:sales_district_value'
+    assert "district = 'Al Bateen'" in state['sql']
+    assert state['language'] == 'ar'
+    assert model.calls == 0
+
+
 @pytest.mark.parametrize('question', ['What is the rental yield?', 'ما العائد الإيجاري؟'])
 def test_gross_segment_yield_can_reach_query_generation(sqlite_engine, monkeypatch, question):
     monkeypatch.setattr(graph, 'introspect_product_schema', lambda _: introspect_schema(sqlite_engine))

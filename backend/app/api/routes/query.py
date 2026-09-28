@@ -17,6 +17,7 @@ from app.services.executor import ExecResult
 from app.services.answer_synthesizer import MAX_ANSWER_ROWS
 from app.services.graph import run_pipeline
 from app.services.query_metadata import date_conditions
+from app.core.language import resolve_language
 from app.services.request_limiter import (
     SESSION_COOKIE,
     LimitRejected,
@@ -62,6 +63,7 @@ SAFE_FAILURE_DETAILS = {
     "MODEL_BUSY": "The model is busy. Please try again shortly.",
     "REQUEST_TIMEOUT": "The analysis exceeded its time limit. Try a narrower question.",
     "PROVIDER_UNAVAILABLE": "The selected model provider is unavailable. Try again when it is online.",
+    "LANGUAGE_MISMATCH": "The selected model could not answer in the requested language. Try again.",
 }
 
 
@@ -111,6 +113,7 @@ def query(
     limiter: RequestLimiter = Depends(get_request_limiter),
 ):
     request_id = uuid4().hex
+    language = resolve_language(payload.question, payload.language)
     def attach_cookie(target: Response, value: str) -> None:
         target.set_cookie(
             SESSION_COOKIE, value, max_age=86_400, httponly=True,
@@ -130,6 +133,7 @@ def query(
             state = run_pipeline(
                 payload.question,
                 payload.provider,
+                language=payload.language,
                 dry_run=payload.dry_run,
                 chat_model=chat_model,
                 settings=settings,
@@ -168,7 +172,7 @@ def query(
     answer_limited = result.truncated or result.row_count > MAX_ANSWER_ROWS
     answer = state.get("answer") or ""
     if answer_limited and not payload.dry_run:
-        arabic = any("\u0600" <= character <= "\u06FF" for character in payload.question)
+        arabic = language == "ar"
         if result.truncated:
             limitation = "نتيجة الاستعلام مقتطعة؛ لا تمثل بالضرورة جميع السجلات." if arabic else "The query result was truncated and may not represent all matching records."
         else:
@@ -180,6 +184,7 @@ def query(
 
     return QueryResponse(
         answer=answer,
+        language=state.get("language", language),
         outcome=state.get("outcome") or "answer",
         answer_limited=answer_limited,
         snapshot_id=state.get("snapshot_id"),

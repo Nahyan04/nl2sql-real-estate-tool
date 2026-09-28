@@ -157,10 +157,11 @@ def source_rental_plan(question: str) -> RentalPlan | None:
     return _rent_index_plan(question)
 
 
-def render_rental_plan_answer(question: str, kind: str, rows: list[list[object]]) -> str:
+def render_rental_plan_answer(question: str, kind: str, rows: list[list[object]], *, language: str = "auto") -> str:
     values = rows[0]
     value = float(values[0])
-    arabic = bool(re.search(r"[\u0600-\u06FF]", question))
+    from app.core.language import resolve_language
+    arabic = resolve_language(question, language) == "ar"
     if kind == "rent_index_change":
         dates = _index_dates(question)
         series = "new rents" if "new rents" in question.lower() or "الإيجارات الجديدة" in question else "all rents"

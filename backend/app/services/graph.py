@@ -31,7 +31,9 @@ from app.services.schema_serializer import serialize_schema
 from app.services.sql_validator import validate_product_query, product_tables_used
 from app.services.product_schema import introspect_product_schema, ALIASES
 from app.services.question_policy import classify_question
+from app.core.language import Language, LanguageChoice, resolve_language
 from app.services.rental_query_plans import source_rental_plan, render_rental_plan_answer
+from app.services.sales_query_plans import sales_district_value_plan, render_sales_district_value
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +61,7 @@ class Failure(TypedDict):
 
 class PipelineState(TypedDict, total=False):
     question: str
+    language: Language
     provider: str | None
     dry_run: bool
     schema_context: str
@@ -163,12 +166,16 @@ def generate_sql(state: PipelineState, config: RunnableConfig) -> dict[str, Any]
     attempts = state.get("attempts", 0) + 1
 
     if not failure:
+        sales_plan = sales_district_value_plan(state["question"])
+        if sales_plan:
+            return {"attempts": 0, "sql": sales_plan[0], "failure": None,
+                    "query_method": "source_plan:sales_district_value"}
         plan = source_rental_plan(state["question"])
         if plan:
             return {"attempts": 0, "sql": plan.sql, "failure": None,
                     "query_method": f"source_plan:{plan.kind}"}
 
-    system_prompt = build_system_prompt()
+    system_prompt = build_system_prompt() + f"\nWrite clarification or unsupported text in {state['language']}. SQL identifiers remain English."
     messages = [
         SystemMessage(content=system_prompt),
         HumanMessage(
@@ -303,12 +310,16 @@ def execute_sql(state: PipelineState, config: RunnableConfig) -> dict[str, Any]:
 
 def synthesize_answer_node(state: PipelineState, config: RunnableConfig) -> dict[str, Any]:
     if state.get("outcome") == "no_data":
-        arabic = bool(re.search(r"[\u0600-\u06FF]", state["question"]))
+        arabic = state["language"] == "ar"
         return {"answer": "لم تُرجع البيانات صفوفًا مطابقة لهذا السؤال." if arabic else "No matching data was returned for this question."}
     method = state.get("query_method", "")
+    if method == "source_plan:sales_district_value":
+        year = re.search(r"\b(?:19|20)\d{2}\b", state["question"]).group()
+        return {"answer": render_sales_district_value(state["exec_result"].rows, year, state["language"])}
     if method.startswith("source_plan:"):
         return {"answer": render_rental_plan_answer(
             state["question"], method.partition(":")[2], state["exec_result"].rows,
+            language=state["language"],
         )}
     try:
         answer = synthesize_answer(
@@ -316,6 +327,7 @@ def synthesize_answer_node(state: PipelineState, config: RunnableConfig) -> dict
             state["sql"] or "",
             state["exec_result"],
             lambda messages: _invoke_model(state, config, messages),
+            language=state["language"],
         )
     except (ModelBusyError, RequestDeadlineError) as exc:
         kind = "MODEL_BUSY" if isinstance(exc, ModelBusyError) else "REQUEST_TIMEOUT"
@@ -325,6 +337,8 @@ def synthesize_answer_node(state: PipelineState, config: RunnableConfig) -> dict
             else "The request exceeded its total time limit."
         )
         return {"answer": "", "failure": Failure(type=kind, detail=detail)}
+    except ValueError:
+        return {"answer": "", "failure": Failure(type="LANGUAGE_MISMATCH", detail="Answer language did not match request.")}
     except Exception as exc:  # noqa: BLE001 - provider transport and SDK errors vary
         logger.error("answer synthesis provider failure exception_type=%s", type(exc).__name__)
         return {"answer": "", "failure": Failure(type="PROVIDER_UNAVAILABLE", detail="The selected model provider is unavailable.")}
@@ -344,7 +358,7 @@ def build_chart_node(state: PipelineState, config: RunnableConfig) -> dict[str, 
 def _route(state: PipelineState, on_success: str) -> str:
     if not state.get("failure"):
         return on_success
-    if state.get("failure", {}).get("type") in {"UNSUPPORTED", "CLARIFICATION", "DATABASE_BUSY", "QUERY_TIMEOUT", "RESULT_TOO_LARGE", "MODEL_BUSY", "REQUEST_TIMEOUT", "PROVIDER_UNAVAILABLE"}:
+    if state.get("failure", {}).get("type") in {"UNSUPPORTED", "CLARIFICATION", "DATABASE_BUSY", "QUERY_TIMEOUT", "RESULT_TOO_LARGE", "MODEL_BUSY", "REQUEST_TIMEOUT", "PROVIDER_UNAVAILABLE", "LANGUAGE_MISMATCH"}:
         return END
     if state.get("attempts", 0) < state.get("max_attempts", 1):
         return "generate_sql"
@@ -397,6 +411,7 @@ def run_pipeline(
     question: str,
     provider: str | None = None,
     *,
+    language: LanguageChoice = "auto",
     dry_run: bool = False,
     chat_model: BaseChatModel | None = None,
     engine: Engine | None = None,
@@ -407,11 +422,13 @@ def run_pipeline(
     settings = settings or get_settings()
     started = time.perf_counter()
     model_usage = {"calls": 0, "input_tokens": 0, "output_tokens": 0, "model": None}
+    resolved_language = resolve_language(question, language)
 
     decision = classify_question(question)
     if decision:
         return {
             "question": question,
+            "language": resolved_language,
             "provider": provider,
             "dry_run": dry_run,
             "attempts": 0,
@@ -425,6 +442,7 @@ def run_pipeline(
     state: PipelineState = GRAPH.invoke(
         {
             "question": question,
+            "language": resolved_language,
             "provider": provider,
             "dry_run": dry_run,
             "attempts": 0,

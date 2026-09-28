@@ -8,6 +8,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.core.llm import message_text
 from app.services.executor import ExecResult
+from app.core.language import Language, answer_matches_language, resolve_language
 
 # Caps the tokens spent on synthesis; the full result set still reaches the UI.
 MAX_ANSWER_ROWS = 50
@@ -18,7 +19,7 @@ about Abu Dhabi property data. You are given the question, the SQL that was run,
 and the rows it returned.
 
 Rules:
-- Reply in the same language as the question. An Arabic question gets an Arabic answer.
+- Reply entirely in the requested answer language. Keep English source names and SQL acronyms as source data, but do not write explanatory English in Arabic answers or Arabic in English answers.
 - Answer in 1-3 sentences. No preamble, no restating the question, no bullet lists.
 - Cite the concrete numbers from the result. Never invent a figure that is not in the rows.
 - Sales counts and values cover exported observations. Do not call them a complete Abu Dhabi market census.
@@ -55,14 +56,18 @@ def _format_rows(result: ExecResult) -> str:
     return "\n".join(lines)
 
 
-def _sales_count_answer(question: str, result: ExecResult) -> str | None:
+def _numbers(text: str) -> list[str]:
+    return sorted(re.findall(r"(?<!\w)\d[\d,]*(?:\.\d+)?%?", text))
+
+
+def _sales_count_answer(question: str, result: ExecResult, language: Language) -> str | None:
     if result.columns != ["sales_observation_count"] or len(result.rows) != 1:
         return None
     count = result.rows[0][0]
     if not isinstance(count, int) or isinstance(count, bool):
         return None
     years = re.findall(r"\b(?:19|20)\d{2}\b", question)
-    arabic = bool(re.search(r"[\u0600-\u06FF]", question))
+    arabic = language == "ar"
     if arabic:
         suffix = f" في عام {years[0]}" if len(years) == 1 else " للفترة المحددة"
         return f"تتضمن البيانات {count:,} سجل مبيعات مُصدّر{suffix}."
@@ -82,11 +87,11 @@ def _format_aed(value: int | float | Decimal, arabic: bool) -> str:
     return f"{formatted} درهم" if arabic else f"AED {formatted}"
 
 
-def _source_result_answer(question: str, result: ExecResult) -> str | None:
-    count_answer = _sales_count_answer(question, result)
+def _source_result_answer(question: str, result: ExecResult, language: Language) -> str | None:
+    count_answer = _sales_count_answer(question, result, language)
     if count_answer is not None:
         return count_answer
-    arabic = bool(re.search(r"[\u0600-\u06FF]", question))
+    arabic = language == "ar"
     ranking_question = re.search(r"\b(?:top|highest)\b|الأعلى", question, re.IGNORECASE)
     if (ranking_question and result.columns == ["district", "sales_value_aed"]
             and result.rows and not result.truncated):
@@ -116,8 +121,11 @@ def synthesize_answer(
     sql: str,
     result: ExecResult,
     invoke: Callable[[list[Any]], Any] | Any,
+    *,
+    language: Language | None = None,
 ) -> str:
-    source_answer = _source_result_answer(question, result)
+    language = language or resolve_language(question)
+    source_answer = _source_result_answer(question, result, language)
     if source_answer is not None:
         return source_answer
     notes = ""
@@ -135,6 +143,20 @@ def synthesize_answer(
         f"Result ({result.row_count} rows):\n{_format_rows(result)}\n{notes}"
     )
 
-    messages = [SystemMessage(content=_SYSTEM_PROMPT), HumanMessage(content=human)]
+    language_name = "Arabic" if language == "ar" else "English"
+    messages = [SystemMessage(content=f"{_SYSTEM_PROMPT}\nRequired answer language: {language_name}."), HumanMessage(content=human)]
     caller = invoke if callable(invoke) else invoke.invoke
-    return message_text(caller(messages)).strip()
+    source_names = tuple(str(value) for row in result.rows for value in row if isinstance(value, str))
+    answer = message_text(caller(messages)).strip()
+    if not answer_matches_language(answer, language, source_names):
+        original_numbers = _numbers(answer)
+        repair = [
+            SystemMessage(content=f"Rewrite the supplied answer entirely in {language_name}. Preserve all figures, qualifiers and source place names exactly. Return only the rewritten answer."),
+            HumanMessage(content=answer),
+        ]
+        answer = message_text(caller(repair)).strip()
+        if _numbers(answer) != original_numbers:
+            raise ValueError("Answer figures changed during language repair")
+    if not answer_matches_language(answer, language, source_names):
+        raise ValueError("Answer language did not match request")
+    return answer

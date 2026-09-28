@@ -3,11 +3,13 @@ from __future__ import annotations
 from typing import Any
 
 from pydantic import BaseModel, Field
+from app.core.language import Language, LanguageChoice
 
 
 class QueryRequest(BaseModel):
     question: str = Field(min_length=1, max_length=1000)
     provider: str | None = None
+    language: LanguageChoice = "auto"
     dry_run: bool = False
 
 
@@ -20,6 +22,7 @@ class ChartSpecPayload(BaseModel):
 
 class QueryResponse(BaseModel):
     answer: str = ""
+    language: Language = "en"
     outcome: str = "answer"
     answer_limited: bool = False
     snapshot_id: str | None = None

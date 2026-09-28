@@ -18,6 +18,13 @@ _UNAVAILABLE_TOPIC = re.compile(
     re.IGNORECASE,
 )
 _AMBIGUOUS_PLACE = re.compile(r"\bAl[ -]?Bateen\b|البطين", re.IGNORECASE)
+_DISTRICT_SCOPE = re.compile(
+    r"\b(?:district|area)\s+(?:of\s+)?Al[ -]?Bateen\b|"
+    r"\bAl[ -]?Bateen\s+(?:district|area)\b|"
+    r"(?:منطق[هة]|حي)\s+البطين",
+    re.IGNORECASE,
+)
+_MUNICIPALITY_SCOPE = re.compile(r"\b(?:Abu Dhabi City|Al Ain City|Al Dhafra)\b|أبو\s*ظبي|العين|الظفرة", re.IGNORECASE)
 _RELATIVE_PERIOD = re.compile(
     r"\b(?:latest|current|recent|this year|last year|year to date|ytd|past\s+\d+\s+(?:days?|months?|years?))\b|"
     r"(?:الأحدث|أحدث|الحالي|الحالية|هذا العام|السنة الماضية|آخر\s+\d+\s+(?:أيام|أشهر|سنوات))",
@@ -31,10 +38,12 @@ def classify_question(question: str) -> QuestionDecision | None:
             "UNSUPPORTED",
             "Lender, broker, developer-ownership and financing records are outside the verified query surface.",
         )
-    if _AMBIGUOUS_PLACE.search(question):
+    if _AMBIGUOUS_PLACE.search(question) and (
+        not _DISTRICT_SCOPE.search(question) or _MUNICIPALITY_SCOPE.search(question)
+    ):
         return QuestionDecision(
             "CLARIFICATION",
-            "Al Bateen is ambiguous in the source. Specify the source district or community and a verifiable geography.",
+            "Specify whether Al Bateen means the source district or community. Sales municipality is unavailable.",
         )
     if _RELATIVE_PERIOD.search(question):
         return QuestionDecision(
