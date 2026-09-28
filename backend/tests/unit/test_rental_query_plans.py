@@ -47,6 +47,17 @@ def test_missing_period_or_area_does_not_guess_a_plan():
     assert source_rental_plan('What is the rent index in Abu Dhabi?') is None
 
 
+def test_residential_leased_units_use_quarter_end_source():
+    plan = source_rental_plan('How many source-labelled residential leased units were recorded at the end of Q2 2026?')
+    assert plan and plan.kind == 'leased_units'
+    assert "source_file = 'Residential Leases/lease_residential.xlsx'" in plan.sql
+    assert "period_end = DATE '2026-06-30'" in plan.sql
+    assert validate_product_query(plan.sql).is_safe
+    assert '228,456' in render_rental_plan_answer(
+        'How many residential leased units at the end of Q2 2026?', 'leased_units', [[228456]],
+    )
+
+
 def test_plan_answer_keeps_gross_and_net_distinct_in_requested_language():
     question = 'What is the net rental yield for an individual Al Reem Island apartment in Q2 2026?'
     answer = render_rental_plan_answer(question, 'gross_segment_yield', [[5.950492, 18951, 6]])

@@ -144,6 +144,16 @@ def source_rental_plan(question: str) -> RentalPlan | None:
         plan = _reem_apartment_plan(question, period)
         if plan:
             return plan
+        lowered = question.lower()
+        if (re.search(r"leased units|الوحدات المؤجرة|وحدات مؤجرة", lowered)
+                and re.search(r"residential|السكنية|السكني", lowered)):
+            return RentalPlan(
+                "leased_units",
+                "SELECT SUM(source_leased_units) AS leased_units_count "
+                "FROM rental_observations "
+                "WHERE source_file = 'Residential Leases/lease_residential.xlsx' "
+                f"AND period_end = DATE '{period}'",
+            )
     return _rent_index_plan(question)
 
 
@@ -162,6 +172,11 @@ def render_rental_plan_answer(question: str, kind: str, rows: list[list[object]]
 
     period = _quarter_end(question)
     quarter = (period.month // 3) if period else 0
+    if kind == "leased_units":
+        units = f"{int(value):,}"
+        if arabic:
+            return f"سجّل المصدر {units} وحدة سكنية مؤجرة في نهاية الربع {quarter} من {period.year}."
+        return f"The source recorded {units} residential leased units at the end of Q{quarter} {period.year}."
     units = f"{int(values[1]):,}"
     layouts = int(values[2])
     if kind == "weighted_annual_rent":

@@ -38,6 +38,43 @@ def test_returns_the_models_answer() -> None:
     assert answer == "Yas Island led with AED 9.35 billion."
 
 
+def test_sales_observation_count_uses_the_result_and_question_language() -> None:
+    result = ExecResult(columns=["sales_observation_count"], rows=[[25114]], row_count=1)
+    model = FakeChatModel("جواب بلغة خاطئة")
+    assert synthesize_answer("How many sales observations are in the export for 2025?", SQL, result, model) == (
+        "The export contains 25,114 sales observations in 2025."
+    )
+    assert synthesize_answer("كم عدد سجلات المبيعات لعام 2025؟", SQL, result, model) == (
+        "تتضمن البيانات 25,114 سجل مبيعات مُصدّر في عام 2025."
+    )
+    assert model.prompts == []
+
+
+def test_district_sales_ranking_names_and_amounts_come_from_rows() -> None:
+    result = ExecResult(
+        columns=["district", "sales_value_aed"],
+        rows=[["Al Reem Island", Decimal("152340000000")], ["Yas Island", Decimal("92450000000")]],
+        row_count=2,
+    )
+    model = FakeChatModel("Invented district (AED 999 billion)")
+    english = synthesize_answer("Which districts had the highest sales value in 2025?", SQL, result, model)
+    arabic = synthesize_answer("ما المناطق الأعلى بقيمة المبيعات في 2025؟", SQL, result, model)
+    assert "Al Reem Island (AED 152.34 billion)" in english
+    assert "Yas Island (AED 92.45 billion)" in english
+    assert "Al Reem Island (152.34 مليار درهم)" in arabic
+    assert "Invented" not in english and model.prompts == []
+
+
+def test_lease_value_answer_uses_returned_amount_and_language() -> None:
+    result = ExecResult(
+        columns=["total_lease_value_aed"], rows=[[Decimal("9324978842")]], row_count=1,
+    )
+    model = FakeChatModel("قيمة مختلفة")
+    english = synthesize_answer("What was residential lease value in Q1 and Q2 2026?", SQL, result, model)
+    assert english == "The source-labelled residential lease value for the requested period was AED 9.32 billion."
+    assert model.prompts == []
+
+
 def test_flattens_content_blocks_from_hosted_providers() -> None:
     model = FakeChatModel([{"type": "text", "text": "Yas Island led."}])
     assert synthesize_answer(QUESTION, SQL, _result(ROWS), model) == "Yas Island led."
