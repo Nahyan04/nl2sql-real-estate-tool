@@ -24,17 +24,16 @@ const MARKDOWN = {
   ),
 };
 
-export function AnswerPanel({ answer, title = "Answer" }: { answer: string; title?: string }) {
+export function AnswerPanel({ answer, title = "Answer", arabic = false }: { answer: string; title?: string; arabic?: boolean }) {
   if (!answer) return null;
 
   return (
-    <section className="mt-12">
+    <section dir={arabic ? "rtl" : "ltr"} className="mt-12">
       <h2 className="label-mono">{title}</h2>
       {/* an Arabic answer reads from the column's right edge, not from a
           left-anchored measure */}
       <div
-        dir="auto"
-        className="mt-4 max-w-[44rem] text-[1.1875rem] leading-[1.6] font-medium text-ink [&:dir(rtl)]:ml-auto"
+        className="mt-4 max-w-[44rem] text-[1.1875rem] leading-[1.6] font-medium text-ink rtl:ml-auto"
       >
         <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN}>
           {answer}

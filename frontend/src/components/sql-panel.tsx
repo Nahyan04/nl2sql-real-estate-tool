@@ -23,8 +23,8 @@ interface SqlPanelProps {
   arabic?: boolean;
 }
 
-function formatLatency(ms: number): string {
-  return ms >= 1000 ? `${(ms / 1000).toFixed(1)} s` : `${ms} ms`;
+function formatLatency(ms: number, arabic: boolean): string {
+  return ms >= 1000 ? `${(ms / 1000).toFixed(1)} ${arabic ? "ث" : "s"}` : `${ms} ${arabic ? "مللي ثانية" : "ms"}`;
 }
 
 export function SqlPanel({ sql, tablesUsed, retryCount, latencyMs, provider, queryMethod, arabic = false }: SqlPanelProps) {
@@ -43,8 +43,8 @@ export function SqlPanel({ sql, tablesUsed, retryCount, latencyMs, provider, que
           {arabic ? "كيف أُعدّت الإجابة" : "How this was answered"}
         </span>
         <span className="label-mono text-sand">
-          {sourcePlan ? `${arabic ? "خطة إيجارات موثقة" : "Verified rental plan"} · ${formatLatency(latencyMs)}` : (
-            <>{provider} · {formatLatency(latencyMs)} · {arabic ? `${attempts} محاولة` : attempts === 1 ? "1 attempt" : `${attempts} attempts`}</>
+          {sourcePlan ? `${arabic ? "خطة استعلام موثقة" : "Verified query plan"} · ${formatLatency(latencyMs, arabic)}` : (
+            <>{provider} · {formatLatency(latencyMs, arabic)} · {arabic ? `${attempts} محاولة` : attempts === 1 ? "1 attempt" : `${attempts} attempts`}</>
           )}
         </span>
       </summary>
@@ -60,7 +60,7 @@ export function SqlPanel({ sql, tablesUsed, retryCount, latencyMs, provider, que
         ) : null}
 
         <div className="relative rounded-lg border border-rule bg-paper">
-          <CopyButton sql={sql} />
+          <CopyButton sql={sql} arabic={arabic} />
           <pre className="overflow-x-auto px-5 py-4 font-mono text-[0.9375rem] leading-[1.7]">
             <code>
               {tokenizeSql(sql).map((token, index) => (
@@ -76,7 +76,7 @@ export function SqlPanel({ sql, tablesUsed, retryCount, latencyMs, provider, que
   );
 }
 
-function CopyButton({ sql }: { sql: string }) {
+function CopyButton({ sql, arabic }: { sql: string; arabic: boolean }) {
   const [copied, setCopied] = useState(false);
 
   return (
@@ -93,7 +93,7 @@ function CopyButton({ sql }: { sql: string }) {
       }}
       className="label-mono absolute end-3 top-3 cursor-pointer bg-paper px-2 py-1 text-sand transition-colors hover:text-sage"
     >
-      {copied ? "Copied" : "Copy"}
+      {copied ? (arabic ? "نُسخ" : "Copied") : (arabic ? "نسخ" : "Copy")}
     </button>
   );
 }

@@ -82,6 +82,10 @@ const EXPLANATIONS: Record<ApiErrorCode, { title: string; guidance: string }> = 
     title: "Model temporarily unavailable",
     guidance: "The selected provider could not complete the analysis. Keep your question and try again when that provider is online.",
   },
+  LANGUAGE_MISMATCH: {
+    title: "Answer language mismatch",
+    guidance: "The model could not answer in the selected language. Try again.",
+  },
   INVALID_REQUEST: {
     title: "Check your request",
     guidance: "Enter a question and choose one of the available providers.",
@@ -96,36 +100,57 @@ const EXPLANATIONS: Record<ApiErrorCode, { title: string; guidance: string }> = 
   },
 };
 
-export function ErrorPanel({ error, question, onRetry }: { error: ApiError; question: string; onRetry: () => void }) {
-  const arabicOutcome = (error.code === "UNSUPPORTED" || error.code === "CLARIFICATION") && /[\u0600-\u06FF]/.test(question);
-  const explanation = arabicOutcome ? {
-    title: error.code === "CLARIFICATION" ? "يرجى توضيح السؤال" : "هذا السؤال غير مدعوم",
-    guidance: error.code === "CLARIFICATION"
-      ? "حدد فترة زمنية دقيقة واسم مكان واضح كما يظهر في المصدر."
-      : "البيانات المتاحة لا تدعم هذا السؤال. يمكنك السؤال عن المبيعات أو الإيجارات أو المؤشرات أو تقدير العائد الإجمالي للمجموعة.",
-  } : EXPLANATIONS[error.code] ?? {
+const ARABIC_EXPLANATIONS: Record<ApiErrorCode, { title: string; guidance: string }> = {
+  PARSE_ERROR: { title: "تعذر إنشاء الاستعلام", guidance: "لم يُنتج النموذج استعلامًا صالحًا. حدد المقياس والفترة المطلوبة." },
+  EMPTY_RESPONSE: { title: "تعذر إنشاء الاستعلام", guidance: "لم يُرجع النموذج استعلامًا. أعد صياغة السؤال." },
+  VALIDATION_ERROR: { title: "رُفض الاستعلام", guidance: "تعذر التحقق من الاستعلام. جرّب سؤالًا أكثر تحديدًا." },
+  UNSAFE_SQL: { title: "رُفض الاستعلام", guidance: "لم يجتز الاستعلام ضوابط القراءة فقط، لذلك لم يُنفذ." },
+  UNSUPPORTED: { title: "هذا السؤال غير مدعوم", guidance: "البيانات الموثقة لا تدعم هذا السؤال. اسأل عن المبيعات أو الإيجارات أو المؤشرات أو العائد الإجمالي التقديري للمجموعة." },
+  CLARIFICATION: { title: "يرجى توضيح السؤال", guidance: "حدد فترة صريحة. إذا كان اسم المكان ملتبسًا، حدد هل تقصد المنطقة أو المجتمع كما يرد في المصدر." },
+  EXECUTION_ERROR: { title: "تعذر تنفيذ الاستعلام", guidance: "رفضت قاعدة البيانات الاستعلام. جرّب فترة أقصر أو نطاقًا أضيق." },
+  DATABASE_BUSY: { title: "قاعدة البيانات مشغولة", guidance: "هناك استعلامات كثيرة قيد التنفيذ. حاول مرة أخرى بعد قليل." },
+  QUERY_TIMEOUT: { title: "استغرق الاستعلام وقتًا طويلًا", guidance: "حدد فترة أقصر أو موضوعًا أدق." },
+  RESULT_TOO_LARGE: { title: "النتيجة كبيرة جدًا", guidance: "أضف شرطًا أو تجميعًا لتقليل حجم النتيجة." },
+  MODEL_BUSY: { title: "النموذج مشغول", guidance: "قائمة انتظار النموذج ممتلئة. حاول بعد قليل." },
+  SERVER_BUSY: { title: "التحليلات مشغولة", guidance: "انتظر قليلًا ثم أعد المحاولة." },
+  SESSION_RATE_LIMIT: { title: "توقف قصير", guidance: "أرسل هذا المتصفح أسئلة كثيرة خلال فترة قصيرة." },
+  SESSION_DAILY_LIMIT: { title: "انتهى حد المتصفح اليومي", guidance: "بلغ هذا المتصفح حد الاستخدام اليومي للعرض." },
+  IP_RATE_LIMIT: { title: "توقف قصير", guidance: "وردت أسئلة كثيرة من هذه الشبكة." },
+  IP_DAILY_LIMIT: { title: "انتهى حد الشبكة اليومي", guidance: "بلغت هذه الشبكة حد الاستخدام اليومي للعرض." },
+  LIMITER_UNAVAILABLE: { title: "الخدمة غير متاحة مؤقتًا", guidance: "تعذر التحقق من حد الطلبات. حاول بعد قليل." },
+  REQUEST_TIMEOUT: { title: "انتهت مهلة التحليل", guidance: "استغرق التحليل وقتًا طويلًا. ضيّق نطاق السؤال." },
+  UNKNOWN_PROVIDER: { title: "النموذج غير مهيأ", guidance: "خيار النموذج المحدد غير مهيأ على الخادم." },
+  PROVIDER_UNAVAILABLE: { title: "النموذج غير متاح", guidance: "تعذر على مزود النموذج إكمال التحليل. حاول لاحقًا." },
+  LANGUAGE_MISMATCH: { title: "تعذر الالتزام باللغة", guidance: "لم يتمكن النموذج من الإجابة باللغة المحددة. حاول مرة أخرى." },
+  INVALID_REQUEST: { title: "تحقق من الطلب", guidance: "أدخل سؤالًا واختر نموذجًا متاحًا." },
+  UPSTREAM_ERROR: { title: "فشل الطلب", guidance: "لم تستجب خدمة النموذج أو قاعدة البيانات." },
+  NETWORK_ERROR: { title: "تعذر الاتصال بالخدمة", guidance: "تعذر الوصول إلى واجهة البرمجة. تحقق من تشغيل الخادم." },
+};
+
+export function ErrorPanel({ error, arabic, onRetry }: { error: ApiError; arabic: boolean; onRetry: () => void }) {
+  const explanation = (arabic ? ARABIC_EXPLANATIONS : EXPLANATIONS)[error.code] ?? {
     title: "Request failed",
     guidance: "Something went wrong before an answer could be produced.",
   };
 
   return (
-    <section dir={arabicOutcome ? "rtl" : undefined} className="mt-12 border-s-2 border-destructive ps-5">
+    <section dir={arabic ? "rtl" : "ltr"} className="mt-12 border-s-2 border-destructive ps-5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
         <h2 className="label-mono text-destructive">{explanation.title}</h2>
         <span className="label-mono text-sand">{error.code}</span>
       </div>
       <p className="mt-2 max-w-[44rem] text-[1.0625rem] leading-relaxed text-ink">
         {explanation.guidance}
-        {error.retryAfter !== null ? ` Retry after ${error.retryAfter} seconds.` : ""}
+        {error.retryAfter !== null ? (arabic ? ` حاول بعد ${error.retryAfter} ثانية.` : ` Retry after ${error.retryAfter} seconds.`) : ""}
       </p>
-      {error.detail && !arabicOutcome ? (
+      {error.detail && !arabic ? (
         <p className="mt-3 max-w-[44rem] font-mono text-[0.9375rem] leading-relaxed break-words text-sand">
           {error.detail}
         </p>
       ) : null}
-      {error.requestId ? <p className="mt-3 label-mono text-sand">Request ID: {error.requestId}</p> : null}
+      {error.requestId ? <p className="mt-3 label-mono text-sand">{arabic ? "معرّف الطلب" : "Request ID"}: {error.requestId}</p> : null}
       <button type="button" onClick={onRetry} className="mt-5 cursor-pointer rounded-md border border-rule px-4 py-2 text-sm font-medium text-ink transition-colors hover:border-sage hover:text-sage">
-        {arabicOutcome ? "حاول مرة أخرى" : "Try again"}
+        {arabic ? "حاول مرة أخرى" : "Try again"}
       </button>
     </section>
   );

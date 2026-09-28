@@ -1,6 +1,7 @@
 export type Provider = "anthropic" | "ollama";
 
 export type Lang = "en" | "ar";
+export type LanguageChoice = Lang | "auto";
 
 export type ChartType = "line" | "bar" | "stat";
 
@@ -9,6 +10,7 @@ export type Cell = string | number | boolean | null;
 
 export interface QueryRequest {
   question: string;
+  language?: LanguageChoice;
   provider?: Provider | null;
   dry_run?: boolean;
 }
@@ -22,6 +24,7 @@ export interface ChartSpec {
 
 export interface QueryResponse {
   answer: string;
+  language: Lang;
   outcome: "answer" | "no_data";
   answer_limited: boolean;
   snapshot_id: string | null;
@@ -116,6 +119,7 @@ export type ApiErrorCode =
   | "REQUEST_TIMEOUT"
   | "UNKNOWN_PROVIDER"
   | "PROVIDER_UNAVAILABLE"
+  | "LANGUAGE_MISMATCH"
   | "INVALID_REQUEST"
   | "UPSTREAM_ERROR"
   | "NETWORK_ERROR";

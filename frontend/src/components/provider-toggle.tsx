@@ -11,12 +11,13 @@ interface ProviderToggleProps {
   value: Provider;
   onChange: (provider: Provider) => void;
   disabled: boolean;
+  arabic?: boolean;
 }
 
-export function ProviderToggle({ value, onChange, disabled }: ProviderToggleProps) {
+export function ProviderToggle({ value, onChange, disabled, arabic = false }: ProviderToggleProps) {
   return (
     <div className="flex shrink-0 items-baseline gap-3">
-      <span className="label-mono text-sand">Model</span>
+      <span className="label-mono text-sand">{arabic ? "النموذج" : "Model"}</span>
       <div className="flex items-baseline gap-2">
         {OPTIONS.map((option, index) => (
           <span key={option.value} className="flex items-baseline gap-2">
@@ -27,7 +28,7 @@ export function ProviderToggle({ value, onChange, disabled }: ProviderToggleProp
             ) : null}
             <button
               type="button"
-              title={option.hint}
+              title={arabic ? (option.value === "anthropic" ? "يرسل السؤال وسياق الإجابة إلى النموذج السحابي المهيأ" : "يستخدم خدمة Ollama المهيأة عند توفرها") : option.hint}
               disabled={disabled}
               aria-pressed={value === option.value}
               onClick={() => onChange(option.value)}
@@ -35,7 +36,7 @@ export function ProviderToggle({ value, onChange, disabled }: ProviderToggleProp
                 value === option.value ? "font-medium text-sage" : "text-sand hover:text-ink"
               }`}
             >
-              {option.label}
+              {arabic ? (option.value === "anthropic" ? "خدمة سحابية" : "استضافة ذاتية") : option.label}
             </button>
           </span>
         ))}

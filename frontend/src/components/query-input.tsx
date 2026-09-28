@@ -7,9 +7,10 @@ interface QueryInputProps {
   onChange: (value: string) => void;
   onSubmit: () => void;
   busy: boolean;
+  arabic: boolean;
 }
 
-export function QueryInput({ value, onChange, onSubmit, busy }: QueryInputProps) {
+export function QueryInput({ value, onChange, onSubmit, busy, arabic }: QueryInputProps) {
   const ref = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -29,7 +30,7 @@ export function QueryInput({ value, onChange, onSubmit, busy }: QueryInputProps)
   const submittable = value.trim().length > 0 && !busy;
 
   return (
-    <form
+    <form dir={arabic ? "rtl" : "ltr"}
       className="group"
       onSubmit={(event) => {
         event.preventDefault();
@@ -37,7 +38,7 @@ export function QueryInput({ value, onChange, onSubmit, busy }: QueryInputProps)
       }}
     >
       <label htmlFor="question" className="label-mono">
-        Ask
+        {arabic ? "اسأل" : "Ask"}
       </label>
       <div className="mt-3 flex items-start gap-6">
         <textarea
@@ -56,7 +57,7 @@ export function QueryInput({ value, onChange, onSubmit, busy }: QueryInputProps)
               if (submittable) onSubmit();
             }
           }}
-          placeholder="Ask about sales, rental observations or price indices"
+          placeholder={arabic ? "اسأل عن المبيعات أو الإيجارات أو مؤشرات الأسعار" : "Ask about sales, rental observations or price indices"}
           className="min-w-0 flex-1 resize-none bg-transparent text-[1.5rem] font-medium leading-[1.45] text-ink placeholder:text-sand/70 focus-visible:outline-none disabled:text-sand"
         />
         <button
@@ -64,7 +65,7 @@ export function QueryInput({ value, onChange, onSubmit, busy }: QueryInputProps)
           disabled={!submittable}
           className="label-mono mt-2 shrink-0 cursor-pointer text-sage transition-opacity hover:opacity-70 disabled:cursor-default disabled:text-sand/40 disabled:hover:opacity-100"
         >
-          {busy ? "Working" : "Ask ↵"}
+          {busy ? (arabic ? "جارٍ التحليل" : "Working") : (arabic ? "اسأل ↵" : "Ask ↵")}
         </button>
       </div>
       <div

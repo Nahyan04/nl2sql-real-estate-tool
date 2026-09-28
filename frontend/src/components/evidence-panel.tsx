@@ -10,20 +10,20 @@ function belongsToTable(source: SourceCoverage, table: string): boolean {
   return table === "dataset_coverage";
 }
 
-function unitsFor(columns: string[]): string[] {
+function unitsFor(columns: string[], arabic: boolean): string[] {
   const units = new Set<string>();
   for (const column of columns) {
     const name = column.toLowerCase();
     if (name.endsWith("_aed_sqm")) {
-      units.add("AED/sqm");
+      units.add(arabic ? "درهم/م²" : "AED/sqm");
       continue;
     }
-    if (name.endsWith("_aed") || name.includes("price_aed") || name.includes("rent_aed")) units.add("AED");
-    if (name.endsWith("_sqm")) units.add("sqm");
+    if (name.endsWith("_aed") || name.includes("price_aed") || name.includes("rent_aed")) units.add(arabic ? "درهم" : "AED");
+    if (name.endsWith("_sqm")) units.add(arabic ? "م²" : "sqm");
     if (name.endsWith("_pct") || name.endsWith("_percent")) units.add("%");
-    if (name.endsWith("_count") || name.includes("units") || name === "count") units.add("count");
-    if (name.endsWith("_index") || name.includes("index_value")) units.add("index level");
-    if (name.includes("share")) units.add("ownership fraction");
+    if (/(?:^|_)count(?:_|$)/.test(name) || name.includes("units")) units.add(arabic ? "عدد" : "count");
+    if (name.endsWith("_index") || name.includes("index_value")) units.add(arabic ? "مستوى المؤشر" : "index level");
+    if (name.includes("share")) units.add(arabic ? "حصة الملكية" : "ownership fraction");
   }
   return [...units];
 }
@@ -40,7 +40,7 @@ export function EvidencePanel({ result, coverage, schemaSnapshotId, arabic }: Ev
   const sources = snapshotMatches
     ? coverage.filter((source) => result.tables_used.some((table) => belongsToTable(source, table)))
     : [];
-  const units = unitsFor(result.columns);
+  const units = unitsFor(result.columns, arabic);
   const saleTypeScope = result.tables_used.includes("transactions") && result.columns.some((column) =>
     column.toLowerCase().includes("sale_type"),
   );
@@ -52,7 +52,7 @@ export function EvidencePanel({ result, coverage, schemaSnapshotId, arabic }: Ev
     snapshot: "نسخة البيانات",
     tables: "الجداول المستخدمة",
     method: "طريقة إعداد الاستعلام",
-    sourcePlan: "خطة إيجارات موثقة",
+    sourcePlan: "خطة استعلام موثقة",
     modelQuery: "استعلام أنشأه النموذج",
     units: "وحدات النتائج",
     dates: "شروط التاريخ في SQL المنفذ",
@@ -68,7 +68,7 @@ export function EvidencePanel({ result, coverage, schemaSnapshotId, arabic }: Ev
     snapshot: "Source snapshot",
     tables: "Query tables",
     method: "Query preparation",
-    sourcePlan: "Verified rental query plan",
+    sourcePlan: "Verified query plan",
     modelQuery: "Model-generated SQL",
     units: "Units in result",
     dates: "Date conditions in executed SQL",

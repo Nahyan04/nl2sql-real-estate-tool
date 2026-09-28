@@ -10,10 +10,11 @@ interface ExampleQuestionsProps {
   examples: ExampleQuestion[];
   onPick: (question: string) => void;
   busy: boolean;
+  arabic: boolean;
 }
 
-export function ExampleQuestions({ examples, onPick, busy }: ExampleQuestionsProps) {
-  const [lang, setLang] = useState<Lang>("en");
+export function ExampleQuestions({ examples, onPick, busy, arabic }: ExampleQuestionsProps) {
+  const [lang, setLang] = useState<Lang>(arabic ? "ar" : "en");
   const [expanded, setExpanded] = useState(false);
 
   const pool = useMemo(() => examples.filter((example) => example.lang === lang), [examples, lang]);
@@ -22,9 +23,9 @@ export function ExampleQuestions({ examples, onPick, busy }: ExampleQuestionsPro
   if (examples.length === 0) return null;
 
   return (
-    <section className="mt-10">
+    <section dir={arabic ? "rtl" : "ltr"} className="mt-10">
       <div className="flex items-baseline justify-between">
-        <h2 className="label-mono">Try</h2>
+        <h2 className="label-mono">{arabic ? "جرّب" : "Try"}</h2>
         <div className="flex items-center gap-3">
           {(["en", "ar"] as const).map((code) => (
             <button
@@ -73,7 +74,7 @@ export function ExampleQuestions({ examples, onPick, busy }: ExampleQuestionsPro
           onClick={() => setExpanded((open) => !open)}
           className="label-mono mt-2 ms-5 cursor-pointer text-sand transition-colors hover:text-sage"
         >
-          {expanded ? "Show fewer" : `Show all ${pool.length}`}
+          {expanded ? (arabic ? "عرض أقل" : "Show fewer") : (arabic ? `عرض الكل (${pool.length})` : `Show all ${pool.length}`)}
         </button>
       ) : null}
     </section>

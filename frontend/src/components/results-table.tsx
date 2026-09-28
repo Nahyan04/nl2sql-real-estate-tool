@@ -42,7 +42,7 @@ export function ResultsTable({ columns, rows, rowCount, truncated, truncationRea
                     numeric[index] ? "text-end" : "text-start"
                   }`}
                 >
-                  {humanizeColumn(column)}
+                  {humanizeColumn(column, arabic)}
                 </th>
               ))}
             </tr>
@@ -60,7 +60,7 @@ export function ResultsTable({ columns, rows, rowCount, truncated, truncationRea
                         : "text-start text-sand"
                     }`}
                   >
-                    {formatMetricCell(cell, columns[cellIndex])}
+                    {formatMetricCell(cell, columns[cellIndex], arabic)}
                   </td>
                 ))}
               </tr>

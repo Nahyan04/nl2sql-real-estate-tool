@@ -7,17 +7,17 @@ function isFact(table: SchemaTable) {
   return table.columns.some((column) => DATE_TYPE.test(column.type));
 }
 
-export function DataSurface({ tables }: { tables: SchemaTable[] }) {
+export function DataSurface({ tables, arabic }: { tables: SchemaTable[]; arabic: boolean }) {
   if (tables.length === 0) return null;
 
   const groups = [
-    { label: "Facts", names: tables.filter(isFact).map((table) => table.name) },
-    { label: "Reference", names: tables.filter((table) => !isFact(table)).map((table) => table.name) },
+    { label: arabic ? "بيانات" : "Facts", names: tables.filter(isFact).map((table) => table.name) },
+    { label: arabic ? "مراجع" : "Reference", names: tables.filter((table) => !isFact(table)).map((table) => table.name) },
   ].filter((group) => group.names.length > 0);
 
   return (
-    <section className="mt-16 border-t border-rule pt-5">
-      <h2 className="label-mono">What you can ask about</h2>
+    <section dir={arabic ? "rtl" : "ltr"} className="mt-16 border-t border-rule pt-5">
+      <h2 className="label-mono">{arabic ? "الموضوعات المتاحة" : "What you can ask about"}</h2>
       <dl className="mt-4 grid gap-x-8 gap-y-3 sm:grid-cols-[auto_1fr]">
         {groups.map((group) => (
           <div key={group.label} className="contents">

@@ -40,13 +40,6 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         {children}
-        <footer className="border-t border-rule">
-          <div className="mx-auto flex max-w-[68rem] flex-wrap items-baseline justify-between gap-x-8 gap-y-2 px-5 sm:px-8 py-6">
-            <p className="text-[0.9375rem] text-sand">
-              Source-backed ADREC export snapshot. Independent prototype; not an official ADREC service.
-            </p>
-          </div>
-        </footer>
       </body>
     </html>
   );

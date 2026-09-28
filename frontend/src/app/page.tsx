@@ -15,12 +15,15 @@ import { ResultChart } from "@/components/result-chart";
 import { ResultsTable } from "@/components/results-table";
 import { SqlPanel } from "@/components/sql-panel";
 import { ApiError, getExamples, getSchema, postQuery } from "@/lib/api";
+import { resolveLanguage } from "@/lib/language";
 import { clearHistory, getHistory, getServerHistory, pushHistory, subscribeHistory } from "@/lib/history";
-import type { ExampleQuestion, Provider, QueryResponse, SchemaTable, SourceCoverage } from "@/lib/types";
+import type { ExampleQuestion, Lang, LanguageChoice, Provider, QueryResponse, SchemaTable, SourceCoverage } from "@/lib/types";
 
 export default function Home() {
   const [question, setQuestion] = useState("");
   const [provider, setProvider] = useState<Provider>("anthropic");
+  const [languageChoice, setLanguageChoice] = useState<LanguageChoice>("auto");
+  const [activeLanguage, setActiveLanguage] = useState<Lang>("en");
   const [examples, setExamples] = useState<ExampleQuestion[]>([]);
   const [tables, setTables] = useState<SchemaTable[]>([]);
   const [coverage, setCoverage] = useState<SourceCoverage[]>([]);
@@ -53,12 +56,14 @@ export default function Home() {
     async (text: string) => {
       const asked = text.trim();
       if (!asked) return;
+      const runLanguage = resolveLanguage(asked, languageChoice);
 
       pending.current?.abort();
       const controller = new AbortController();
       pending.current = controller;
 
       setQuestion(asked);
+      setActiveLanguage(runLanguage);
       setBusy(true);
       setError(null);
       setResult(null);
@@ -68,29 +73,60 @@ export default function Home() {
       pushHistory(asked);
 
       try {
-        setResult(await postQuery({ question: asked, provider }, controller.signal));
+        const response = await postQuery({ question: asked, provider, language: languageChoice }, controller.signal);
+        if (pending.current === controller) setResult(response);
       } catch (cause) {
         if (cause instanceof Error && cause.name === "AbortError") return;
-        setError(cause instanceof ApiError ? cause : new ApiError("UPSTREAM_ERROR", String(cause), 0));
+        if (pending.current === controller) setError(cause instanceof ApiError ? cause : new ApiError("UPSTREAM_ERROR", String(cause), 0));
       } finally {
         if (pending.current === controller) {
+          pending.current = null;
           setFinishedAt(performance.now());
           setBusy(false);
         }
       }
     },
-    [provider],
+    [provider, languageChoice],
   );
 
+  const clearCurrent = useCallback(() => {
+    pending.current?.abort();
+    pending.current = null;
+    setQuestion("");
+    setResult(null);
+    setError(null);
+    setBusy(false);
+    setFinishedAt(null);
+    setRunId((id) => id + 1);
+  }, []);
+
+  const changeLanguage = (choice: LanguageChoice) => {
+    setLanguageChoice(choice);
+    if (result || error) {
+      setResult(null);
+      setError(null);
+    }
+  };
+
   const showProcess = busy || result !== null || error !== null;
-  const arabicQuestion = /[\u0600-\u06FF]/.test(question);
+  const arabicQuestion = (showProcess ? activeLanguage : resolveLanguage(question, languageChoice)) === "ar";
+
+  useEffect(() => {
+    document.documentElement.lang = arabicQuestion ? "ar" : "en";
+  }, [arabicQuestion]);
 
   return (
     <>
-      <Header provider={provider} onProviderChange={setProvider} busy={busy} />
+      <Header provider={provider} language={languageChoice} arabic={arabicQuestion} onLanguageChange={changeLanguage} onProviderChange={setProvider} busy={busy} />
 
       <main className="mx-auto w-full max-w-[68rem] flex-1 px-5 sm:px-8 pt-16 pb-24">
-        <QueryInput value={question} onChange={setQuestion} onSubmit={() => run(question)} busy={busy} />
+        <QueryInput value={question} onChange={setQuestion} onSubmit={() => run(question)} busy={busy} arabic={arabicQuestion} />
+        {showProcess ? (
+          <button type="button" onClick={clearCurrent}
+            className="label-mono mt-4 cursor-pointer text-sand transition-colors hover:text-sage">
+            {arabicQuestion ? "سؤال جديد" : "New question"}
+          </button>
+        ) : null}
 
         {showProcess ? (
           <ProcessOverview
@@ -103,16 +139,16 @@ export default function Home() {
           />
         ) : error ? null : (
           <>
-            <ExampleQuestions examples={examples} onPick={run} busy={busy} />
-            <DataSurface tables={tables} />
+            <ExampleQuestions key={arabicQuestion ? "ar" : "en"} examples={examples} onPick={run} busy={busy} arabic={arabicQuestion} />
+            <DataSurface tables={tables} arabic={arabicQuestion} />
           </>
         )}
 
-        {error ? <ErrorPanel error={error} question={question} onRetry={() => run(question)} /> : null}
+        {error ? <ErrorPanel error={error} arabic={arabicQuestion} onRetry={() => run(question)} /> : null}
 
         {result ? (
           <>
-            <AnswerPanel answer={result.answer} title={result.outcome === "no_data"
+            <AnswerPanel answer={result.answer} arabic={arabicQuestion} title={result.outcome === "no_data"
               ? (arabicQuestion ? "لا توجد بيانات مطابقة" : "No matching data")
               : (arabicQuestion ? "الإجابة" : "Answer")} />
             <EvidencePanel result={result} coverage={coverage} schemaSnapshotId={schemaSnapshotId} arabic={arabicQuestion} />
@@ -142,8 +178,17 @@ export default function Home() {
           </>
         ) : null}
 
-        <HistoryPanel questions={history} onPick={run} onClear={clearHistory} busy={busy} />
+        <HistoryPanel questions={history} onPick={run} onClear={clearHistory} busy={busy} arabic={arabicQuestion} />
       </main>
+      <footer dir={arabicQuestion ? "rtl" : "ltr"} className="border-t border-rule">
+        <div className="mx-auto max-w-[68rem] px-5 py-6 sm:px-8">
+          <p className="text-[0.9375rem] text-sand">
+            {arabicQuestion
+              ? "نسخة بيانات مصدّرة من ADREC. نموذج مستقل؛ ليس خدمة رسمية من ADREC."
+              : "Source-backed ADREC export snapshot. Independent prototype; not an official ADREC service."}
+          </p>
+        </div>
+      </footer>
     </>
   );
 }
