@@ -75,11 +75,12 @@ interface ResultChartProps {
   chart: ChartSpec;
   columns: string[];
   rows: Cell[][];
+  arabic?: boolean;
 }
 
-export function ResultChart({ chart, columns, rows }: ResultChartProps) {
+export function ResultChart({ chart, columns, rows, arabic = false }: ResultChartProps) {
   if (chart.type === "stat") {
-    return <StatFigure chart={chart} columns={columns} rows={rows} />;
+    return <StatFigure chart={chart} columns={columns} rows={rows} arabic={arabic} />;
   }
 
   const data = toRows(columns, rows);
@@ -96,7 +97,7 @@ export function ResultChart({ chart, columns, rows }: ResultChartProps) {
   return (
     <section className="mt-12">
       <div className="flex items-baseline justify-between gap-6">
-        <h2 className="label-mono">Chart</h2>
+        <h2 className="label-mono">{arabic ? "الرسم البياني" : "Chart"}</h2>
         {shown.length > 1 && !faceted ? <Legend keys={shown} colorFor={colorFor} /> : null}
       </div>
 
@@ -131,7 +132,7 @@ export function ResultChart({ chart, columns, rows }: ResultChartProps) {
   );
 }
 
-function StatFigure({ chart, columns, rows }: ResultChartProps) {
+function StatFigure({ chart, columns, rows, arabic = false }: ResultChartProps) {
   const key = chart.y_keys[0] ?? columns[0];
   const index = columns.indexOf(key);
   const value = index >= 0 ? rows[0]?.[index] : null;
@@ -139,11 +140,13 @@ function StatFigure({ chart, columns, rows }: ResultChartProps) {
 
   return (
     <section className="mt-12">
-      <h2 className="label-mono">Result</h2>
+      <h2 className="label-mono">{arabic ? "النتيجة" : "Result"}</h2>
       <p className="mt-4 text-[3.25rem] leading-none font-semibold text-ink">
         {formatMetricCell(value, key)}
       </p>
-      <p className="mt-3 text-[1.0625rem] text-sand">{chart.title}</p>
+      <p className="mt-3 text-[1.0625rem] text-sand">
+        {arabic && key === "rent_index_change_pct" ? "نسبة تغير مؤشر الإيجارات" : chart.title}
+      </p>
     </section>
   );
 }

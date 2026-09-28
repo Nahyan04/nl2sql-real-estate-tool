@@ -19,36 +19,40 @@ interface SqlPanelProps {
   retryCount: number;
   latencyMs: number;
   provider: string;
+  queryMethod?: string;
+  arabic?: boolean;
 }
 
 function formatLatency(ms: number): string {
   return ms >= 1000 ? `${(ms / 1000).toFixed(1)} s` : `${ms} ms`;
 }
 
-export function SqlPanel({ sql, tablesUsed, retryCount, latencyMs, provider }: SqlPanelProps) {
+export function SqlPanel({ sql, tablesUsed, retryCount, latencyMs, provider, queryMethod, arabic = false }: SqlPanelProps) {
   if (!sql) return null;
 
   const attempts = retryCount + 1;
+  const sourcePlan = queryMethod?.startsWith("source_plan:");
 
   return (
-    <details className="group mt-12 border-t border-rule">
+    <details dir={arabic ? "rtl" : "ltr"} className="group mt-12 border-t border-rule">
       <summary className="flex cursor-pointer list-none items-baseline justify-between gap-6 py-4 [&::-webkit-details-marker]:hidden">
         <span className="label-mono flex items-baseline gap-2 text-ink">
           <span aria-hidden className="text-sage transition-transform group-open:rotate-90">
             ›
           </span>
-          How this was answered
+          {arabic ? "كيف أُعدّت الإجابة" : "How this was answered"}
         </span>
         <span className="label-mono text-sand">
-          {provider} · {formatLatency(latencyMs)} ·{" "}
-          {attempts === 1 ? "1 attempt" : `${attempts} attempts`}
+          {sourcePlan ? `${arabic ? "خطة إيجارات موثقة" : "Verified rental plan"} · ${formatLatency(latencyMs)}` : (
+            <>{provider} · {formatLatency(latencyMs)} · {arabic ? `${attempts} محاولة` : attempts === 1 ? "1 attempt" : `${attempts} attempts`}</>
+          )}
         </span>
       </summary>
 
       <div className="pb-2">
         {tablesUsed.length > 0 ? (
           <div className="flex flex-wrap items-baseline gap-x-8 gap-y-2 pb-4">
-            <span className="label-mono text-sand">Tables used</span>
+            <span className="label-mono text-sand">{arabic ? "الجداول المستخدمة" : "Tables used"}</span>
             <span className="font-mono text-[0.9375rem] text-sand">
               {tablesUsed.join("  ·  ")}
             </span>

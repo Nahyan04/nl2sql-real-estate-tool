@@ -112,10 +112,12 @@ export default function Home() {
 
         {result ? (
           <>
-            <AnswerPanel answer={result.answer} title={result.outcome === "no_data" ? "No matching data" : "Answer"} />
+            <AnswerPanel answer={result.answer} title={result.outcome === "no_data"
+              ? (arabicQuestion ? "لا توجد بيانات مطابقة" : "No matching data")
+              : (arabicQuestion ? "الإجابة" : "Answer")} />
             <EvidencePanel result={result} coverage={coverage} schemaSnapshotId={schemaSnapshotId} arabic={arabicQuestion} />
             {result.outcome !== "no_data" && result.chart ? (
-              <ResultChart chart={result.chart} columns={result.columns} rows={result.rows} />
+              <ResultChart chart={result.chart} columns={result.columns} rows={result.rows} arabic={arabicQuestion} />
             ) : null}
             {/* a scalar is already shown whole by the stat figure */}
             {result.outcome === "no_data" || (result.chart?.type === "stat" && result.columns.length === 1) ? null : (
@@ -125,6 +127,7 @@ export default function Home() {
                 rowCount={result.row_count}
                 truncated={result.truncated}
                 truncationReason={result.truncation_reason}
+                arabic={arabicQuestion}
               />
             )}
             <SqlPanel
@@ -133,6 +136,8 @@ export default function Home() {
               retryCount={result.retry_count}
               latencyMs={result.latency_ms}
               provider={result.provider}
+              queryMethod={result.query_method}
+              arabic={arabicQuestion}
             />
           </>
         ) : null}

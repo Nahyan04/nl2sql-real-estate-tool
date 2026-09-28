@@ -26,6 +26,10 @@ export function formatCell(value: Cell): string {
 export function formatMetricCell(value: Cell, column: string): string {
   if (!isNumeric(value)) return formatCell(value);
   const name = column.toLowerCase();
+  if (name.endsWith("_aed_sqm")) return `AED ${grouped(value)}/sqm`;
+  if (name.endsWith("_aed") && /(weighted|average|avg|per_unit)/.test(name)) {
+    return `AED ${GROUPED.format(value)}`;
+  }
   if (name.endsWith("_aed")) return `AED ${grouped(value)}`;
   if (name.endsWith("_pct") || name.endsWith("_percent")) return `${GROUPED.format(value)}%`;
   if (name.endsWith("_sqm")) return `${grouped(value)} sqm`;

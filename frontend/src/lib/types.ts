@@ -37,6 +37,7 @@ export interface QueryResponse {
   retry_count: number;
   latency_ms: number;
   provider: string;
+  query_method?: string;
 }
 
 export interface ExampleQuestion {

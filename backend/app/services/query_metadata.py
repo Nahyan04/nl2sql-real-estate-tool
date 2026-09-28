@@ -9,7 +9,7 @@ from sqlglot import exp
 DATE_COLUMNS = frozenset({
     "transaction_date", "period_end", "observed_from", "observed_through", "complete_through",
 })
-DATE_PREDICATES = (exp.EQ, exp.GT, exp.GTE, exp.LT, exp.LTE, exp.Between)
+DATE_PREDICATES = (exp.EQ, exp.GT, exp.GTE, exp.LT, exp.LTE, exp.Between, exp.In)
 
 
 def date_conditions(sql: str) -> list[str]:
@@ -18,10 +18,12 @@ def date_conditions(sql: str) -> list[str]:
     except sqlglot.ParseError:
         return []
     found = []
-    for where in query.find_all(exp.Where):
-        for predicate in where.find_all(*DATE_PREDICATES):
-            if any(column.name.lower() in DATE_COLUMNS for column in predicate.find_all(exp.Column)):
-                condition = predicate.sql(dialect="postgres")
-                if condition not in found:
-                    found.append(condition)
+    for predicate in query.find_all(*DATE_PREDICATES):
+        if not any(column.name.lower() in DATE_COLUMNS for column in predicate.find_all(exp.Column)):
+            continue
+        if not any(isinstance(value, (exp.Literal, exp.Date, exp.Cast)) for value in predicate.walk()):
+            continue
+        condition = predicate.sql(dialect="postgres")
+        if condition not in found:
+            found.append(condition)
     return found[:8]
