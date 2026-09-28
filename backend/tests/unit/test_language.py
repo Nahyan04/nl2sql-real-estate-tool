@@ -12,6 +12,8 @@ def test_language_choice_overrides_prompt_script():
     assert resolve_language('كم قيمة المبيعات؟') == 'ar'
     assert not answer_matches_language('بلغ الإجمالي 4 مليون درهم. The total was AED 4 million.', 'ar')
     assert answer_matches_language('بلغت المبيعات في Al Bateen نحو 4 ملايين درهم.', 'ar', ('Al Bateen',))
+    assert not answer_matches_language('بلغت المبيعات 4 ملايين درهم. Sales value reached AED 4 million.', 'ar')
+    assert answer_matches_language('ارتفع المؤشر في Abu Dhabi City بنسبة 9.26%.', 'ar')
 
 
 def test_wrong_language_answer_is_repaired_once():
