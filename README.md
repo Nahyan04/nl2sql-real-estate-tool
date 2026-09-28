@@ -40,7 +40,7 @@ Unsupported topics and ambiguous places or relative dates stop before SQL execut
 
 `POST /api/v1/query` accepts `language: "auto" | "en" | "ar"` alongside the question and provider. Auto chooses Arabic when the question contains Arabic script; the explicit options override that choice for both the answer and interface. Model prose that misses the selected language is retried once, then returned as `LANGUAGE_MISMATCH` rather than shown in the wrong language. The frontend's New question control clears the current request and result while keeping session question history available.
 
-The frontend shows a high-level process overview with elapsed browser wait time. Its four steps describe the workflow and do not indicate live backend stage completion. Results include the executed SQL's date conditions, actual used tables, metric units inferred from result aliases, the snapshot ID and relevant source coverage. A missing date condition is displayed as unknown scope rather than an inferred reporting window.
+The frontend shows a concise analysis status with elapsed browser wait time while a request is running. Results include the executed SQL's date conditions, actual used tables, metric units inferred from result aliases, the snapshot ID and relevant source coverage. A missing date condition is shown explicitly rather than treated as an inferred reporting window.
 
 If the selected model fails during SQL generation or answer synthesis, the API returns `PROVIDER_UNAVAILABLE` instead of an empty answer. The question remains in the input for retry.
 

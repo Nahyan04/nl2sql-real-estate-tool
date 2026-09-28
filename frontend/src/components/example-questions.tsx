@@ -23,9 +23,9 @@ export function ExampleQuestions({ examples, onPick, busy, arabic }: ExampleQues
   if (examples.length === 0) return null;
 
   return (
-    <section dir={arabic ? "rtl" : "ltr"} className="mt-10">
+    <section dir={arabic ? "rtl" : "ltr"}>
       <div className="flex items-baseline justify-between">
-        <h2 className="label-mono">{arabic ? "جرّب" : "Try"}</h2>
+        <h2 className="section-heading">{arabic ? "جرّب سؤالًا" : "Try a question"}</h2>
         <div className="flex items-center gap-3">
           {(["en", "ar"] as const).map((code) => (
             <button
@@ -47,14 +47,14 @@ export function ExampleQuestions({ examples, onPick, busy, arabic }: ExampleQues
         </div>
       </div>
 
-      <ul className="mt-4" dir={lang === "ar" ? "rtl" : "ltr"}>
+      <ul className="mt-5 grid gap-x-8 sm:grid-cols-2" dir={lang === "ar" ? "rtl" : "ltr"}>
         {visible.map((example) => (
           <li key={example.id}>
             <button
               type="button"
               disabled={busy}
               onClick={() => onPick(example.text)}
-              className="group/q flex w-full cursor-pointer items-baseline gap-2 py-[0.4375rem] text-start text-[1.0625rem] font-medium leading-snug text-sand transition-colors hover:text-ink disabled:cursor-default disabled:hover:text-sand"
+              className="example-question group/q flex w-full cursor-pointer items-baseline gap-2 py-[0.4375rem] text-start text-[1.0625rem] font-medium leading-snug text-sand transition-colors hover:text-ink disabled:cursor-default disabled:hover:text-sand"
             >
               <span
                 aria-hidden

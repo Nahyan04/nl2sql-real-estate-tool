@@ -7,7 +7,7 @@ const MARKDOWN = {
     <p className="mt-4 first:mt-0">{children}</p>
   ),
   strong: ({ children }: { children?: React.ReactNode }) => (
-    <strong className="font-medium text-sage">{children}</strong>
+    <strong className="font-semibold text-sage">{children}</strong>
   ),
   em: ({ children }: { children?: React.ReactNode }) => <em className="italic">{children}</em>,
   ul: ({ children }: { children?: React.ReactNode }) => (
@@ -28,12 +28,12 @@ export function AnswerPanel({ answer, title = "Answer", arabic = false }: { answ
   if (!answer) return null;
 
   return (
-    <section dir={arabic ? "rtl" : "ltr"} className="mt-12">
-      <h2 className="label-mono">{title}</h2>
+    <section dir={arabic ? "rtl" : "ltr"}>
+      <h2 className="section-heading">{title}</h2>
       {/* an Arabic answer reads from the column's right edge, not from a
           left-anchored measure */}
       <div
-        className="mt-4 max-w-[44rem] text-[1.1875rem] leading-[1.6] font-medium text-ink rtl:ml-auto"
+        className="answer-copy mt-5 text-[1.1875rem] leading-[1.75] font-medium text-ink"
       >
         <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN}>
           {answer}

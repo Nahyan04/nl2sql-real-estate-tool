@@ -98,7 +98,7 @@ export function ResultChart({ chart, columns, rows, arabic = false }: ResultChar
   return (
     <section dir={arabic ? "rtl" : "ltr"} className="mt-12">
       <div className="flex items-baseline justify-between gap-6">
-        <h2 className="label-mono">{arabic ? "الرسم البياني" : "Chart"}</h2>
+        <h2 className="section-heading">{arabic ? "الرسم البياني" : "Chart"}</h2>
         {shown.length > 1 && !faceted ? <Legend keys={shown} colorFor={colorFor} arabic={arabic} /> : null}
       </div>
 
@@ -141,7 +141,7 @@ function StatFigure({ chart, columns, rows, arabic = false }: ResultChartProps) 
 
   return (
     <section dir={arabic ? "rtl" : "ltr"} className="mt-12">
-      <h2 className="label-mono">{arabic ? "النتيجة" : "Result"}</h2>
+      <h2 className="section-heading">{arabic ? "النتيجة" : "Result"}</h2>
       <p className="mt-4 text-[3.25rem] leading-none font-semibold text-ink">
         {formatMetricCell(value, key, arabic)}
       </p>

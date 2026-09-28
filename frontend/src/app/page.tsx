@@ -34,7 +34,6 @@ export default function Home() {
   const [busy, setBusy] = useState(false);
   const [runId, setRunId] = useState(0);
   const [startedAt, setStartedAt] = useState(0);
-  const [finishedAt, setFinishedAt] = useState<number | null>(null);
   const pending = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -69,7 +68,6 @@ export default function Home() {
       setResult(null);
       setRunId((id) => id + 1);
       setStartedAt(performance.now());
-      setFinishedAt(null);
       pushHistory(asked);
 
       try {
@@ -81,7 +79,6 @@ export default function Home() {
       } finally {
         if (pending.current === controller) {
           pending.current = null;
-          setFinishedAt(performance.now());
           setBusy(false);
         }
       }
@@ -96,7 +93,6 @@ export default function Home() {
     setResult(null);
     setError(null);
     setBusy(false);
-    setFinishedAt(null);
     setRunId((id) => id + 1);
   }, []);
 
@@ -119,7 +115,7 @@ export default function Home() {
     <>
       <Header provider={provider} language={languageChoice} arabic={arabicQuestion} onLanguageChange={changeLanguage} onProviderChange={setProvider} busy={busy} />
 
-      <main className="mx-auto w-full max-w-[68rem] flex-1 px-5 sm:px-8 pt-16 pb-24">
+      <main dir={arabicQuestion ? "rtl" : "ltr"} className="mx-auto w-full max-w-[88rem] flex-1 px-5 pt-10 pb-20 sm:px-8 lg:px-12 lg:pt-14">
         <QueryInput value={question} onChange={setQuestion} onSubmit={() => run(question)} busy={busy} arabic={arabicQuestion} />
         {showProcess ? (
           <button type="button" onClick={clearCurrent}
@@ -128,30 +124,29 @@ export default function Home() {
           </button>
         ) : null}
 
-        {showProcess ? (
+        {busy ? (
           <ProcessOverview
             key={runId}
-            running={busy}
-            failed={error !== null}
             startedAt={startedAt}
-            finishedAt={finishedAt}
             arabic={arabicQuestion}
           />
-        ) : error ? null : (
-          <>
+        ) : !showProcess ? (
+          <div className="mt-12 grid items-start gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,1.55fr)_minmax(19rem,0.85fr)]">
             <ExampleQuestions key={arabicQuestion ? "ar" : "en"} examples={examples} onPick={run} busy={busy} arabic={arabicQuestion} />
             <DataSurface tables={tables} arabic={arabicQuestion} />
-          </>
-        )}
+          </div>
+        ) : null}
 
         {error ? <ErrorPanel error={error} arabic={arabicQuestion} onRetry={() => run(question)} /> : null}
 
         {result ? (
           <>
-            <AnswerPanel answer={result.answer} arabic={arabicQuestion} title={result.outcome === "no_data"
-              ? (arabicQuestion ? "لا توجد بيانات مطابقة" : "No matching data")
-              : (arabicQuestion ? "الإجابة" : "Answer")} />
-            <EvidencePanel result={result} coverage={coverage} schemaSnapshotId={schemaSnapshotId} arabic={arabicQuestion} />
+            <div className="mt-12 grid items-start gap-x-10 gap-y-10 md:grid-cols-[minmax(0,1.4fr)_minmax(18rem,0.9fr)] xl:gap-x-12">
+              <AnswerPanel answer={result.answer} arabic={arabicQuestion} title={result.outcome === "no_data"
+                ? (arabicQuestion ? "لا توجد بيانات مطابقة" : "No matching data")
+                : (arabicQuestion ? "الإجابة" : "Answer")} />
+              <EvidencePanel result={result} coverage={coverage} schemaSnapshotId={schemaSnapshotId} arabic={arabicQuestion} />
+            </div>
             {result.outcome !== "no_data" && result.chart ? (
               <ResultChart chart={result.chart} columns={result.columns} rows={result.rows} arabic={arabicQuestion} />
             ) : null}
@@ -169,7 +164,6 @@ export default function Home() {
             <SqlPanel
               sql={result.sql}
               tablesUsed={result.tables_used}
-              retryCount={result.retry_count}
               latencyMs={result.latency_ms}
               provider={result.provider}
               queryMethod={result.query_method}
@@ -181,7 +175,7 @@ export default function Home() {
         <HistoryPanel questions={history} onPick={run} onClear={clearHistory} busy={busy} arabic={arabicQuestion} />
       </main>
       <footer dir={arabicQuestion ? "rtl" : "ltr"} className="border-t border-rule">
-        <div className="mx-auto max-w-[68rem] px-5 py-6 sm:px-8">
+        <div className="mx-auto max-w-[88rem] px-5 py-6 sm:px-8 lg:px-12">
           <p className="text-[0.9375rem] text-sand">
             {arabicQuestion
               ? "نسخة بيانات مصدّرة من ADREC. نموذج مستقل؛ ليس خدمة رسمية من ADREC."

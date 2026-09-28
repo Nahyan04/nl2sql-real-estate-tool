@@ -37,8 +37,8 @@ export function QueryInput({ value, onChange, onSubmit, busy, arabic }: QueryInp
         if (submittable) onSubmit();
       }}
     >
-      <label htmlFor="question" className="label-mono">
-        {arabic ? "اسأل" : "Ask"}
+      <label htmlFor="question" className="section-heading">
+        {arabic ? "اسأل عن السوق العقاري" : "Ask about the market"}
       </label>
       <div className="mt-3 flex items-start gap-6">
         <textarea
@@ -58,7 +58,7 @@ export function QueryInput({ value, onChange, onSubmit, busy, arabic }: QueryInp
             }
           }}
           placeholder={arabic ? "اسأل عن المبيعات أو الإيجارات أو مؤشرات الأسعار" : "Ask about sales, rental observations or price indices"}
-          className="min-w-0 flex-1 resize-none bg-transparent text-[1.5rem] font-medium leading-[1.45] text-ink placeholder:text-sand/70 focus-visible:outline-none disabled:text-sand"
+          className="query-field min-w-0 flex-1 resize-none bg-transparent text-[1.5rem] font-medium leading-[1.55] text-ink placeholder:text-sand/70 focus-visible:outline-none disabled:text-sand"
         />
         <button
           type="submit"

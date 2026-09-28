@@ -1,6 +1,6 @@
 export function Wordmark() {
   return (
-    <span className="relative inline-flex flex-col items-center px-4 py-1.5 leading-none select-none">
+    <span className="relative inline-flex shrink-0 flex-col items-center px-5 py-2 leading-none select-none">
       <svg
         aria-hidden
         className="absolute inset-0 h-full w-full text-sage"
@@ -15,10 +15,10 @@ export function Wordmark() {
           vectorEffect="non-scaling-stroke"
         />
       </svg>
-      <span className="text-[0.875rem] text-sage" lang="ar" dir="rtl">
+      <span className="text-[1.375rem] font-semibold text-sage" lang="ar" dir="rtl">
         بيان
       </span>
-      <span className="mt-1 text-[0.875rem] font-semibold tracking-[0.18em] text-ink">
+      <span className="mt-1 text-[1rem] font-semibold tracking-[0.18em] text-ink">
         BAYAN
       </span>
     </span>

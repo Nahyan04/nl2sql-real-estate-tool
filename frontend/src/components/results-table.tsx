@@ -22,7 +22,7 @@ export function ResultsTable({ columns, rows, rowCount, truncated, truncationRea
   return (
     <section dir={arabic ? "rtl" : "ltr"} className="mt-12">
       <div className="flex items-baseline justify-between gap-6">
-        <h2 className="label-mono">{arabic ? "النتيجة" : "Result"}</h2>
+        <h2 className="section-heading">{arabic ? "البيانات" : "Data"}</h2>
         <p className="label-mono text-sand">
           {arabic
             ? `${rowCount} صف · ${columns.length} عمود`

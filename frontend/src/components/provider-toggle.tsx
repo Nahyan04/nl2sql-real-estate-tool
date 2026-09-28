@@ -16,11 +16,11 @@ interface ProviderToggleProps {
 
 export function ProviderToggle({ value, onChange, disabled, arabic = false }: ProviderToggleProps) {
   return (
-    <div className="flex shrink-0 items-baseline gap-3">
-      <span className="label-mono text-sand">{arabic ? "النموذج" : "Model"}</span>
-      <div className="flex items-baseline gap-2">
+    <div className="flex flex-wrap items-center gap-3">
+      <span className="control-label">{arabic ? "النموذج" : "Model"}</span>
+      <div className="flex items-center gap-2">
         {OPTIONS.map((option, index) => (
-          <span key={option.value} className="flex items-baseline gap-2">
+          <span key={option.value} className="flex items-center gap-2">
             {index > 0 ? (
               <span aria-hidden className="text-sand/30">
                 ·
@@ -32,8 +32,8 @@ export function ProviderToggle({ value, onChange, disabled, arabic = false }: Pr
               disabled={disabled}
               aria-pressed={value === option.value}
               onClick={() => onChange(option.value)}
-              className={`label-mono cursor-pointer transition-colors disabled:cursor-default ${
-                value === option.value ? "font-medium text-sage" : "text-sand hover:text-ink"
+              className={`control-option cursor-pointer rounded-sm px-1.5 py-1 transition-colors disabled:cursor-default ${
+                value === option.value ? "bg-sage/10 text-sage" : "text-sand hover:text-ink"
               }`}
             >
               {arabic ? (option.value === "anthropic" ? "خدمة سحابية" : "استضافة ذاتية") : option.label}

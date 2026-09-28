@@ -56,8 +56,7 @@ export function EvidencePanel({ result, coverage, schemaSnapshotId, arabic }: Ev
     modelQuery: "استعلام أنشأه النموذج",
     units: "وحدات النتائج",
     dates: "شروط التاريخ في SQL المنفذ",
-    noUnits: "راجع أسماء الأعمدة والاستعلام",
-    noDates: "لا يوجد شرط تاريخ صريح؛ راجع استعلام SQL للنطاق الدقيق.",
+    noDates: "لم يُحدد شرط تاريخ في الاستعلام.",
     sourceCoverage: "تغطية المصادر",
     limitedResult: "نتيجة الاستعلام محدودة؛ قد لا تشمل كل السجلات المطابقة.",
     limitedAnswer: "استخدم الشرح أول 50 صفًا فقط؛ يعرض الجدول كل الصفوف المُعادة.",
@@ -72,8 +71,7 @@ export function EvidencePanel({ result, coverage, schemaSnapshotId, arabic }: Ev
     modelQuery: "Model-generated SQL",
     units: "Units in result",
     dates: "Date conditions in executed SQL",
-    noUnits: "Check column labels and SQL",
-    noDates: "No explicit date condition found; inspect the SQL for the exact scope.",
+    noDates: "No date filter in the query.",
     sourceCoverage: "Source coverage",
     limitedResult: "The query result was capped. The answer may cover only part of the matching data.",
     limitedAnswer: "The explanation used only the first 50 returned rows; the result table contains the full returned set.",
@@ -82,30 +80,32 @@ export function EvidencePanel({ result, coverage, schemaSnapshotId, arabic }: Ev
   };
 
   return (
-    <section dir={arabic ? "rtl" : "ltr"} className="mt-10 border-t border-rule pt-5" aria-label={labels.heading}>
-      <h2 className="label-mono">{labels.heading}</h2>
-      <dl className="mt-4 grid gap-x-8 gap-y-4 sm:grid-cols-2">
+    <section dir={arabic ? "rtl" : "ltr"} className="min-w-0 rounded-xl border border-rule bg-paper-flat px-5 py-5 sm:px-6" aria-label={labels.heading}>
+      <h2 className="section-heading">{labels.heading}</h2>
+      <dl className="mt-5 grid gap-x-7 gap-y-5 border-t border-rule pt-5 sm:grid-cols-2 md:grid-cols-1 xl:grid-cols-2">
         <div>
           <dt className="label-mono text-sand">{labels.method}</dt>
-          <dd className="mt-1 text-sm text-ink">
+          <dd className="evidence-copy mt-1 text-sm text-ink">
             {result.query_method?.startsWith("source_plan:") ? labels.sourcePlan : labels.modelQuery}
           </dd>
         </div>
         <div>
           <dt className="label-mono text-sand">{labels.snapshot}</dt>
-          <dd className="mt-1 font-mono text-sm text-ink">{result.snapshot_id ?? (arabic ? "غير متاحة" : "Unavailable")}</dd>
+          <dd className="evidence-copy mt-1 break-words font-mono text-sm text-ink">{result.snapshot_id ?? (arabic ? "غير متاحة" : "Unavailable")}</dd>
         </div>
         <div>
           <dt className="label-mono text-sand">{labels.tables}</dt>
-          <dd dir="ltr" className="mt-1 font-mono text-sm text-ink">{result.tables_used.join(" · ") || (arabic ? "لا توجد" : "None")}</dd>
+          <dd dir="ltr" className="evidence-copy mt-1 break-words font-mono text-sm text-ink">{result.tables_used.join(" · ") || (arabic ? "لا توجد" : "None")}</dd>
         </div>
-        <div>
-          <dt className="label-mono text-sand">{labels.units}</dt>
-          <dd className="mt-1 text-sm text-ink">{units.join(" · ") || labels.noUnits}</dd>
-        </div>
+        {units.length > 0 ? (
+          <div>
+            <dt className="label-mono text-sand">{labels.units}</dt>
+            <dd className="evidence-copy mt-1 text-sm text-ink">{units.join(" · ")}</dd>
+          </div>
+        ) : null}
         <div>
           <dt className="label-mono text-sand">{labels.dates}</dt>
-          <dd className="mt-1 text-sm text-ink">
+          <dd className="evidence-copy mt-1 text-sm text-ink">
             {result.date_conditions.length > 0 ? (
               <ul className="space-y-1">
                 {result.date_conditions.map((condition) => (
