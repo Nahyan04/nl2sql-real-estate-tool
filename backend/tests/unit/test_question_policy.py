@@ -9,6 +9,7 @@ from app.services.question_policy import classify_question
     ("question", "code"),
     [
         ("Which broker sold most homes in 2025?", "UNSUPPORTED"),
+        ("Which developers had the highest sales value in 2025?", "UNSUPPORTED"),
         ("Show sales in Al Bateen in 2025", "CLARIFICATION"),
         ("كم بلغت مبيعات البطين في 2025؟", "CLARIFICATION"),
         ("كم قيمة المبيعات في منطقة البطين في أبوظبي عام 2025؟", "CLARIFICATION"),

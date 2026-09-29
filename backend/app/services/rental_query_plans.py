@@ -15,7 +15,7 @@ class RentalPlan:
 
 
 _QUARTER = re.compile(r"\bQ([1-4])\s*(20\d{2})\b", re.IGNORECASE)
-_AR_QUARTER = re.compile(r"الربع\s+(الأول|الثاني|الثالث|الرابع)\s+(?:من\s+)?(20\d{2})")
+_AR_QUARTER = re.compile(r"الربع\s+(الأول|الثاني|الثالث|الرابع)\s+(?:من\s+)?(?:عام\s+)?(20\d{2})")
 _AR_TWO_QUARTERS = re.compile(r"(?:ال|لل)ربعين\s+(الأول|الثاني|الثالث|الرابع)\s+و(الأول|الثاني|الثالث|الرابع)\s+(?:من\s+)?(20\d{2})")
 _AR_QUARTER_NUMBERS = {"الأول": 1, "الثاني": 2, "الثالث": 3, "الرابع": 4}
 _MONTHS = {
@@ -222,7 +222,7 @@ def source_rental_plan(question: str) -> RentalPlan | None:
         if plan:
             return plan
         lowered = question.lower()
-        if (re.search(r"leased units|الوحدات المؤجرة|وحدات مؤجرة", lowered)
+        if (re.search(r"leased units|الوحدات\s+(?:السكنية\s+)?المؤجرة|وحدات\s+(?:سكنية\s+)?مؤجرة", lowered)
                 and re.search(r"residential|السكنية|السكني", lowered)):
             return RentalPlan(
                 "leased_units",
@@ -264,23 +264,24 @@ def render_rental_plan_answer(question: str, kind: str, rows: list[list[object]]
 
     period = _quarter_end(question)
     quarter = (period.month // 3) if period else 0
+    arabic_quarter = {1: "الأول", 2: "الثاني", 3: "الثالث", 4: "الرابع"}.get(quarter, str(quarter))
     if kind == "leased_units":
         units = f"{int(value):,}"
         if arabic:
-            return f"سجّل المصدر {units} وحدة سكنية مؤجرة في نهاية الربع {quarter} من {period.year}."
+            return f"سجّل المصدر {units} وحدة سكنية مؤجرة في نهاية الربع {arabic_quarter} من {period.year}."
         return f"The source recorded {units} residential leased units at the end of Q{quarter} {period.year}."
     units = f"{int(values[1]):,}"
     layouts = int(values[2])
     if kind == "weighted_annual_rent":
         if arabic:
-            return f"بلغ تقدير الإيجار السنوي المرجح بالوحدات لشقق Al Reem Island في الربع {quarter} من {period.year} نحو {value:,.2f} درهم، استنادًا إلى {units} وحدة مؤجرة مطابقة عبر {layouts} تخطيطات."
+            return f"بلغ تقدير الإيجار السنوي المرجح بالوحدات لشقق Al Reem Island في الربع {arabic_quarter} من {period.year} نحو {value:,.2f} درهم، استنادًا إلى {units} وحدة مؤجرة مطابقة عبر {layouts} تخطيطات."
         return f"The leased-unit-weighted annual rent estimate for Al Reem Island apartments in Q{quarter} {period.year} was AED {value:,.2f}, based on {units} matched leased units across {layouts} layouts."
 
     layout = _requested_layout(question)
     scope_en = f"{layout.split()[0]}-bedroom " if layout and layout != "studio" else "studio " if layout else ""
     scope_ar = f"بتخطيط {layout} " if layout else ""
     if arabic:
-        answer = f"بلغ تقدير العائد الإيجاري الإجمالي لشقق Al Reem Island {scope_ar}في الربع {quarter} من {period.year} {value:.2f}%، استنادًا إلى {units} وحدة مؤجرة مطابقة عبر {layouts} تخطيطات."
+        answer = f"بلغ تقدير العائد الإيجاري الإجمالي لشقق Al Reem Island {scope_ar}في الربع {arabic_quarter} من {period.year} {value:.2f}%، استنادًا إلى {units} وحدة مؤجرة مطابقة عبر {layouts} تخطيطات."
         if "صافي" in question or "صافى" in question or "شقة" in question:
             answer += " يحتاج صافي عائد شقة محددة إلى إيجارها وسعرها وتكاليفها الفعلية."
         return answer

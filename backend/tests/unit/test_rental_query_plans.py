@@ -56,6 +56,13 @@ def test_residential_leased_units_use_quarter_end_source():
     assert '228,456' in render_rental_plan_answer(
         'How many residential leased units at the end of Q2 2026?', 'leased_units', [[228456]],
     )
+    arabic = source_rental_plan("كم عدد الوحدات السكنية المؤجرة المسجلة في نهاية الربع الثاني من عام 2026 حسب المصدر؟")
+    assert arabic and arabic.kind == "leased_units"
+    assert "period_end = DATE '2026-06-30'" in arabic.sql
+    assert "الربع الثاني" in render_rental_plan_answer(
+        "كم عدد الوحدات السكنية المؤجرة المسجلة في نهاية الربع الثاني من عام 2026 حسب المصدر؟",
+        "leased_units", [[228456]],
+    )
 
 
 def test_plan_answer_keeps_gross_and_net_distinct_in_requested_language():

@@ -13,7 +13,7 @@ class QuestionDecision:
 
 
 _UNAVAILABLE_TOPIC = re.compile(
-    r"\b(?:mortgages?|lenders?|brokers?|developer ownership|financ(?:e|ing|ed) sales)\b|"
+    r"\b(?:mortgages?|lenders?|brokers?|developers?|financ(?:e|ing|ed) sales)\b|"
     r"(?:رهن|رهون|تمويل|ممول|وسيط|وسطاء|بنك|مصرف|المطور|المطوّر)",
     re.IGNORECASE,
 )
