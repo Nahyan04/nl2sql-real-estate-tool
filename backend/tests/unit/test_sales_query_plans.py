@@ -39,7 +39,14 @@ def test_sale_type_plans_report_source_categories_without_causes():
     assert example and example[1] == "sale_type_value"
     assert "sale_type IN ('off-plan', 'ready', 'court-mandated')" in example[0]
     assert sales_analysis_plan("Compare exported sales value by source sale type in Al Reem Island in 2025.") is None
-    assert sales_analysis_plan("قارن عدد سجلات البيع على الخارطة والجاهز في المنطقة المصدرية Al Reem Island عام 2025.") is None
+    district_question = "قارن عدد سجلات البيع على الخارطة والجاهز في المنطقة المصدرية Al Reem Island عام 2025."
+    district_plan = sales_analysis_plan(district_question)
+    assert district_plan and district_plan[1] == "district_sale_type_count"
+    assert "district = 'Al Reem Island'" in district_plan[0]
+    assert validate_product_query(district_plan[0]).is_safe
+    district_answer = render_sales_analysis(district_question, district_plan[1], [["off-plan", 3214], ["ready", 2441]], "ar")
+    assert "Al Reem Island" in district_answer and "3,214" in district_answer
+    assert sales_analysis_plan(district_question.replace("Al Reem Island", "Yas Island")) is None
 
 
 def test_plain_year_count_and_value_include_zero_count_period():

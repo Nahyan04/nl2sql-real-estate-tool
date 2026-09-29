@@ -171,6 +171,25 @@ def _reem_apartment_plan(question: str, period: date) -> RentalPlan | None:
     return RentalPlan("gross_segment_yield" if yield_question else "weighted_annual_rent", sql)
 
 
+def _reem_layout_yield_ranking_plan(question: str, period: date) -> RentalPlan | None:
+    plain = question.strip().rstrip("?؟. ")
+    if not re.fullmatch(
+        r"which Al Reem Island apartment layouts had the highest indicative gross segment yields in Q[1-4] 20\d{2}",
+        plain, re.IGNORECASE,
+    ):
+        return None
+    return RentalPlan(
+        "gross_segment_yield_ranking",
+        "SELECT layout, 100 * source_annual_rent / NULLIF(source_average_sale_price_aed, 0) "
+        "AS gross_segment_yield_pct FROM rental_observations "
+        "WHERE source_file = 'Price Indices/average_sale_rent_prices_by_product_area.xlsx' "
+        f"AND period_end = DATE '{period}' AND municipality = 'Abu Dhabi City' "
+        "AND district = 'Al Reem Island' AND property_type = 'apartment' "
+        "AND source_annual_rent > 0 AND source_average_sale_price_aed > 0 "
+        "ORDER BY gross_segment_yield_pct DESC, layout ASC",
+    )
+
+
 def _rent_index_plan(question: str) -> RentalPlan | None:
     lowered = question.lower()
     if not (re.search(r"rent.{0,40}index|index.{0,40}rent|مؤشر.{0,25}إيجار", lowered)
@@ -218,6 +237,9 @@ def source_rental_plan(question: str) -> RentalPlan | None:
         return lease_value
     period = _quarter_end(question)
     if period:
+        ranking = _reem_layout_yield_ranking_plan(question, period)
+        if ranking:
+            return ranking
         plan = _reem_apartment_plan(question, period)
         if plan:
             return plan
@@ -235,10 +257,16 @@ def source_rental_plan(question: str) -> RentalPlan | None:
 
 
 def render_rental_plan_answer(question: str, kind: str, rows: list[list[object]], *, language: str = "auto") -> str:
-    values = rows[0]
-    value = float(values[0])
     from app.core.language import resolve_language
     arabic = resolve_language(question, language) == "ar"
+    if kind == "gross_segment_yield_ranking":
+        period = _quarter_end(question)
+        entries = ", ".join(f"{layout} ({float(rate):.2f}%)" for layout, rate in rows)
+        if arabic:
+            return f"ترتيب تخطيطات شقق Al Reem Island حسب تقدير العائد الإجمالي للمجموعة في الربع {period.month // 3} من {period.year}: {entries}."
+        return f"Al Reem Island apartment layouts by indicative gross segment yield in Q{period.month // 3} {period.year}: {entries}."
+    values = rows[0]
+    value = float(values[0])
     if kind == "residential_lease_value":
         scope = lease_period_scope(question, arabic)
         from app.services.answer_synthesizer import _format_aed

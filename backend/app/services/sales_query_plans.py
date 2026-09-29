@@ -40,6 +40,12 @@ def sales_analysis_plan(question: str) -> tuple[str, str] | None:
                 "FROM transactions WHERE sale_type IN ('off-plan', 'ready') "
                 f"AND {period} GROUP BY sale_type "
                 "ORDER BY sales_observation_count DESC", "sale_type_count")
+    if re.fullmatch(r"قارن عدد سجلات البيع على الخارطة والجاهز في المنطقة المصدرية Al Reem Island عام (?:19|20)\d{2}", plain):
+        return ("SELECT sale_type, COUNT(*) AS sales_observation_count "
+                "FROM transactions WHERE district = 'Al Reem Island' "
+                "AND sale_type IN ('off-plan', 'ready') "
+                f"AND {period} GROUP BY sale_type "
+                "ORDER BY sales_observation_count DESC", "district_sale_type_count")
     if re.fullmatch(r"how many (?:exported )?sales observations(?: are in the export)? (?:for|in) (?:19|20)\d{2}|"
                     r"كم عدد سجلات المبيعات الواردة في البيانات لعام (?:19|20)\d{2}", plain, re.IGNORECASE):
         return ("SELECT COUNT(*) AS sales_observation_count "
@@ -105,6 +111,10 @@ def render_sales_analysis(question: str, kind: str, rows: list[list[object]], la
             return f"قيمة سجلات البيع المصدّرة حسب نوع البيع في {year}: {entries}."
         return f"Exported sales value by source sale type in {year}: {entries}."
     entries = ", ".join(f"{_sale_type_label(sale_type, language)}: {count:,}" for sale_type, count in rows)
+    if kind == "district_sale_type_count":
+        if language == "ar":
+            return f"عدد سجلات البيع المصدّرة في المنطقة المصدرية Al Reem Island عام {year} حسب نوع البيع: {entries}."
+        return f"Exported sales observation counts in the Al Reem Island source district in {year} by sale type: {entries}."
     if language == "ar":
         return f"عدد سجلات البيع المصدّرة حسب نوع البيع في {year}: {entries}."
     return f"Exported sales observation counts by source sale type in {year}: {entries}."

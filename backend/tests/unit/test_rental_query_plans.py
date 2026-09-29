@@ -117,3 +117,16 @@ def test_one_bedroom_answer_names_layout():
         "gross_segment_yield", [[5.950492, 123, 1]],
     )
     assert "1-bedroom" in answer and "1 matched layout" in answer
+
+
+def test_reem_layout_yield_ranking_uses_comparison_export():
+    question = "Which Al Reem Island apartment layouts had the highest indicative gross segment yields in Q2 2026?"
+    plan = source_rental_plan(question)
+    assert plan and plan.kind == "gross_segment_yield_ranking"
+    assert "Price Indices/average_sale_rent_prices_by_product_area.xlsx" in plan.sql
+    assert "period_end = DATE '2026-06-30'" in plan.sql
+    assert "ORDER BY gross_segment_yield_pct DESC" in plan.sql
+    assert validate_product_query(plan.sql).is_safe
+    answer = render_rental_plan_answer(question, plan.kind, [["2 beds", 6.5], ["1 bed", 6.2]])
+    assert "indicative gross segment yield" in answer and "2 beds (6.50%)" in answer
+    assert source_rental_plan(question.replace("Al Reem Island", "Yas Island")) is None
