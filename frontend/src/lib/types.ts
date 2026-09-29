@@ -101,6 +101,7 @@ export interface SourceCoverage {
 export type ApiErrorCode =
   | "PARSE_ERROR"
   | "VALIDATION_ERROR"
+  | "SCOPE_ERROR"
   | "UNSAFE_SQL"
   | "UNSUPPORTED"
   | "CLARIFICATION"

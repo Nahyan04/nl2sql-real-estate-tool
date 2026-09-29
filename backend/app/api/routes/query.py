@@ -53,6 +53,7 @@ SAFE_FAILURE_DETAILS = {
     "PARSE_ERROR": "The model did not produce a usable query. Try a more specific question.",
     "EMPTY_RESPONSE": "The model did not produce a query. Please try again.",
     "VALIDATION_ERROR": "The generated query could not be validated. Try a narrower question.",
+    "SCOPE_ERROR": "The generated query omitted a filter from the question. Try again.",
     "UNSAFE_SQL": "The generated query was rejected by the read-only validator.",
     "UNSUPPORTED": "The available data does not support this question as asked.",
     "CLARIFICATION": "Specify an exact period or an unambiguous source place so this question can be answered.",

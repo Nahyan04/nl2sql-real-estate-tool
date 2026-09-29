@@ -75,6 +75,19 @@ def test_lease_value_answer_uses_returned_amount_and_language() -> None:
     assert model.prompts == []
 
 
+def test_average_rate_answer_does_not_infer_sample_size_or_yield() -> None:
+    result = ExecResult(columns=["avg_calculated_rate_aed_sqm"],
+                        rows=[[Decimal("14744.508107920448")]], row_count=1)
+    model = FakeChatModel("unsupported guess")
+    answer = synthesize_answer(
+        "For ready residential apartment sales in 2025 with sold area above 1 sqm, what was the average calculated AED per sqm?",
+        SQL, result, model,
+    )
+    assert "14,744.51" in answer and "2025" in answer
+    assert "501" not in answer and "yield" not in answer
+    assert model.prompts == []
+
+
 def test_flattens_content_blocks_from_hosted_providers() -> None:
     model = FakeChatModel([{"type": "text", "text": "Yas Island led."}])
     assert synthesize_answer(QUESTION, SQL, _result(ROWS), model) == "Yas Island led."

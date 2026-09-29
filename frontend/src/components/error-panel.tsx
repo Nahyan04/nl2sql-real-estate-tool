@@ -14,6 +14,10 @@ const EXPLANATIONS: Record<ApiErrorCode, { title: string; guidance: string }> = 
     title: "Query rejected",
     guidance: "The generated SQL did not parse. Try a narrower question over one subject.",
   },
+  SCOPE_ERROR: {
+    title: "Query scope incomplete",
+    guidance: "The generated SQL omitted a filter from your question. Try stating the filters more directly.",
+  },
   UNSAFE_SQL: {
     title: "Query rejected",
     guidance: "The generated SQL was not read-only, so it was never run. Rephrase as a question about the data.",
@@ -104,6 +108,7 @@ const ARABIC_EXPLANATIONS: Record<ApiErrorCode, { title: string; guidance: strin
   PARSE_ERROR: { title: "تعذر إنشاء الاستعلام", guidance: "لم يُنتج النموذج استعلامًا صالحًا. حدد المقياس والفترة المطلوبة." },
   EMPTY_RESPONSE: { title: "تعذر إنشاء الاستعلام", guidance: "لم يُرجع النموذج استعلامًا. أعد صياغة السؤال." },
   VALIDATION_ERROR: { title: "رُفض الاستعلام", guidance: "تعذر التحقق من الاستعلام. جرّب سؤالًا أكثر تحديدًا." },
+  SCOPE_ERROR: { title: "نطاق الاستعلام غير مكتمل", guidance: "لم يتضمن الاستعلام أحد شروط السؤال. حاول تحديد الشروط بوضوح أكبر." },
   UNSAFE_SQL: { title: "رُفض الاستعلام", guidance: "لم يجتز الاستعلام ضوابط القراءة فقط، لذلك لم يُنفذ." },
   UNSUPPORTED: { title: "هذا السؤال غير مدعوم", guidance: "البيانات الموثقة لا تدعم هذا السؤال. اسأل عن المبيعات أو الإيجارات أو المؤشرات أو العائد الإجمالي التقديري للمجموعة." },
   CLARIFICATION: { title: "يرجى توضيح السؤال", guidance: "حدد فترة صريحة. إذا كان اسم المكان ملتبسًا، حدد هل تقصد المنطقة أو المجتمع كما يرد في المصدر." },

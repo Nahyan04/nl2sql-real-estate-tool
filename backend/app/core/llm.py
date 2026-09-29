@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from langchain_anthropic import ChatAnthropic
@@ -10,6 +11,7 @@ from app.config import Settings
 
 ANTHROPIC = "anthropic"
 OLLAMA = "ollama"
+logger = logging.getLogger(__name__)
 
 
 def message_text(message: Any) -> str:
@@ -36,10 +38,12 @@ def get_chat_model(provider: str | None, settings: Settings) -> BaseChatModel:
         )
 
     if name == OLLAMA:
+        logger.info("ollama model configured model=%s reasoning=%s", settings.ollama_model, settings.ollama_reasoning)
         return ChatOllama(
             model=settings.ollama_model,
             base_url=settings.llm_base_url,
             temperature=0,
+            reasoning=settings.ollama_reasoning,
             num_predict=settings.model_max_output_tokens,
             sync_client_kwargs={"timeout": settings.model_call_timeout_s},
             async_client_kwargs={"timeout": settings.model_call_timeout_s},

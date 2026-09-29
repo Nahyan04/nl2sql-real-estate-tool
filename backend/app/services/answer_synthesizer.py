@@ -38,6 +38,7 @@ and the individual property's rent and sale price. Never call the proxy a net yi
 - If the result contains no rows, say plainly that no records matched.
 - Describe percentage change, percentage-point change and index-level change with their correct units and denominator. A null ratio is unavailable, not zero.
 - If only a sample of rows is supplied, describe conclusions as applying only to those rows. Do not claim a full-population result from a sample or a truncated query.
+- A LIMIT on an aggregate caps returned result rows; it does not mean the aggregate used that many source records. Mention a source-record count only when the result includes one. Do not discuss yield when the requested metric is a sale price per sqm.
 - Do not describe the SQL or mention that you were given a table.
 """
 
@@ -93,6 +94,18 @@ def _source_result_answer(question: str, result: ExecResult, language: Language)
     if count_answer is not None:
         return count_answer
     arabic = language == "ar"
+    if (re.search(r"\bready residential apartments? sales\b", question, re.IGNORECASE)
+            and result.columns in (["avg_calculated_rate_aed_sqm"], ["average_calculated_rate_aed_sqm"])
+            and len(result.rows) == 1 and isinstance(result.rows[0][0], (int, float, Decimal))):
+        amount = f"{Decimal(str(result.rows[0][0])):,.2f}"
+        year = re.search(r"\b(?:19|20)\d{2}\b", question)
+        period_en = f"in {year.group()}" if year else "in the requested period"
+        period_ar = f"عام {year.group()}" if year else "في الفترة المطلوبة"
+        area_en = " with sold area above 1 sqm" if re.search(r"sold area above 1 sqm", question, re.IGNORECASE) else ""
+        area_ar = " بمساحة مباعة تزيد على 1 م²" if area_en else ""
+        if arabic:
+            return f"بلغ متوسط السعر المحسوب للمتر المربع للشقق السكنية الجاهزة {period_ar}{area_ar} {amount} درهم/م² عبر سجلات البيع المصدّرة."
+        return f"The average calculated rate for ready residential apartment sales {period_en}{area_en} was AED {amount}/sqm across exported observations."
     ranking_question = re.search(r"\b(?:top|highest)\b|الأعلى", question, re.IGNORECASE)
     if (ranking_question and result.columns == ["district", "sales_value_aed"]
             and result.rows and not result.truncated):

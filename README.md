@@ -34,9 +34,13 @@ Generated queries can access only `bayan.transactions`, `bayan.rental_observatio
 
 Startup requires an installed source query schema and validated active snapshot. `/health` reports process/database connectivity; `/ready` checks the source query schema and shared request guard tables, then returns the active snapshot. `/api/v1/schema` exposes only the four query views.
 
+For a reasoning-capable Ollama model, `OLLAMA_REASONING=false` in the server environment disables thinking output when it makes simple queries exceed the request limit. Leave it unset for a model without that option. The selected Ollama model and endpoint remain server configuration; provider selection never changes the model silently.
+
 Query errors use a stable `error` code, a safe user-facing `detail`, and a `request_id` also returned in `X-Request-ID`. Keep the request ID when investigating server logs; raw provider and database exception text is not returned to clients. Malformed requests return `INVALID_REQUEST` with HTTP 422.
 
 Unsupported topics and ambiguous places or relative dates stop before SQL execution; the latter return `CLARIFICATION` so the user can name an exact period or source place. Explicit Al Bateen district questions can be answered across source sales rows, while a municipality-specific Al Bateen sales request remains ambiguous because the sales export has no municipality field. If a model asks for a period already present in the question, one bounded generation retry points out the stated year; a remaining ambiguity still returns `CLARIFICATION`. Explicit years and quarters remain queryable even when source completeness is unconfirmed. Successful responses include `outcome` (`answer` or `no_data`), resolved `language` (`en` or `ar`) and `answer_limited` when the synthesis saw only part of the returned rows or the query result was truncated.
+
+For the ready residential apartment rate question, a scope check rejects SQL that omits the explicit ready, residential, apartment or sold-area filter and asks the model to repair it within the configured attempt limit. Answers report the returned average without inventing a source-row count from SQL's result limit.
 
 `POST /api/v1/query` accepts `language: "auto" | "en" | "ar"` alongside the question and provider. Auto chooses Arabic when the question contains Arabic script; the explicit options override that choice for both the answer and interface. Model prose that misses the selected language is retried once, then returned as `LANGUAGE_MISMATCH` rather than shown in the wrong language. The frontend's New question control clears the current request and result while keeping session question history available.
 

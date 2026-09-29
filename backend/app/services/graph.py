@@ -31,6 +31,7 @@ from app.services.schema_serializer import serialize_schema
 from app.services.sql_validator import validate_product_query, product_tables_used
 from app.services.product_schema import introspect_product_schema, ALIASES
 from app.services.question_policy import classify_question
+from app.services.query_semantics import missing_question_filters
 from app.core.language import Language, LanguageChoice, resolve_language
 from app.services.rental_query_plans import source_rental_plan, render_rental_plan_answer
 from app.services.sales_query_plans import sales_analysis_plan, render_sales_analysis
@@ -97,6 +98,11 @@ def _retry_feedback(failure: Failure) -> str:
             "Previous attempt produced a query that was not read-only. "
             "Generate ONLY a SELECT or WITH query inside <sql>...</sql> tags."
         )
+    if failure_type == "SCOPE_ERROR":
+        return (
+            f"The SQL omitted explicit question filters: {detail}. "
+            "Include every listed filter with AND in the WHERE clause and return corrected SQL in <sql>...</sql> tags."
+        )
     if failure_type == UNSAFE_SQL:
         return (
             f"Previous attempt was rejected as unsafe: {detail} "
@@ -132,8 +138,10 @@ def _dep(config: RunnableConfig, name: str) -> Any:
 def _invoke_model(state: PipelineState, config: RunnableConfig, messages: list[Any]) -> Any:
     runtime: ModelRuntime = _dep(config, "model_runtime")
     chat_model: BaseChatModel = _dep(config, "chat_model")
+    started = time.monotonic()
     with runtime.admit(state["deadline"]):
         response = chat_model.invoke(messages)
+    logger.info("model call completed provider=%s elapsed_ms=%d", state.get("provider"), int((time.monotonic() - started) * 1000))
     usage = _dep(config, "model_usage")
     metadata = getattr(response, "usage_metadata", None) or {}
     usage["calls"] += 1
@@ -245,6 +253,9 @@ def generate_sql(state: PipelineState, config: RunnableConfig) -> dict[str, Any]
 def validate_sql(state: PipelineState, config: RunnableConfig) -> dict[str, Any]:
     result = validate_product_query(state["sql"] or "")
     if result.is_safe:
+        missing = missing_question_filters(state["question"], state["sql"] or "")
+        if missing:
+            return {"sql": None, "failure": Failure(type="SCOPE_ERROR", detail=", ".join(missing))}
         return {"failure": None, "tables_used": product_tables_used(state["sql"])}
 
     logger.warning("sql rejected as unsafe", extra={"reason": result.reason})

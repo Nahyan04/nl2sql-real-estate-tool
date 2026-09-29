@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     llm_base_url: str = "http://localhost:11434"
     anthropic_model: str = "claude-sonnet-5"
     ollama_model: str = "qwen2.5-coder:7b"
+    ollama_reasoning: bool | None = None
     anthropic_api_key: str | None = None
     embedding_enabled: bool = False
     query_row_limit: int = Field(default=500, ge=1, le=5000)

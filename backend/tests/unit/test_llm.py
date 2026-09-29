@@ -16,6 +16,7 @@ def _settings(**overrides) -> Settings:
         "llm_base_url": "http://localhost:11434",
         "anthropic_model": "claude-sonnet-5",
         "ollama_model": "qwen2.5-coder:7b",
+        "ollama_reasoning": None,
         "anthropic_api_key": "sk-test",
     }
     values.update(overrides)
@@ -66,6 +67,11 @@ def test_ollama_base_url_comes_from_settings() -> None:
 
 def test_ollama_temperature_is_zero() -> None:
     assert get_chat_model("ollama", _settings()).temperature == 0
+
+
+def test_ollama_reasoning_is_server_configured() -> None:
+    assert get_chat_model("ollama", _settings()).reasoning is None
+    assert get_chat_model("ollama", _settings(ollama_reasoning=False)).reasoning is False
 
 
 def test_ollama_output_and_http_timeout_are_bounded() -> None:
