@@ -116,4 +116,4 @@ def test_one_bedroom_answer_names_layout():
         "What was the indicative gross segment yield for one-bedroom Al Reem Island apartments in Q2 2026?",
         "gross_segment_yield", [[5.950492, 123, 1]],
     )
-    assert "1-bedroom" in answer and "matched layouts" in answer
+    assert "1-bedroom" in answer and "1 matched layout" in answer

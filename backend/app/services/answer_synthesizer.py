@@ -5,6 +5,8 @@ from decimal import Decimal
 from typing import Any, Callable
 
 from langchain_core.messages import HumanMessage, SystemMessage
+import sqlglot
+from sqlglot import exp
 
 from app.core.llm import message_text
 from app.services.executor import ExecResult
@@ -89,7 +91,36 @@ def _format_aed(value: int | float | Decimal, arabic: bool) -> str:
     return f"{formatted} درهم" if arabic else f"AED {formatted}"
 
 
-def _source_result_answer(question: str, result: ExecResult, language: Language) -> str | None:
+def _specific_sales_count_answer(question: str, sql: str, result: ExecResult, language: Language) -> str | None:
+    off_plan = re.search(r"\boff-plan sales observations\b", question, re.IGNORECASE)
+    fractional = re.search(r"\bsold ownership share greater than zero and less than one\b", question, re.IGNORECASE)
+    if not (off_plan or fractional) or result.truncated or len(result.rows) != 1 or len(result.rows[0]) != 1:
+        return None
+    count = result.rows[0][0]
+    if not isinstance(count, int) or isinstance(count, bool):
+        return None
+    query = sqlglot.parse_one(sql, dialect="postgres")
+    if not isinstance(query, exp.Select) or query.args.get("group") or len(query.expressions) != 1:
+        return None
+    projection = query.expressions[0]
+    aggregate = projection.this if isinstance(projection, exp.Alias) else projection
+    if not isinstance(aggregate, exp.Count) or not isinstance(aggregate.this, exp.Star):
+        return None
+    year = re.search(r"\b(?:19|20)\d{2}\b", question)
+    if language == "ar":
+        period = f" في عام {year.group()}" if year else " في الفترة المطلوبة"
+        scope = "للبيع على المخطط" if off_plan else "بحصة ملكية مباعة أكبر من صفر وأقل من واحد"
+        return f"تتضمن البيانات {count:,} سجل مبيعات مُصدّر{period} {scope}."
+    period = f" in {year.group()}" if year else " in the requested period"
+    scope = "off-plan " if off_plan else ""
+    qualifier = " with a sold ownership share greater than zero and less than one" if fractional else ""
+    return f"The export contains {count:,} {scope}sales observations{period}{qualifier}."
+
+
+def _source_result_answer(question: str, sql: str, result: ExecResult, language: Language) -> str | None:
+    specific_count = _specific_sales_count_answer(question, sql, result, language)
+    if specific_count is not None:
+        return specific_count
     count_answer = _sales_count_answer(question, result, language)
     if count_answer is not None:
         return count_answer
@@ -141,7 +172,7 @@ def synthesize_answer(
     language: Language | None = None,
 ) -> str:
     language = language or resolve_language(question)
-    source_answer = _source_result_answer(question, result, language)
+    source_answer = _source_result_answer(question, sql, result, language)
     if source_answer is not None:
         return source_answer
     notes = ""

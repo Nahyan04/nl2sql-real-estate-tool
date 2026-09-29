@@ -88,6 +88,22 @@ def test_average_rate_answer_does_not_infer_sample_size_or_yield() -> None:
     assert model.prompts == []
 
 
+def test_sales_count_aggregate_does_not_call_row_limit_a_sample() -> None:
+    model = FakeChatModel("The count is only a sample of 501 rows.")
+    cases = [
+        ("How many off-plan sales observations were recorded in 2025?", "off_plan_sales_count",
+         "sale_type = 'off-plan'", 16697, "16,697 off-plan sales observations"),
+        ("How many exported 2025 sales observations had a sold ownership share greater than zero and less than one?",
+         "partial_ownership_sales_count", "sold_share > 0 AND sold_share < 1", 212,
+         "212 sales observations"),
+    ]
+    for question, alias, filter_sql, count, expected in cases:
+        sql = f"SELECT COUNT(*) AS {alias} FROM transactions WHERE {filter_sql} LIMIT 501"
+        answer = synthesize_answer(question, sql, ExecResult(columns=[alias], rows=[[count]], row_count=1), model)
+        assert expected in answer and "sample" not in answer and "501" not in answer
+    assert model.prompts == []
+
+
 def test_flattens_content_blocks_from_hosted_providers() -> None:
     model = FakeChatModel([{"type": "text", "text": "Yas Island led."}])
     assert synthesize_answer(QUESTION, SQL, _result(ROWS), model) == "Yas Island led."

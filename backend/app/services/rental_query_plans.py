@@ -275,7 +275,8 @@ def render_rental_plan_answer(question: str, kind: str, rows: list[list[object]]
     if kind == "weighted_annual_rent":
         if arabic:
             return f"بلغ تقدير الإيجار السنوي المرجح بالوحدات لشقق Al Reem Island في الربع {arabic_quarter} من {period.year} نحو {value:,.2f} درهم، استنادًا إلى {units} وحدة مؤجرة مطابقة عبر {layouts} تخطيطات."
-        return f"The leased-unit-weighted annual rent estimate for Al Reem Island apartments in Q{quarter} {period.year} was AED {value:,.2f}, based on {units} matched leased units across {layouts} layouts."
+        layout_word = "layout" if layouts == 1 else "layouts"
+        return f"The leased-unit-weighted annual rent estimate for Al Reem Island apartments in Q{quarter} {period.year} was AED {value:,.2f}, based on {units} matched leased units across {layouts} {layout_word}."
 
     layout = _requested_layout(question)
     scope_en = f"{layout.split()[0]}-bedroom " if layout and layout != "studio" else "studio " if layout else ""
@@ -285,7 +286,8 @@ def render_rental_plan_answer(question: str, kind: str, rows: list[list[object]]
         if "صافي" in question or "صافى" in question or "شقة" in question:
             answer += " يحتاج صافي عائد شقة محددة إلى إيجارها وسعرها وتكاليفها الفعلية."
         return answer
-    answer = f"The indicative gross segment yield for {scope_en}Al Reem Island apartments in Q{quarter} {period.year} was {value:.2f}%, based on {units} matched leased units across {layouts} matched layouts."
+    layout_word = "layout" if layouts == 1 else "layouts"
+    answer = f"The indicative gross segment yield for {scope_en}Al Reem Island apartments in Q{quarter} {period.year} was {value:.2f}%, based on {units} matched leased units across {layouts} matched {layout_word}."
     if re.search(r"\bnet\b|\bindividual\b", question, re.IGNORECASE):
         answer += " A net yield for one apartment needs that property's rent, price and costs."
     return answer

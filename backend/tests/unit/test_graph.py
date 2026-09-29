@@ -67,8 +67,8 @@ def test_retry_repairs_unsafe_query(run):
 def test_explicit_ready_residential_scope_gets_repair_feedback(sqlite_engine, monkeypatch):
     monkeypatch.setattr(graph, 'introspect_product_schema', lambda _: introspect_schema(sqlite_engine))
     question = 'For ready residential apartment sales in 2025 with sold area above 1 sqm, what was the average calculated AED per sqm?'
-    incomplete = "<sql>SELECT AVG(calculated_rate_aed_sqm) FROM transactions WHERE sale_type = 'ready' AND property_type = 'apartment' AND sold_area_sqm > 1</sql>"
-    complete = "<sql>SELECT AVG(calculated_rate_aed_sqm) FROM transactions WHERE sale_type = 'ready' AND property_type = 'apartment' AND asset_class = 'residential' AND sold_area_sqm > 1</sql>"
+    incomplete = "<sql>SELECT AVG(calculated_rate_aed_sqm) FROM transactions WHERE sale_type = 'ready' AND property_type = 'apartment' AND sold_area_sqm > 1 AND transaction_date >= DATE '2025-01-01' AND transaction_date < DATE '2026-01-01'</sql>"
+    complete = "<sql>SELECT AVG(calculated_rate_aed_sqm) FROM transactions WHERE sale_type = 'ready' AND property_type = 'apartment' AND asset_class = 'residential' AND sold_area_sqm > 1 AND transaction_date >= DATE '2025-01-01' AND transaction_date < DATE '2026-01-01'</sql>"
     model = Model(incomplete, complete)
     state = run_pipeline(question, chat_model=model, engine=sqlite_engine,
                          engine_ro=sqlite_engine, dry_run=True)
