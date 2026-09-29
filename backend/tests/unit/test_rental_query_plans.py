@@ -72,3 +72,41 @@ def test_arabic_index_answer_names_the_source_series():
     question = 'ما نسبة التغير من يونيو 2025 إلى يونيو 2026 في مؤشر جميع الإيجارات لجميع أنواع العقارات السكنية وجميع المناطق في مدينة أبوظبي؟'
     answer = render_rental_plan_answer(question, 'rent_index_change', [[9.2613249]])
     assert '9.26%' in answer and 'جميع الإيجارات' in answer
+
+
+def test_quarterly_lease_value_plans_preserve_source_and_periods():
+    cases = [
+        ("What was the source-labelled residential lease value for Q1 2026 in AED?", ["2026-03-31"]),
+        ("What was the sum of source-labelled residential lease value for Q1 and Q2 2026, in AED?", ["2026-03-31", "2026-06-30"]),
+        ("ما مجموع قيمة الإيجارات السكنية الواردة في المصدر للربعين الأول والثاني من 2026 بالدرهم؟", ["2026-03-31", "2026-06-30"]),
+    ]
+    for question, expected_dates in cases:
+        plan = source_rental_plan(question)
+        assert plan and plan.kind == "residential_lease_value"
+        assert "source_file = 'Residential Leases/lease_price_by_period.xlsx'" in plan.sql
+        assert all(date in plan.sql for date in expected_dates)
+        assert validate_product_query(plan.sql).is_safe
+    assert source_rental_plan("What is the annual rent for an apartment in Q1 2026?") is None
+    assert source_rental_plan("What was the source-labelled residential lease value for Q1 2026 in Al Reem Island?") is None
+    arabic_answer = render_rental_plan_answer(cases[2][0], "residential_lease_value", [[9324978842]])
+    assert "الربع الأول من 2026 والربع الثاني من 2026" in arabic_answer
+    assert "Q1" not in arabic_answer
+
+
+def test_index_level_uses_exact_source_values_and_unit():
+    question = "What was the June 2026 Abu Dhabi City all-rents residential index level for all zones and property types?"
+    plan = source_rental_plan(question)
+    assert plan and plan.kind == "rent_index_level"
+    assert "index_type = 'rent'" in plan.sql
+    assert "application_type = '(all rents)'" in plan.sql
+    assert "period_end = DATE '2026-06-30'" in plan.sql
+    assert validate_product_query(plan.sql).is_safe
+    assert "107.2578" in render_rental_plan_answer(question, plan.kind, [[107.2578]])
+
+
+def test_one_bedroom_answer_names_layout():
+    answer = render_rental_plan_answer(
+        "What was the indicative gross segment yield for one-bedroom Al Reem Island apartments in Q2 2026?",
+        "gross_segment_yield", [[5.950492, 123, 1]],
+    )
+    assert "1-bedroom" in answer and "matched layouts" in answer

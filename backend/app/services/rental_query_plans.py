@@ -16,6 +16,8 @@ class RentalPlan:
 
 _QUARTER = re.compile(r"\bQ([1-4])\s*(20\d{2})\b", re.IGNORECASE)
 _AR_QUARTER = re.compile(r"الربع\s+(الأول|الثاني|الثالث|الرابع)\s+(?:من\s+)?(20\d{2})")
+_AR_TWO_QUARTERS = re.compile(r"(?:ال|لل)ربعين\s+(الأول|الثاني|الثالث|الرابع)\s+و(الأول|الثاني|الثالث|الرابع)\s+(?:من\s+)?(20\d{2})")
+_AR_QUARTER_NUMBERS = {"الأول": 1, "الثاني": 2, "الثالث": 3, "الرابع": 4}
 _MONTHS = {
     "january": 1, "february": 2, "march": 3, "april": 4,
     "may": 5, "june": 6, "july": 7, "august": 8,
@@ -35,10 +37,68 @@ def _quarter_end(question: str) -> date | None:
         match = _AR_QUARTER.search(question)
         if not match:
             return None
-        quarter = {"الأول": 1, "الثاني": 2, "الثالث": 3, "الرابع": 4}[match[1]]
+        quarter = _AR_QUARTER_NUMBERS[match[1]]
         year = int(match[2])
     month = quarter * 3
     return date(year, month, calendar.monthrange(year, month)[1])
+
+
+def _lease_value_periods(question: str) -> list[date]:
+    matches = [(int(quarter), int(year)) for quarter, year in _QUARTER.findall(question)]
+    quarter_tokens = re.findall(r"\bQ([1-4])\b", question, re.IGNORECASE)
+    years = re.findall(r"\b20\d{2}\b", question)
+    if len(years) == 1 and 1 <= len(quarter_tokens) <= 2:
+        matches = [(int(quarter), int(years[0])) for quarter in quarter_tokens]
+    pair = _AR_TWO_QUARTERS.search(question)
+    if pair:
+        matches = [(_AR_QUARTER_NUMBERS[pair[1]], int(pair[3])),
+                   (_AR_QUARTER_NUMBERS[pair[2]], int(pair[3]))]
+    elif not matches:
+        match = _AR_QUARTER.search(question)
+        if match:
+            matches = [(_AR_QUARTER_NUMBERS[match[1]], int(match[2]))]
+    if not 1 <= len(matches) <= 2 or len(set(matches)) != len(matches):
+        return []
+    return [date(year, quarter * 3, calendar.monthrange(year, quarter * 3)[1])
+            for quarter, year in matches]
+
+
+def lease_period_scope(question: str, arabic: bool) -> str:
+    periods = _lease_value_periods(question)
+    if not periods:
+        return "الفترة المطلوبة" if arabic else "the requested period"
+    if arabic:
+        names = {1: "الأول", 2: "الثاني", 3: "الثالث", 4: "الرابع"}
+        parts = [f"الربع {names[period.month // 3]} من {period.year}" for period in periods]
+        return " و".join(parts)
+    return " and ".join(f"Q{period.month // 3} {period.year}" for period in periods)
+
+
+def _lease_value_plan(question: str) -> RentalPlan | None:
+    plain = question.strip().rstrip("?؟. ")
+    english = re.fullmatch(
+        r"what was the (?:sum of )?source-labelled residential lease value for "
+        r"Q[1-4](?: and Q[1-4])? 20\d{2}(?:,? in AED)?", plain, re.IGNORECASE,
+    )
+    arabic = re.fullmatch(
+        r"ما (?:مجموع )?قيمة الإيجارات السكنية الواردة في المصدر "
+        r"للربعين (?:الأول|الثاني|الثالث|الرابع) "
+        r"و(?:الأول|الثاني|الثالث|الرابع) من 20\d{2} بالدرهم", plain,
+    )
+    if not (english or arabic):
+        return None
+    periods = _lease_value_periods(question)
+    if not periods:
+        return None
+    dates = ", ".join(f"DATE '{period}'" for period in periods)
+    predicate = f"period_end = {dates}" if len(periods) == 1 else f"period_end IN ({dates})"
+    return RentalPlan(
+        "residential_lease_value",
+        "SELECT SUM(active_value_aed) AS residential_lease_value_aed "
+        "FROM rental_observations "
+        "WHERE source_file = 'Residential Leases/lease_price_by_period.xlsx' "
+        f"AND {predicate}",
+    )
 
 
 def _index_dates(question: str) -> list[date]:
@@ -46,6 +106,26 @@ def _index_dates(question: str) -> list[date]:
         date(int(year), _MONTHS[month.lower()], calendar.monthrange(int(year), _MONTHS[month.lower()])[1])
         for month, year in _MONTH_DATES.findall(question)
     ]
+
+
+def _requested_layout(question: str) -> str | None:
+    lowered = question.lower()
+    layout_match = re.search(
+        r"\b(studio|[1-5]\+?\s*(?:beds?|bedrooms?)|"
+        r"one[- ]bedroom|two[- ]bedroom|three[- ]bedroom|"
+        r"four[- ]bedroom|five[- ]bedroom)\b",
+        lowered,
+    )
+    if layout_match:
+        requested = layout_match[1]
+        if requested == "studio":
+            return "studio"
+        else:
+            word_digits = {"one": "1", "two": "2", "three": "3", "four": "4", "five": "5"}
+            digit = word_digits.get(requested.split("-")[0].split(" ")[0])
+            digit = digit or re.match(r"[1-5]\+?", requested)[0]
+            return f"{digit} bed" if digit == "1" else f"{digit} beds"
+    return None
 
 
 def _reem_apartment_plan(question: str, period: date) -> RentalPlan | None:
@@ -56,24 +136,8 @@ def _reem_apartment_plan(question: str, period: date) -> RentalPlan | None:
     rent_question = bool(re.search(r"\b(?:weighted|annual rent)\b|مرجح|المتوسط السنوي", lowered))
     if not yield_question and not rent_question:
         return None
-
-    layout_match = re.search(
-        r"\b(studio|[1-5]\+?\s*(?:beds?|bedrooms?)|"
-        r"one[- ]bedroom|two[- ]bedroom|three[- ]bedroom|"
-        r"four[- ]bedroom|five[- ]bedroom)\b",
-        lowered,
-    )
-    layout = None
-    if layout_match:
-        requested = layout_match[1]
-        if requested == "studio":
-            layout = "studio"
-        else:
-            word_digits = {"one": "1", "two": "2", "three": "3", "four": "4", "five": "5"}
-            digit = word_digits.get(requested.split("-")[0].split(" ")[0])
-            digit = digit or re.match(r"[1-5]\+?", requested)[0]
-            layout = f"{digit} bed" if digit == "1" else f"{digit} beds"
-    elif re.search(r"\b(?:beds?|bedrooms?)\b", lowered):
+    layout = _requested_layout(question)
+    if layout is None and re.search(r"\b(?:beds?|bedrooms?)\b", lowered):
         return None
     layout_filter = f" AND c.layout = '{layout}'" if layout else ""
     price_filter = " AND c.source_average_sale_price_aed > 0" if yield_question else ""
@@ -98,7 +162,8 @@ def _reem_apartment_plan(question: str, period: date) -> RentalPlan | None:
          AND c.district = u.district AND c.property_type = u.property_type
          AND c.layout = u.layout
         WHERE c.source_file = 'Price Indices/average_sale_rent_prices_by_product_area.xlsx'
-          AND c.period_end = DATE '{period}' AND c.district = 'Al Reem Island'
+          AND c.period_end = DATE '{period}' AND c.municipality = 'Abu Dhabi City'
+          AND c.district = 'Al Reem Island'
           AND c.property_type = 'apartment' AND c.source_annual_rent > 0
           {price_filter}{layout_filter}
     ) SELECT {metric}, SUM(unit_count) AS matched_units_count,
@@ -108,19 +173,27 @@ def _reem_apartment_plan(question: str, period: date) -> RentalPlan | None:
 
 def _rent_index_plan(question: str) -> RentalPlan | None:
     lowered = question.lower()
-    if not (re.search(r"rent.{0,12}index|مؤشر.{0,20}إيجار", lowered)
+    if not (re.search(r"rent.{0,40}index|index.{0,40}rent|مؤشر.{0,25}إيجار", lowered)
             and ("abu dhabi city" in lowered or "مدينة أبوظبي" in lowered)):
         return None
-    if not re.search(r"\b(?:change|growth|increase|decrease)\b|نسبة\s+التغير|نمو", lowered):
-        return None
+    change = bool(re.search(r"\b(?:change|growth|increase|decrease)\b|نسبة\s+التغير|نمو", lowered))
     if not ("all zones" in lowered or "جميع المناطق" in lowered):
         return None
-    if not ("all residential property types" in lowered or "جميع أنواع العقارات السكنية" in lowered):
+    if not ("all residential property types" in lowered or "all zones and property types" in lowered
+            or "جميع أنواع العقارات السكنية" in lowered):
         return None
     dates = _index_dates(question)
-    if len(dates) != 2 or dates[0] >= dates[1]:
-        return None
     application = "new rents" if "new rents" in lowered or "الإيجارات الجديدة" in lowered else "(all rents)"
+    if not change and len(dates) == 1 and re.search(r"\blevel\b|مستوى", lowered):
+        sql = ("SELECT index_value AS rent_index FROM price_indices "
+               "WHERE source_file = 'Price Indices/rent_price_index.xlsx' "
+               "AND index_type = 'rent' AND municipality = 'Abu Dhabi City' "
+               "AND source_area_group = '(all zones)' "
+               "AND property_group = '(all property types)' "
+               f"AND application_type = '{application}' AND period_end = DATE '{dates[0]}'")
+        return RentalPlan("rent_index_level", sql)
+    if not change or len(dates) != 2 or dates[0] >= dates[1]:
+        return None
     sql = f"""SELECT 100 * (new.index_value - old.index_value)
         / NULLIF(old.index_value, 0) AS rent_index_change_pct
         FROM price_indices old JOIN price_indices new
@@ -129,6 +202,7 @@ def _rent_index_plan(question: str) -> RentalPlan | None:
          AND old.property_group = new.property_group
          AND old.application_type = new.application_type
         WHERE old.source_file = 'Price Indices/rent_price_index.xlsx'
+          AND old.index_type = 'rent' AND new.index_type = 'rent'
           AND old.municipality = 'Abu Dhabi City'
           AND old.source_area_group = '(all zones)'
           AND old.property_group = '(all property types)'
@@ -139,6 +213,9 @@ def _rent_index_plan(question: str) -> RentalPlan | None:
 
 
 def source_rental_plan(question: str) -> RentalPlan | None:
+    lease_value = _lease_value_plan(question)
+    if lease_value:
+        return lease_value
     period = _quarter_end(question)
     if period:
         plan = _reem_apartment_plan(question, period)
@@ -162,6 +239,20 @@ def render_rental_plan_answer(question: str, kind: str, rows: list[list[object]]
     value = float(values[0])
     from app.core.language import resolve_language
     arabic = resolve_language(question, language) == "ar"
+    if kind == "residential_lease_value":
+        scope = lease_period_scope(question, arabic)
+        from app.services.answer_synthesizer import _format_aed
+        amount = _format_aed(value, arabic)
+        if arabic:
+            return f"بلغت قيمة الإيجارات السكنية الواردة في المصدر للفترة {scope} {amount}."
+        return f"The source-labelled residential lease value for {scope} was {amount}."
+    if kind == "rent_index_level":
+        month = _index_dates(question)[0]
+        series = "new rents" if "new rents" in question.lower() or "الإيجارات الجديدة" in question else "all rents"
+        if arabic:
+            name = "الإيجارات الجديدة" if series == "new rents" else "جميع الإيجارات"
+            return f"بلغ مستوى مؤشر {name} السكني في مدينة أبوظبي في {month:%Y-%m} {value:.4f}."
+        return f"The Abu Dhabi City residential {series} index level in {month:%B %Y} was {value:.4f}."
     if kind == "rent_index_change":
         dates = _index_dates(question)
         series = "new rents" if "new rents" in question.lower() or "الإيجارات الجديدة" in question else "all rents"
@@ -185,12 +276,15 @@ def render_rental_plan_answer(question: str, kind: str, rows: list[list[object]]
             return f"بلغ تقدير الإيجار السنوي المرجح بالوحدات لشقق Al Reem Island في الربع {quarter} من {period.year} نحو {value:,.2f} درهم، استنادًا إلى {units} وحدة مؤجرة مطابقة عبر {layouts} تخطيطات."
         return f"The leased-unit-weighted annual rent estimate for Al Reem Island apartments in Q{quarter} {period.year} was AED {value:,.2f}, based on {units} matched leased units across {layouts} layouts."
 
+    layout = _requested_layout(question)
+    scope_en = f"{layout.split()[0]}-bedroom " if layout and layout != "studio" else "studio " if layout else ""
+    scope_ar = f"بتخطيط {layout} " if layout else ""
     if arabic:
-        answer = f"بلغ تقدير العائد الإيجاري الإجمالي لشقق Al Reem Island في الربع {quarter} من {period.year} {value:.2f}%، استنادًا إلى {units} وحدة مؤجرة مطابقة عبر {layouts} تخطيطات."
+        answer = f"بلغ تقدير العائد الإيجاري الإجمالي لشقق Al Reem Island {scope_ar}في الربع {quarter} من {period.year} {value:.2f}%، استنادًا إلى {units} وحدة مؤجرة مطابقة عبر {layouts} تخطيطات."
         if "صافي" in question or "صافى" in question or "شقة" in question:
             answer += " يحتاج صافي عائد شقة محددة إلى إيجارها وسعرها وتكاليفها الفعلية."
         return answer
-    answer = f"The indicative gross segment yield for Al Reem Island apartments in Q{quarter} {period.year} was {value:.2f}%, based on {units} matched leased units across {layouts} layouts."
+    answer = f"The indicative gross segment yield for {scope_en}Al Reem Island apartments in Q{quarter} {period.year} was {value:.2f}%, based on {units} matched leased units across {layouts} matched layouts."
     if re.search(r"\bnet\b|\bindividual\b", question, re.IGNORECASE):
         answer += " A net yield for one apartment needs that property's rent, price and costs."
     return answer

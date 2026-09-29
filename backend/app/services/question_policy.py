@@ -20,7 +20,7 @@ _UNAVAILABLE_TOPIC = re.compile(
 _AMBIGUOUS_PLACE = re.compile(r"\bAl[ -]?Bateen\b|البطين", re.IGNORECASE)
 _DISTRICT_SCOPE = re.compile(
     r"\b(?:district|area)\s+(?:of\s+)?Al[ -]?Bateen\b|"
-    r"\bAl[ -]?Bateen\s+(?:district|area)\b|"
+    r"\bAl[ -]?Bateen\s+(?:source\s+)?(?:district|area)\b|"
     r"(?:منطق[هة]|حي)\s+البطين",
     re.IGNORECASE,
 )

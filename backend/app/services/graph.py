@@ -33,7 +33,7 @@ from app.services.product_schema import introspect_product_schema, ALIASES
 from app.services.question_policy import classify_question
 from app.core.language import Language, LanguageChoice, resolve_language
 from app.services.rental_query_plans import source_rental_plan, render_rental_plan_answer
-from app.services.sales_query_plans import sales_district_value_plan, render_sales_district_value
+from app.services.sales_query_plans import sales_analysis_plan, render_sales_analysis
 
 logger = logging.getLogger(__name__)
 
@@ -166,10 +166,10 @@ def generate_sql(state: PipelineState, config: RunnableConfig) -> dict[str, Any]
     attempts = state.get("attempts", 0) + 1
 
     if not failure:
-        sales_plan = sales_district_value_plan(state["question"])
+        sales_plan = sales_analysis_plan(state["question"])
         if sales_plan:
             return {"attempts": 0, "sql": sales_plan[0], "failure": None,
-                    "query_method": "source_plan:sales_district_value"}
+                    "query_method": f"source_plan:sales_{sales_plan[1]}"}
         plan = source_rental_plan(state["question"])
         if plan:
             return {"attempts": 0, "sql": plan.sql, "failure": None,
@@ -313,9 +313,11 @@ def synthesize_answer_node(state: PipelineState, config: RunnableConfig) -> dict
         arabic = state["language"] == "ar"
         return {"answer": "لم تُرجع البيانات صفوفًا مطابقة لهذا السؤال." if arabic else "No matching data was returned for this question."}
     method = state.get("query_method", "")
-    if method == "source_plan:sales_district_value":
-        year = re.search(r"\b(?:19|20)\d{2}\b", state["question"]).group()
-        return {"answer": render_sales_district_value(state["exec_result"].rows, year, state["language"])}
+    if method.startswith("source_plan:sales_"):
+        return {"answer": render_sales_analysis(
+            state["question"], method.removeprefix("source_plan:sales_"),
+            state["exec_result"].rows, state["language"],
+        )}
     if method.startswith("source_plan:"):
         return {"answer": render_rental_plan_answer(
             state["question"], method.partition(":")[2], state["exec_result"].rows,

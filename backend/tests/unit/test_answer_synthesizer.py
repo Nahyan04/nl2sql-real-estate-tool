@@ -71,7 +71,7 @@ def test_lease_value_answer_uses_returned_amount_and_language() -> None:
     )
     model = FakeChatModel("قيمة مختلفة")
     english = synthesize_answer("What was residential lease value in Q1 and Q2 2026?", SQL, result, model)
-    assert english == "The source-labelled residential lease value for the requested period was AED 9.32 billion."
+    assert english == "The source-labelled residential lease value for Q1 2026 and Q2 2026 was AED 9.32 billion."
     assert model.prompts == []
 
 

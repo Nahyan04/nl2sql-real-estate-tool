@@ -10,6 +10,14 @@ function belongsToTable(source: SourceCoverage, table: string): boolean {
   return table === "dataset_coverage";
 }
 
+function usedSourceFiles(sql: string): Set<string> {
+  const files = new Set<string>();
+  for (const match of sql.matchAll(/\bsource_file\s*=\s*'((?:[^']|'')+)'/gi)) {
+    files.add(match[1].replaceAll("''", "'"));
+  }
+  return files;
+}
+
 function unitsFor(columns: string[], arabic: boolean): string[] {
   const units = new Set<string>();
   for (const column of columns) {
@@ -37,8 +45,12 @@ interface EvidencePanelProps {
 
 export function EvidencePanel({ result, coverage, schemaSnapshotId, arabic }: EvidencePanelProps) {
   const snapshotMatches = result.snapshot_id !== null && result.snapshot_id === schemaSnapshotId;
+  const namedFiles = usedSourceFiles(result.sql);
   const sources = snapshotMatches
-    ? coverage.filter((source) => result.tables_used.some((table) => belongsToTable(source, table)))
+    ? coverage.filter((source) =>
+        namedFiles.has(source.source_file) ||
+        (result.tables_used.includes("transactions") && belongsToTable(source, "transactions")),
+      )
     : [];
   const units = unitsFor(result.columns, arabic);
   const saleTypeScope = result.tables_used.includes("transactions") && result.columns.some((column) =>

@@ -58,9 +58,11 @@ const ARABIC_COLUMNS: Record<string, string> = {
   district: "المنطقة", community: "المجتمع", municipality: "البلدية", project_name: "المشروع",
   transaction_date: "تاريخ البيع", period_end: "نهاية الفترة", source_file: "ملف المصدر",
   sales_value_aed: "قيمة المبيعات (درهم)", sales_observation_count: "عدد سجلات البيع",
+  sale_type: "نوع البيع", leased_units_count: "عدد الوحدات المؤجرة",
   sales_count: "عدد سجلات المبيعات", sales_records_count: "عدد سجلات المبيعات",
   residential_lease_value_aed: "قيمة الإيجارات السكنية (درهم)",
   total_lease_value_aed: "قيمة الإيجارات (درهم)", rent_index_change_pct: "تغير مؤشر الإيجارات (%)",
+  rent_index: "مستوى مؤشر الإيجارات", index_value: "مستوى المؤشر",
 };
 
 const ARABIC_WORDS: Record<string, string> = {

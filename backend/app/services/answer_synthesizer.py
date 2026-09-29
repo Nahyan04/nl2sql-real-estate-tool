@@ -22,6 +22,7 @@ Rules:
 - Reply entirely in the requested answer language. Keep English source names and SQL acronyms as source data, but do not write explanatory English in Arabic answers or Arabic in English answers.
 - Answer in 1-3 sentences. No preamble, no restating the question, no bullet lists.
 - Cite the concrete numbers from the result. Never invent a figure that is not in the rows.
+- Describe observed differences without assigning causes such as unit size, development premiums, demand or policy unless the SQL result directly measures those causes.
 - Sales counts and values cover exported observations. Do not call them a complete Abu Dhabi market census.
 - Format large amounts readably (for example AED 9.35 billion rather than 9348147541.07).
 - Arabic answers use Western digits and Arabic scale words, the way UAE market reports are \
@@ -110,9 +111,11 @@ def _source_result_answer(question: str, result: ExecResult, language: Language)
         value = result.rows[0][0]
         if not isinstance(value, (int, float, Decimal)):
             return None
+        from app.services.rental_query_plans import lease_period_scope
+        scope = lease_period_scope(question, arabic)
         if arabic:
-            return f"بلغت قيمة الإيجارات السكنية للفترة المطلوبة {_format_aed(value, True)} وفق المصدر."
-        return f"The source-labelled residential lease value for the requested period was {_format_aed(value, False)}."
+            return f"بلغت قيمة الإيجارات السكنية الواردة في المصدر للفترة {scope} {_format_aed(value, True)}."
+        return f"The source-labelled residential lease value for {scope} was {_format_aed(value, False)}."
     return None
 
 

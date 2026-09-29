@@ -80,7 +80,7 @@ def test_explicit_year_gets_one_recovery_attempt(sqlite_engine, monkeypatch):
     monkeypatch.setattr(graph, 'introspect_product_schema', lambda _: introspect_schema(sqlite_engine))
     model = Model('<clarification>Which year?</clarification>',
                   '<sql>SELECT count(*) AS observation_count FROM transactions</sql>')
-    state = run_pipeline('How many exported sales observations in 2025?',
+    state = run_pipeline('How many exported apartment sales observations in 2025?',
                          chat_model=model, engine=sqlite_engine, engine_ro=sqlite_engine,
                          dry_run=True)
     assert state['failure'] is None
