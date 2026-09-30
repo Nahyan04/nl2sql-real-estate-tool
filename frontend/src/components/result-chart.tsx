@@ -109,8 +109,10 @@ export function ResultChart({ chart, columns, rows, arabic = false }: ResultChar
               <figcaption className="text-[1.0625rem] text-ink">
                 {arabic ? `${humanizeColumn(key, true)} حسب ${humanizeColumn(xKey, true)}` : sentenceCase(`${humanizeColumn(key)} by ${humanizeColumn(xKey)}`)}
               </figcaption>
-              <div className="mt-3 rounded-lg border border-rule bg-paper p-5 pe-7">
-                <Figure data={data} xKey={xKey} keys={[key]} colorFor={() => SERIES[index]} arabic={arabic} />
+              <div className="mt-3 overflow-x-auto rounded-lg border border-rule bg-paper p-5 pe-7">
+                <div className={chart.type === "bar" ? "min-w-[420px]" : "min-w-[320px]"}>
+                  <Figure data={data} xKey={xKey} keys={[key]} colorFor={() => SERIES[index]} arabic={arabic} />
+                </div>
               </div>
             </figure>
           ))}
@@ -118,8 +120,10 @@ export function ResultChart({ chart, columns, rows, arabic = false }: ResultChar
       ) : (
         <>
           <p className="mt-3 text-[1.0625rem] text-ink">{arabic ? `${humanizeColumn(shown[0], true)} حسب ${humanizeColumn(xKey, true)}` : chart.title}</p>
-          <div className="mt-5 rounded-lg border border-rule bg-paper p-5 pe-7">
-            <Figure data={data} xKey={xKey} keys={shown} colorFor={colorFor} arabic={arabic} />
+          <div className="mt-5 overflow-x-auto rounded-lg border border-rule bg-paper p-5 pe-7">
+            <div className={chart.type === "bar" ? "min-w-[420px]" : "min-w-[320px]"}>
+              <Figure data={data} xKey={xKey} keys={shown} colorFor={colorFor} arabic={arabic} />
+            </div>
           </div>
         </>
       )}
