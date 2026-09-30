@@ -272,7 +272,7 @@ def render_rental_plan_answer(question: str, kind: str, rows: list[list[object]]
         from app.services.answer_synthesizer import _format_aed
         amount = _format_aed(value, arabic)
         if arabic:
-            return f"بلغت قيمة الإيجارات السكنية الواردة في المصدر للفترة {scope} {amount}."
+            return f"بلغت قيمة الإيجارات السكنية الواردة في المصدر خلال {scope} {amount}."
         return f"The source-labelled residential lease value for {scope} was {amount}."
     if kind == "rent_index_level":
         month = _index_dates(question)[0]
