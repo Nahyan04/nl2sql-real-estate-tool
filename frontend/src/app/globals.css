@@ -7,6 +7,9 @@
 /* Warm paper canvas with a sage accent — a printed government record rather
    than a console. Cream ground, white tiles, sage-tinted hairlines. */
 :root {
+  --font-plex-sans: "IBM Plex Sans";
+  --font-plex-arabic: "IBM Plex Sans Arabic";
+  --font-plex-mono: "IBM Plex Mono";
   --canvas: #e7e1de;
   --paper: #ffffff;
   --paper-flat: #faf8f5;
