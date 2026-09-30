@@ -72,4 +72,6 @@ Back up the explicitly identified working database and restore that backup in a 
 
 From `backend/`, run `python scripts/configure_query_role.py --expected-database <working-name>` to create/update the dedicated role using `READONLY_DB_PASSWORD` from server configuration. The script refuses unexpected public tables, privileged/inherited query roles, or residual access to private source tables. Restart the API to clear engine state and verify `/ready`, `/api/v1/schema` and a source-supported query.
 
+Install the shared limiter tables with `python scripts/init_runtime_store.py --database <working-name>`, then run `python scripts/configure_runtime_role.py --expected-database <working-name>` with `RUNTIME_DB_PASSWORD` in private server configuration. The API process uses this restricted role for snapshot metadata and shared rate-limit writes; generated SQL uses the separate read-only role. Keep the bootstrap/migration URL out of the public API process.
+
 The configured local working database was promoted on September 25, 2026 after backup/restore verification. Its public schema had no user tables. The only application data is now the September 24 native snapshot; old source files and generation paths are removed. Rollback backups are recovery artifacts, not a runtime data source.

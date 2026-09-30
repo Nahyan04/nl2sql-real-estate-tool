@@ -26,11 +26,11 @@ services:
       postgres:
         condition: service_healthy
     env_file:
-      - backend/.env
+      - backend/.env.runtime
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-postgres}
+      DATABASE_URL: postgresql://nl2sql_runtime:${RUNTIME_DB_PASSWORD:?Set RUNTIME_DB_PASSWORD in the root .env}@postgres:5432/${POSTGRES_DB:-postgres}
     ports:
       - "127.0.0.1:8000:8000"
     healthcheck:

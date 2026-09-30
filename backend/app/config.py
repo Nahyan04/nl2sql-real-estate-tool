@@ -10,6 +10,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     database_url: str
     readonly_db_password: str
+    runtime_db_password: str | None = None
     llm_provider: str = "anthropic"
     llm_base_url: str = "http://localhost:11434"
     anthropic_model: str = "claude-sonnet-5"
