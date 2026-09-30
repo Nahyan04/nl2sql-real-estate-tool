@@ -47,7 +47,7 @@ Database integration tests require an explicitly disposable, populated staging d
 
 ## Deployment preparation
 
-Deploy `frontend/` as the Vercel project root and set `NEXT_PUBLIC_API_URL` to the **public HTTPS API origin** before building. This variable is embedded in the browser bundle and must never contain credentials. Host the FastAPI image and validated PostgreSQL snapshot separately; configure HTTPS, `CORS_ORIGINS`, read-only query credentials, and request limits on the API. The local Compose defaults are for local development, not public database credentials. Leave `OLLAMA_ENABLED=false` unless a protected remote endpoint and its model have been tested end to end. Public deployment also needs a fresh English/Arabic browser check against that exact build and snapshot.
+Deploy `frontend/` as the Vercel project root and set `NEXT_PUBLIC_API_URL` to the **public HTTPS API origin** before building. This variable is embedded in the browser bundle and must never contain credentials; Vercel builds fail if it is missing or local. Host the FastAPI image and validated PostgreSQL snapshot separately; configure HTTPS, `CORS_ORIGINS`, read-only query credentials, and request limits on the API. For a cross-site Vercel/API pair, set `SESSION_COOKIE_SECURE=true` and `SESSION_COOKIE_SAMESITE=none`, and trust forwarded IP headers only from your actual proxy. The local Compose defaults are for local development, not public database credentials. Leave `OLLAMA_ENABLED=false` unless a protected remote endpoint and its model have been tested end to end. Public deployment also needs a fresh English/Arabic browser check against that exact build and snapshot.
 
 ## License
 
