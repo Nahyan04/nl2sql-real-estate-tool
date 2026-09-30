@@ -4,6 +4,7 @@ import type {
   ExamplesResponse,
   QueryRequest,
   QueryResponse,
+  ProvidersResponse,
   SchemaResponse,
 } from "./types";
 
@@ -74,4 +75,8 @@ export function getExamples(signal?: AbortSignal): Promise<ExamplesResponse> {
 
 export function getSchema(signal?: AbortSignal): Promise<SchemaResponse> {
   return request<SchemaResponse>("/schema", { signal });
+}
+
+export function getProviders(signal?: AbortSignal): Promise<ProvidersResponse> {
+  return request<ProvidersResponse>("/providers", { signal });
 }

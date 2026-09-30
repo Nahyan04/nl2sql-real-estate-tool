@@ -14,14 +14,15 @@ import { QueryInput } from "@/components/query-input";
 import { ResultChart } from "@/components/result-chart";
 import { ResultsTable } from "@/components/results-table";
 import { SqlPanel } from "@/components/sql-panel";
-import { ApiError, getExamples, getSchema, postQuery } from "@/lib/api";
+import { ApiError, getExamples, getProviders, getSchema, postQuery } from "@/lib/api";
 import { resolveLanguage } from "@/lib/language";
 import { clearHistory, getHistory, getServerHistory, pushHistory, subscribeHistory } from "@/lib/history";
-import type { ExampleQuestion, Lang, LanguageChoice, Provider, QueryResponse, SchemaTable, SourceCoverage } from "@/lib/types";
+import type { ExampleQuestion, Lang, LanguageChoice, Provider, ProvidersResponse, QueryResponse, SchemaTable, SourceCoverage } from "@/lib/types";
 
 export default function Home() {
   const [question, setQuestion] = useState("");
   const [provider, setProvider] = useState<Provider>("anthropic");
+  const [availability, setAvailability] = useState<ProvidersResponse | null>(null);
   const [languageChoice, setLanguageChoice] = useState<LanguageChoice>("auto");
   const [activeLanguage, setActiveLanguage] = useState<Lang>("en");
   const [examples, setExamples] = useState<ExampleQuestion[]>([]);
@@ -48,13 +49,16 @@ export default function Home() {
         setSchemaSnapshotId(response.snapshot_id);
       })
       .catch(() => setTables([]));
+    getProviders(controller.signal)
+      .then(setAvailability)
+      .catch(() => setAvailability(null));
     return () => controller.abort();
   }, []);
 
   const run = useCallback(
     async (text: string) => {
       const asked = text.trim();
-      if (!asked) return;
+      if (!asked || availability?.[provider].available !== true) return;
       const runLanguage = resolveLanguage(asked, languageChoice);
 
       pending.current?.abort();
@@ -83,7 +87,7 @@ export default function Home() {
         }
       }
     },
-    [provider, languageChoice],
+    [provider, languageChoice, availability],
   );
 
   const clearCurrent = useCallback(() => {
@@ -106,6 +110,7 @@ export default function Home() {
 
   const showProcess = busy || result !== null || error !== null;
   const arabicQuestion = (showProcess ? activeLanguage : resolveLanguage(question, languageChoice)) === "ar";
+  const providerAvailable = availability?.[provider].available === true;
 
   useEffect(() => {
     document.documentElement.lang = arabicQuestion ? "ar" : "en";
@@ -113,10 +118,10 @@ export default function Home() {
 
   return (
     <>
-      <Header provider={provider} language={languageChoice} arabic={arabicQuestion} onLanguageChange={changeLanguage} onProviderChange={setProvider} busy={busy} />
+      <Header provider={provider} language={languageChoice} arabic={arabicQuestion} onLanguageChange={changeLanguage} onProviderChange={setProvider} busy={busy} availability={availability} />
 
       <main dir={arabicQuestion ? "rtl" : "ltr"} className="mx-auto w-full max-w-[88rem] flex-1 px-5 pt-10 pb-20 sm:px-8 lg:px-12 lg:pt-14">
-        <QueryInput value={question} onChange={setQuestion} onSubmit={() => run(question)} busy={busy} arabic={arabicQuestion} />
+        <QueryInput value={question} onChange={setQuestion} onSubmit={() => run(question)} busy={busy} providerAvailable={providerAvailable} arabic={arabicQuestion} />
         {showProcess ? (
           <button type="button" onClick={clearCurrent}
             className="label-mono mt-4 cursor-pointer text-sand transition-colors hover:text-sage">
@@ -132,7 +137,7 @@ export default function Home() {
           />
         ) : !showProcess ? (
           <div className="mt-12 grid items-start gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,1.55fr)_minmax(19rem,0.85fr)]">
-            <ExampleQuestions key={arabicQuestion ? "ar" : "en"} examples={examples} onPick={run} busy={busy} arabic={arabicQuestion} />
+            <ExampleQuestions key={arabicQuestion ? "ar" : "en"} examples={examples} onPick={run} busy={busy || !providerAvailable} arabic={arabicQuestion} />
             <DataSurface tables={tables} arabic={arabicQuestion} />
           </div>
         ) : null}
@@ -172,7 +177,7 @@ export default function Home() {
           </>
         ) : null}
 
-        <HistoryPanel questions={history} onPick={run} onClear={clearHistory} busy={busy} arabic={arabicQuestion} />
+        <HistoryPanel questions={history} onPick={run} onClear={clearHistory} busy={busy || !providerAvailable} arabic={arabicQuestion} />
       </main>
       <footer dir={arabicQuestion ? "rtl" : "ltr"} className="border-t border-rule">
         <div className="mx-auto max-w-[88rem] px-5 py-6 sm:px-8 lg:px-12">

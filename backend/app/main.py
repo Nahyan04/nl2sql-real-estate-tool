@@ -13,6 +13,7 @@ from pydantic import ValidationError
 
 from app.api.routes import examples as examples_routes
 from app.api.routes import health as health_routes
+from app.api.routes import providers as provider_routes
 from app.api.routes import query as query_routes
 from app.api.routes import schema as schema_routes
 from app.config import get_settings
@@ -63,6 +64,7 @@ async def invalid_request_handler(request, exc: RequestValidationError):
     )
 
 app.include_router(health_routes.router)
+app.include_router(provider_routes.router, prefix=API_PREFIX)
 app.include_router(query_routes.router, prefix=API_PREFIX)
 app.include_router(examples_routes.router, prefix=API_PREFIX)
 app.include_router(schema_routes.router, prefix=API_PREFIX)

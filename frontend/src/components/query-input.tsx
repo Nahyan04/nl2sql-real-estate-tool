@@ -7,10 +7,11 @@ interface QueryInputProps {
   onChange: (value: string) => void;
   onSubmit: () => void;
   busy: boolean;
+  providerAvailable: boolean;
   arabic: boolean;
 }
 
-export function QueryInput({ value, onChange, onSubmit, busy, arabic }: QueryInputProps) {
+export function QueryInput({ value, onChange, onSubmit, busy, providerAvailable, arabic }: QueryInputProps) {
   const ref = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -27,7 +28,7 @@ export function QueryInput({ value, onChange, onSubmit, busy, arabic }: QueryInp
     return () => observer.disconnect();
   }, [value]);
 
-  const submittable = value.trim().length > 0 && !busy;
+  const submittable = value.trim().length > 0 && !busy && providerAvailable;
 
   return (
     <form dir={arabic ? "rtl" : "ltr"}
@@ -74,6 +75,7 @@ export function QueryInput({ value, onChange, onSubmit, busy, arabic }: QueryInp
           busy ? "h-px bg-sage-dim" : "h-px bg-rule group-focus-within:bg-sage",
         ].join(" ")}
       />
+      {!providerAvailable ? <p className="mt-3 text-sm text-sand" role="status">{arabic ? "اختر خدمة نموذج متاحة قبل إرسال السؤال." : "Choose an available model provider before asking."}</p> : null}
     </form>
   );
 }

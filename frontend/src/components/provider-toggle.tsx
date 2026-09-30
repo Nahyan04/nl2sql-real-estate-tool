@@ -1,6 +1,6 @@
 "use client";
 
-import type { Provider } from "@/lib/types";
+import type { Provider, ProvidersResponse } from "@/lib/types";
 
 const OPTIONS: { value: Provider; label: string; hint: string }[] = [
   { value: "anthropic", label: "Cloud API", hint: "Questions and answer context are sent to the configured cloud model" },
@@ -12,9 +12,15 @@ interface ProviderToggleProps {
   onChange: (provider: Provider) => void;
   disabled: boolean;
   arabic?: boolean;
+  availability: ProvidersResponse | null;
 }
 
-export function ProviderToggle({ value, onChange, disabled, arabic = false }: ProviderToggleProps) {
+export function ProviderToggle({ value, onChange, disabled, arabic = false, availability }: ProviderToggleProps) {
+  const localAvailable = availability?.ollama.available === true;
+  const cloudAvailable = availability?.anthropic.available === true;
+  const localHint = localAvailable
+    ? (arabic ? "نموذج Ollama المحلي متاح" : "Configured Ollama model is available")
+    : (arabic ? "الاستضافة الذاتية غير متاحة حتى يتم التحقق من الخدمة والنموذج" : "Self-hosted is unavailable until its endpoint and model are verified");
   return (
     <div className="flex flex-wrap items-center gap-3">
       <span className="control-label">{arabic ? "النموذج" : "Model"}</span>
@@ -28,11 +34,11 @@ export function ProviderToggle({ value, onChange, disabled, arabic = false }: Pr
             ) : null}
             <button
               type="button"
-              title={arabic ? (option.value === "anthropic" ? "يرسل السؤال وسياق الإجابة إلى النموذج السحابي المهيأ" : "يستخدم خدمة Ollama المهيأة عند توفرها") : option.hint}
-              disabled={disabled}
+              title={option.value === "ollama" ? localHint : (cloudAvailable ? (arabic ? "يرسل السؤال وسياق الإجابة إلى النموذج السحابي المهيأ" : option.hint) : (arabic ? "الخدمة السحابية غير مهيأة" : "Cloud API is not configured"))}
+              disabled={disabled || !(availability?.[option.value].available ?? false)}
               aria-pressed={value === option.value}
               onClick={() => onChange(option.value)}
-              className={`control-option cursor-pointer rounded-sm px-1.5 py-1 transition-colors disabled:cursor-default ${
+              className={`control-option cursor-pointer rounded-sm px-1.5 py-1 transition-colors disabled:cursor-default disabled:opacity-50 ${
                 value === option.value ? "bg-sage/10 text-sage" : "text-sand hover:text-ink"
               }`}
             >
@@ -41,6 +47,8 @@ export function ProviderToggle({ value, onChange, disabled, arabic = false }: Pr
           </span>
         ))}
       </div>
+      {!localAvailable ? <span className="text-xs text-sand" role="status">{arabic ? "الاستضافة الذاتية غير متاحة" : "Self-hosted unavailable"}</span> : null}
+      {!cloudAvailable ? <span className="text-xs text-sand" role="status">{arabic ? "الخدمة السحابية غير متاحة" : "Cloud API unavailable"}</span> : null}
     </div>
   );
 }

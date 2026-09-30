@@ -39,12 +39,14 @@ def get_chat_model(provider: str | None, settings: Settings) -> BaseChatModel:
 
     if name == OLLAMA:
         logger.info("ollama model configured model=%s reasoning=%s", settings.ollama_model, settings.ollama_reasoning)
+        client_kwargs = {"headers": {"Authorization": f"Bearer {settings.ollama_api_key}"}} if settings.ollama_api_key else {}
         return ChatOllama(
             model=settings.ollama_model,
             base_url=settings.llm_base_url,
             temperature=0,
             reasoning=settings.ollama_reasoning,
             num_predict=settings.model_max_output_tokens,
+            client_kwargs=client_kwargs,
             sync_client_kwargs={"timeout": settings.model_call_timeout_s},
             async_client_kwargs={"timeout": settings.model_call_timeout_s},
         )

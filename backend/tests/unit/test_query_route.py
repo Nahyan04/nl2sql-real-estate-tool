@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.api.routes.query import _failure_status, chat_model_factory
+from app.config import Settings, get_settings
 from app.main import app
 from app.services.executor import ExecResult
 from app.services.request_limiter import get_request_limiter
@@ -69,6 +70,24 @@ def test_unknown_provider_has_safe_error(client) -> None:
     assert response.status_code == 400
     assert response.json()["error"] == "UNKNOWN_PROVIDER"
     assert "internal model name" not in response.text
+
+
+def test_disabled_ollama_cannot_be_called_directly(client) -> None:
+    app.dependency_overrides[get_settings] = lambda: Settings(
+        database_url="postgresql://example.invalid/test", readonly_db_password="unused", ollama_enabled=False,
+    )
+    response = client.post("/api/v1/query", json={"question": "How many sales?", "provider": "ollama"})
+    assert response.status_code == 503
+    assert response.json()["error"] == "PROVIDER_UNAVAILABLE"
+
+
+def test_unconfigured_cloud_cannot_be_called_directly(client) -> None:
+    app.dependency_overrides[get_settings] = lambda: Settings(
+        database_url="postgresql://example.invalid/test", readonly_db_password="unused", anthropic_api_key=None,
+    )
+    response = client.post("/api/v1/query", json={"question": "How many sales?", "provider": "anthropic"})
+    assert response.status_code == 503
+    assert response.json()["error"] == "PROVIDER_UNAVAILABLE"
 
 
 def test_malformed_direct_request_has_stable_error(client) -> None:

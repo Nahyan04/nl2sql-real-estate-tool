@@ -1,6 +1,6 @@
 import { ProviderToggle } from "@/components/provider-toggle";
 import { Wordmark } from "@/components/wordmark";
-import type { LanguageChoice, Provider } from "@/lib/types";
+import type { LanguageChoice, Provider, ProvidersResponse } from "@/lib/types";
 
 interface HeaderProps {
   provider: Provider;
@@ -9,9 +9,10 @@ interface HeaderProps {
   onProviderChange: (provider: Provider) => void;
   onLanguageChange: (language: LanguageChoice) => void;
   busy: boolean;
+  availability: ProvidersResponse | null;
 }
 
-export function Header({ provider, language, arabic, onProviderChange, onLanguageChange, busy }: HeaderProps) {
+export function Header({ provider, language, arabic, onProviderChange, onLanguageChange, busy, availability }: HeaderProps) {
   return (
     <header dir={arabic ? "rtl" : "ltr"} className="border-b border-rule bg-paper-flat/80">
       <div className="mx-auto grid max-w-[88rem] gap-5 px-5 py-5 sm:px-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:px-12">
@@ -32,7 +33,7 @@ export function Header({ provider, language, arabic, onProviderChange, onLanguag
               </button>
             ))}
           </div>
-          <ProviderToggle value={provider} onChange={onProviderChange} disabled={busy} arabic={arabic} />
+          <ProviderToggle value={provider} onChange={onProviderChange} disabled={busy} arabic={arabic} availability={availability} />
         </div>
       </div>
     </header>

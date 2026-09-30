@@ -1,5 +1,12 @@
 export type Provider = "anthropic" | "ollama";
 
+export interface ProviderStatus {
+  available: boolean;
+  status: string;
+}
+
+export type ProvidersResponse = Record<Provider, ProviderStatus>;
+
 export type Lang = "en" | "ar";
 export type LanguageChoice = Lang | "auto";
 

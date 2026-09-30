@@ -115,6 +115,9 @@ def query(
 ):
     request_id = uuid4().hex
     language = resolve_language(payload.question, payload.language)
+    chosen_provider = payload.provider or settings.llm_provider
+    if (chosen_provider == "ollama" and not settings.ollama_enabled) or (chosen_provider == "anthropic" and not settings.anthropic_api_key):
+        return _error(503, "PROVIDER_UNAVAILABLE", SAFE_FAILURE_DETAILS["PROVIDER_UNAVAILABLE"], request_id)
     def attach_cookie(target: Response, value: str) -> None:
         target.set_cookie(
             SESSION_COOKIE, value, max_age=86_400, httponly=True,
