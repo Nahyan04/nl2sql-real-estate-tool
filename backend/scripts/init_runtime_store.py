@@ -1,10 +1,12 @@
 """Install the shared request limiter tables in an explicitly named database."""
 
 import argparse
+import sys
 from pathlib import Path
 
 from sqlalchemy import text
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app.core.database import get_engine
 
 
