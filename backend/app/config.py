@@ -13,8 +13,8 @@ class Settings(BaseSettings):
     runtime_db_password: str | None = None
     llm_provider: str = "anthropic"
     llm_base_url: str = "http://localhost:11434"
-    anthropic_model: str = "claude-sonnet-5"
-    ollama_model: str = "qwen2.5-coder:7b"
+    anthropic_model: str = "claude-haiku-4-5-20251001"
+    ollama_model: str = "qwen3.5:9b"
     ollama_reasoning: bool | None = None
     ollama_enabled: bool = False
     ollama_api_key: str | None = None
