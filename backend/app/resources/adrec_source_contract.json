@@ -1,0 +1,2201 @@
+{
+  "version": 1,
+  "sources": {
+    "Price Indices/average_sale_rent_prices_by_product_area.xlsx": {
+      "columns": [
+        "Date",
+        "Average of average_sale_price_aed",
+        "Annual Rent",
+        "Municipality",
+        "District",
+        "Property Type",
+        "Property Layout"
+      ],
+      "sheet": "Resi Rent Sale Prices By Area",
+      "numeric_columns": [
+        "Average of average_sale_price_aed",
+        "Annual Rent"
+      ],
+      "date_columns": [
+        "Date"
+      ],
+      "categories": {
+        "Municipality": [
+          "Abu Dhabi City",
+          "Al Ain City",
+          "Al Dhafra Region"
+        ],
+        "Property Type": [
+          "apartment",
+          "duplex",
+          "penthouse",
+          "townhouse / attached villa",
+          "villa"
+        ],
+        "Property Layout": [
+          "1 bed",
+          "2 beds",
+          "3 beds",
+          "4 beds",
+          "5 beds",
+          "5+ beds",
+          "6+ beds",
+          "studio"
+        ]
+      },
+      "candidate_key": [
+        "Date",
+        "Municipality",
+        "District",
+        "Property Type",
+        "Property Layout"
+      ],
+      "grain": "source_observation",
+      "measure": "source_label",
+      "complete_through": null
+    },
+    "Price Indices/industrial_price_index.xlsx": {
+      "columns": [
+        "Date",
+        "Municipality",
+        "District",
+        "App Type",
+        "Property Type",
+        "Sale Index Value"
+      ],
+      "sheet": "Industrial Rent Prices By Perio",
+      "numeric_columns": [
+        "Sale Index Value"
+      ],
+      "date_columns": [
+        "Date"
+      ],
+      "categories": {
+        "Municipality": [
+          "Abu Dhabi City"
+        ],
+        "App Type": [
+          "(all rents)",
+          "new rents"
+        ],
+        "Property Type": [
+          "(all property types)",
+          "warehouse / storage",
+          "workshop"
+        ]
+      },
+      "candidate_key": [
+        "Date",
+        "Municipality",
+        "District",
+        "App Type",
+        "Property Type"
+      ],
+      "grain": "source_observation",
+      "measure": "source_label",
+      "complete_through": null
+    },
+    "Price Indices/office_price_index.xlsx": {
+      "columns": [
+        "Date",
+        "Municipality",
+        "District",
+        "App Type",
+        "Property Type",
+        "Sale Index Value"
+      ],
+      "sheet": "Office Rent Prices By Period",
+      "numeric_columns": [
+        "Sale Index Value"
+      ],
+      "date_columns": [
+        "Date"
+      ],
+      "categories": {
+        "Municipality": [
+          "Abu Dhabi City"
+        ],
+        "App Type": [
+          "(all rents)",
+          "new rents"
+        ],
+        "Property Type": [
+          "office"
+        ]
+      },
+      "candidate_key": [
+        "Date",
+        "Municipality",
+        "District",
+        "App Type",
+        "Property Type"
+      ],
+      "grain": "source_observation",
+      "measure": "source_label",
+      "complete_through": null
+    },
+    "Price Indices/rent_price_index.xlsx": {
+      "columns": [
+        "Date",
+        "Property Type",
+        "Average of sale_index_value",
+        "Municipality",
+        "Zone",
+        "App Type"
+      ],
+      "sheet": "Resi Rent Price Index By Area",
+      "numeric_columns": [
+        "Average of sale_index_value"
+      ],
+      "date_columns": [
+        "Date"
+      ],
+      "categories": {
+        "Property Type": [
+          "(all property types)",
+          "apartments & duplexes",
+          "villas & townhouses"
+        ],
+        "Municipality": [
+          "Abu Dhabi City"
+        ],
+        "App Type": [
+          "(all rents)",
+          "new rents"
+        ]
+      },
+      "candidate_key": [
+        "Date",
+        "Property Type",
+        "Municipality",
+        "Zone",
+        "App Type"
+      ],
+      "grain": "source_observation",
+      "measure": "source_label",
+      "complete_through": null
+    },
+    "Price Indices/retail_price_index.xlsx": {
+      "columns": [
+        "Date",
+        "Municipality",
+        "District",
+        "App Type",
+        "Property Type",
+        "Sale Index Value"
+      ],
+      "sheet": "Office Rent Prices By Period",
+      "numeric_columns": [
+        "Sale Index Value"
+      ],
+      "date_columns": [
+        "Date"
+      ],
+      "categories": {
+        "Municipality": [
+          "Abu Dhabi City",
+          "Al Ain City"
+        ],
+        "App Type": [
+          "(all rents)",
+          "new rents"
+        ],
+        "Property Type": [
+          "retail"
+        ]
+      },
+      "candidate_key": [
+        "Date",
+        "Municipality",
+        "District",
+        "App Type",
+        "Property Type"
+      ],
+      "grain": "source_observation",
+      "measure": "source_label",
+      "complete_through": null
+    },
+    "Price Indices/sale_price_index.xlsx": {
+      "columns": [
+        "Date",
+        "Property Type",
+        "Average of sale_index_value",
+        "Municipality",
+        "Zone",
+        "App Type"
+      ],
+      "sheet": "Resi Sale Price Index By Area",
+      "numeric_columns": [
+        "Average of sale_index_value"
+      ],
+      "date_columns": [
+        "Date"
+      ],
+      "categories": {
+        "Property Type": [
+          "(all property types)",
+          "apartments & duplexes",
+          "villas & townhouses"
+        ],
+        "Municipality": [
+          "Abu Dhabi City"
+        ],
+        "App Type": [
+          "(all sales)"
+        ]
+      },
+      "candidate_key": [
+        "Date",
+        "Property Type",
+        "Municipality",
+        "Zone",
+        "App Type"
+      ],
+      "grain": "source_observation",
+      "measure": "source_label",
+      "complete_through": null
+    },
+    "Residential Leases/average_annual_rents_over_time.xlsx": {
+      "columns": [
+        "Date",
+        "Average of rolling_average",
+        "Property Type",
+        "Municipality",
+        "District",
+        "Property Layout"
+      ],
+      "sheet": "Resi Rent Prices By Period",
+      "numeric_columns": [
+        "Average of rolling_average"
+      ],
+      "date_columns": [
+        "Date"
+      ],
+      "categories": {
+        "Property Type": [
+          "apartment",
+          "duplex",
+          "penthouse",
+          "townhouse / attached villa",
+          "villa"
+        ],
+        "Municipality": [
+          "Abu Dhabi City",
+          "Al Ain City",
+          "Al Dhafra Region"
+        ],
+        "Property Layout": [
+          "1 bed",
+          "2 beds",
+          "3 beds",
+          "4 beds",
+          "5 beds",
+          "5+ beds",
+          "6+ beds",
+          "studio"
+        ]
+      },
+      "candidate_key": [
+        "Date",
+        "Property Type",
+        "Municipality",
+        "District",
+        "Property Layout"
+      ],
+      "grain": "source_observation",
+      "measure": "source_label",
+      "complete_through": null
+    },
+    "Residential Leases/lease_price_by_period.xlsx": {
+      "columns": [
+        "Date",
+        "Property Type",
+        "Sum of active_value_aed",
+        "Period",
+        "Municipality",
+        "District",
+        "Property Layout"
+      ],
+      "sheet": "Resi Rented Value By Period",
+      "numeric_columns": [
+        "Sum of active_value_aed"
+      ],
+      "date_columns": [
+        "Date"
+      ],
+      "categories": {
+        "Property Type": [
+          "apartment",
+          "duplex",
+          "penthouse",
+          "townhouse / attached villa",
+          "villa"
+        ],
+        "Municipality": [
+          "Abu Dhabi City",
+          "Al Ain City",
+          "Al Dhafra Region"
+        ],
+        "Property Layout": [
+          "1 bed",
+          "2 beds",
+          "3 beds",
+          "4 beds",
+          "5 beds",
+          "5+ beds",
+          "6+ beds",
+          "studio",
+          "unclassified"
+        ]
+      },
+      "candidate_key": [
+        "Date",
+        "Property Type",
+        "Period",
+        "Municipality",
+        "District",
+        "Property Layout"
+      ],
+      "grain": "source_observation",
+      "measure": "source_label",
+      "complete_through": null
+    },
+    "Residential Leases/lease_residential.xlsx": {
+      "columns": [
+        "Period",
+        "Date",
+        "Leased Units",
+        "Property Type",
+        "Municipality",
+        "District",
+        "Community",
+        "Project Name",
+        "Property Layout"
+      ],
+      "sheet": "Resi Rented Units By Period",
+      "numeric_columns": [
+        "Leased Units"
+      ],
+      "date_columns": [
+        "Date"
+      ],
+      "categories": {
+        "Property Type": [
+          "apartment",
+          "duplex",
+          "penthouse",
+          "townhouse / attached villa",
+          "villa"
+        ],
+        "Municipality": [
+          "Abu Dhabi City",
+          "Al Ain City",
+          "Al Dhafra Region"
+        ],
+        "Property Layout": [
+          "1 bed",
+          "2 beds",
+          "3 beds",
+          "4 beds",
+          "5 beds",
+          "5+ beds",
+          "6+ beds",
+          "studio",
+          "unclassified"
+        ]
+      },
+      "candidate_key": [
+        "Period",
+        "Date",
+        "Property Type",
+        "Municipality",
+        "District",
+        "Community",
+        "Project Name",
+        "Property Layout"
+      ],
+      "grain": "source_observation",
+      "measure": "source_label",
+      "complete_through": null
+    },
+    "Transactions/recent_sales_2019-2026.csv": {
+      "columns": [
+        "Asset Class",
+        "Property Type",
+        "Sale Application Date",
+        "Property Sold Area (SQM)",
+        "Land Plot Ground Area (SQM)",
+        "Property Layout",
+        "District",
+        "Community",
+        "Project Name",
+        "Property Sale Price (AED)",
+        "Property Sold Share",
+        "Rate (AED per SQM)",
+        "Sale Application Type",
+        "Sale Sequence"
+      ],
+      "sheet": null,
+      "numeric_columns": [
+        "Property Sold Area (SQM)",
+        "Land Plot Ground Area (SQM)",
+        "Property Sale Price (AED)",
+        "Property Sold Share",
+        "Rate (AED per SQM)"
+      ],
+      "date_columns": [
+        "Sale Application Date"
+      ],
+      "categories": {
+        "Asset Class": [
+          "agricultural",
+          "commercial",
+          "educational",
+          "healthcare",
+          "industrial & storage",
+          "infrastructural",
+          "other",
+          "recreational",
+          "religious",
+          "residential"
+        ],
+        "Property Type": [
+          "apartment",
+          "clinic / hospital",
+          "cooling utility",
+          "duplex",
+          "factory",
+          "farm",
+          "hotel / resort / serviced apartments",
+          "mall / market / retail center",
+          "mosque",
+          "office",
+          "office complex",
+          "other",
+          "other commercial plot",
+          "other industrial plot",
+          "other mixed-use plot",
+          "other plot",
+          "other recreational plot",
+          "other residential plot",
+          "penthouse",
+          "petrol station",
+          "plot for clinic / hospital",
+          "plot for cooling utility",
+          "plot for farm",
+          "plot for hotel / resort / serviced apartments",
+          "plot for mall / market / retail center",
+          "plot for office complex",
+          "plot for park",
+          "plot for parking",
+          "plot for petrol station",
+          "plot for residential complex",
+          "plot for residential complex (staff accommodation)",
+          "plot for school",
+          "plot for townhouse / attached villa",
+          "plot for villa",
+          "residential complex",
+          "residential complex (staff accommodation)",
+          "retail",
+          "school",
+          "townhouse / attached villa",
+          "villa",
+          "workshop"
+        ],
+        "Property Layout": [
+          "1 bed",
+          "2 beds",
+          "3 beds",
+          "4 beds",
+          "5 beds",
+          "5+ beds",
+          "6+ beds",
+          "anchor store",
+          "large (500 to 1000 sqm)",
+          "line store",
+          "maxi (over 1000 sqm)",
+          "medium (50 to 500 sqm)",
+          "small (up to 50 sqm)",
+          "studio",
+          "unclassified"
+        ],
+        "Sale Application Type": [
+          "court-mandated",
+          "off-plan",
+          "ready"
+        ],
+        "Sale Sequence": [
+          "primary",
+          "secondary"
+        ]
+      },
+      "candidate_key": [],
+      "grain": "source_observation",
+      "measure": "source_label",
+      "complete_through": null
+    },
+    "Transactions/resi_sales_by_period_monthly_count.xlsx": {
+      "columns": [
+        "Period",
+        "End of Period",
+        "Value (count/AED)",
+        "Transaction Type",
+        "Asset Class",
+        "Municipality",
+        "District",
+        "Property Type",
+        "Property Layout"
+      ],
+      "sheet": "Resi Sale Transactions By Perio",
+      "numeric_columns": [
+        "Value (count/AED)"
+      ],
+      "date_columns": [
+        "End of Period"
+      ],
+      "categories": {
+        "Transaction Type": [
+          "sales"
+        ],
+        "Asset Class": [
+          "residential"
+        ],
+        "Municipality": [
+          "Abu Dhabi City",
+          "Al Ain City",
+          "Al Dhafra Region"
+        ],
+        "Property Type": [
+          "apartment",
+          "duplex",
+          "penthouse",
+          "plot for townhouse / attached villa",
+          "plot for villa",
+          "townhouse / attached villa",
+          "villa"
+        ],
+        "Property Layout": [
+          "1 bed",
+          "2 beds",
+          "3 beds",
+          "4 beds",
+          "5 beds",
+          "5+ beds",
+          "6+ beds",
+          "studio",
+          "unclassified"
+        ]
+      },
+      "candidate_key": [
+        "Period",
+        "End of Period",
+        "Transaction Type",
+        "Asset Class",
+        "Municipality",
+        "District",
+        "Property Type",
+        "Property Layout"
+      ],
+      "grain": "monthly",
+      "measure": "count",
+      "complete_through": null
+    },
+    "Transactions/resi_sales_by_period_monthly_value_aed.xlsx": {
+      "columns": [
+        "Period",
+        "End of Period",
+        "Value (count/AED)",
+        "Transaction Type",
+        "Asset Class",
+        "Municipality",
+        "District",
+        "Property Type",
+        "Property Layout"
+      ],
+      "sheet": "Resi Sale Transactions By Perio",
+      "numeric_columns": [
+        "Value (count/AED)"
+      ],
+      "date_columns": [
+        "End of Period"
+      ],
+      "categories": {
+        "Transaction Type": [
+          "sales"
+        ],
+        "Asset Class": [
+          "residential"
+        ],
+        "Municipality": [
+          "Abu Dhabi City",
+          "Al Ain City",
+          "Al Dhafra Region"
+        ],
+        "Property Type": [
+          "apartment",
+          "duplex",
+          "penthouse",
+          "plot for townhouse / attached villa",
+          "plot for villa",
+          "townhouse / attached villa",
+          "villa"
+        ],
+        "Property Layout": [
+          "1 bed",
+          "2 beds",
+          "3 beds",
+          "4 beds",
+          "5 beds",
+          "5+ beds",
+          "6+ beds",
+          "studio",
+          "unclassified"
+        ]
+      },
+      "candidate_key": [
+        "Period",
+        "End of Period",
+        "Transaction Type",
+        "Asset Class",
+        "Municipality",
+        "District",
+        "Property Type",
+        "Property Layout"
+      ],
+      "grain": "monthly",
+      "measure": "AED",
+      "complete_through": null
+    },
+    "Transactions/resi_sales_by_period_quarterly_count.xlsx": {
+      "columns": [
+        "Period",
+        "End of Period",
+        "Value (count/AED)",
+        "Transaction Type",
+        "Asset Class",
+        "Municipality",
+        "District",
+        "Property Type",
+        "Property Layout"
+      ],
+      "sheet": "Resi Sale Transactions By Perio",
+      "numeric_columns": [
+        "Value (count/AED)"
+      ],
+      "date_columns": [
+        "End of Period"
+      ],
+      "categories": {
+        "Transaction Type": [
+          "sales"
+        ],
+        "Asset Class": [
+          "residential"
+        ],
+        "Municipality": [
+          "Abu Dhabi City",
+          "Al Ain City",
+          "Al Dhafra Region"
+        ],
+        "Property Type": [
+          "apartment",
+          "duplex",
+          "penthouse",
+          "plot for townhouse / attached villa",
+          "plot for villa",
+          "townhouse / attached villa",
+          "villa"
+        ],
+        "Property Layout": [
+          "1 bed",
+          "2 beds",
+          "3 beds",
+          "4 beds",
+          "5 beds",
+          "5+ beds",
+          "6+ beds",
+          "studio",
+          "unclassified"
+        ]
+      },
+      "candidate_key": [
+        "Period",
+        "End of Period",
+        "Transaction Type",
+        "Asset Class",
+        "Municipality",
+        "District",
+        "Property Type",
+        "Property Layout"
+      ],
+      "grain": "quarterly",
+      "measure": "count",
+      "complete_through": null
+    },
+    "Transactions/resi_sales_by_period_quarterly_value_aed.xlsx": {
+      "columns": [
+        "Period",
+        "End of Period",
+        "Value (count/AED)",
+        "Transaction Type",
+        "Asset Class",
+        "Municipality",
+        "District",
+        "Property Type",
+        "Property Layout"
+      ],
+      "sheet": "Resi Sale Transactions By Perio",
+      "numeric_columns": [
+        "Value (count/AED)"
+      ],
+      "date_columns": [
+        "End of Period"
+      ],
+      "categories": {
+        "Transaction Type": [
+          "sales"
+        ],
+        "Asset Class": [
+          "residential"
+        ],
+        "Municipality": [
+          "Abu Dhabi City",
+          "Al Ain City",
+          "Al Dhafra Region"
+        ],
+        "Property Type": [
+          "apartment",
+          "duplex",
+          "penthouse",
+          "plot for townhouse / attached villa",
+          "plot for villa",
+          "townhouse / attached villa",
+          "villa"
+        ],
+        "Property Layout": [
+          "1 bed",
+          "2 beds",
+          "3 beds",
+          "4 beds",
+          "5 beds",
+          "5+ beds",
+          "6+ beds",
+          "studio",
+          "unclassified"
+        ]
+      },
+      "candidate_key": [
+        "Period",
+        "End of Period",
+        "Transaction Type",
+        "Asset Class",
+        "Municipality",
+        "District",
+        "Property Type",
+        "Property Layout"
+      ],
+      "grain": "quarterly",
+      "measure": "AED",
+      "complete_through": null
+    },
+    "Transactions/resi_sales_by_period_yearly_count.xlsx": {
+      "columns": [
+        "Period",
+        "End of Period",
+        "Value (count/AED)",
+        "Transaction Type",
+        "Asset Class",
+        "Municipality",
+        "District",
+        "Property Type",
+        "Property Layout"
+      ],
+      "sheet": "Resi Sale Transactions By Perio",
+      "numeric_columns": [
+        "Value (count/AED)"
+      ],
+      "date_columns": [
+        "End of Period"
+      ],
+      "categories": {
+        "Transaction Type": [
+          "sales"
+        ],
+        "Asset Class": [
+          "residential"
+        ],
+        "Municipality": [
+          "Abu Dhabi City",
+          "Al Ain City",
+          "Al Dhafra Region"
+        ],
+        "Property Type": [
+          "apartment",
+          "duplex",
+          "penthouse",
+          "plot for townhouse / attached villa",
+          "plot for villa",
+          "townhouse / attached villa",
+          "villa"
+        ],
+        "Property Layout": [
+          "1 bed",
+          "2 beds",
+          "3 beds",
+          "4 beds",
+          "5 beds",
+          "5+ beds",
+          "6+ beds",
+          "studio",
+          "unclassified"
+        ]
+      },
+      "candidate_key": [
+        "Period",
+        "End of Period",
+        "Transaction Type",
+        "Asset Class",
+        "Municipality",
+        "District",
+        "Property Type",
+        "Property Layout"
+      ],
+      "grain": "yearly",
+      "measure": "count",
+      "complete_through": null
+    },
+    "Transactions/resi_sales_by_period_yearly_value_aed.xlsx": {
+      "columns": [
+        "Period",
+        "End of Period",
+        "Value (count/AED)",
+        "Transaction Type",
+        "Asset Class",
+        "Municipality",
+        "District",
+        "Property Type",
+        "Property Layout"
+      ],
+      "sheet": "Resi Sale Transactions By Perio",
+      "numeric_columns": [
+        "Value (count/AED)"
+      ],
+      "date_columns": [
+        "End of Period"
+      ],
+      "categories": {
+        "Transaction Type": [
+          "sales"
+        ],
+        "Asset Class": [
+          "residential"
+        ],
+        "Municipality": [
+          "Abu Dhabi City",
+          "Al Ain City",
+          "Al Dhafra Region"
+        ],
+        "Property Type": [
+          "apartment",
+          "duplex",
+          "penthouse",
+          "plot for townhouse / attached villa",
+          "plot for villa",
+          "townhouse / attached villa",
+          "villa"
+        ],
+        "Property Layout": [
+          "1 bed",
+          "2 beds",
+          "3 beds",
+          "4 beds",
+          "5 beds",
+          "5+ beds",
+          "6+ beds",
+          "studio",
+          "unclassified"
+        ]
+      },
+      "candidate_key": [
+        "Period",
+        "End of Period",
+        "Transaction Type",
+        "Asset Class",
+        "Municipality",
+        "District",
+        "Property Type",
+        "Property Layout"
+      ],
+      "grain": "yearly",
+      "measure": "AED",
+      "complete_through": null
+    },
+    "Transactions/resi_sales_finance_monthly.xlsx": {
+      "columns": [
+        "Period",
+        "End of Period",
+        "Financed Sales",
+        "Cash Sales",
+        "Total Sales",
+        "Sale Application Type",
+        "Municipality",
+        "District",
+        "Community",
+        "Project Name",
+        "Asset Class",
+        "Property Type"
+      ],
+      "sheet": "Resi Financing By Period",
+      "numeric_columns": [
+        "Financed Sales",
+        "Cash Sales",
+        "Total Sales"
+      ],
+      "date_columns": [
+        "End of Period"
+      ],
+      "categories": {
+        "Sale Application Type": [
+          "off-plan",
+          "ready"
+        ],
+        "Municipality": [
+          "Abu Dhabi City",
+          "Al Ain City",
+          "Al Dhafra Region"
+        ],
+        "Asset Class": [
+          "residential"
+        ],
+        "Property Type": [
+          "apartment",
+          "duplex",
+          "penthouse",
+          "plot for townhouse / attached villa",
+          "plot for villa",
+          "townhouse / attached villa",
+          "villa"
+        ]
+      },
+      "candidate_key": [
+        "Period",
+        "End of Period",
+        "Sale Application Type",
+        "Municipality",
+        "District",
+        "Community",
+        "Project Name",
+        "Asset Class",
+        "Property Type"
+      ],
+      "grain": "monthly",
+      "measure": "source_label",
+      "complete_through": null
+    },
+    "Transactions/resi_sales_finance_quarterly.xlsx": {
+      "columns": [
+        "Period",
+        "End of Period",
+        "Financed Sales",
+        "Cash Sales",
+        "Total Sales",
+        "Sale Application Type",
+        "Municipality",
+        "District",
+        "Community",
+        "Project Name",
+        "Asset Class",
+        "Property Type"
+      ],
+      "sheet": "Resi Financing By Period",
+      "numeric_columns": [
+        "Financed Sales",
+        "Cash Sales",
+        "Total Sales"
+      ],
+      "date_columns": [
+        "End of Period"
+      ],
+      "categories": {
+        "Sale Application Type": [
+          "off-plan",
+          "ready"
+        ],
+        "Municipality": [
+          "Abu Dhabi City",
+          "Al Ain City",
+          "Al Dhafra Region"
+        ],
+        "Asset Class": [
+          "residential"
+        ],
+        "Property Type": [
+          "apartment",
+          "duplex",
+          "penthouse",
+          "plot for townhouse / attached villa",
+          "plot for villa",
+          "townhouse / attached villa",
+          "villa"
+        ]
+      },
+      "candidate_key": [
+        "Period",
+        "End of Period",
+        "Sale Application Type",
+        "Municipality",
+        "District",
+        "Community",
+        "Project Name",
+        "Asset Class",
+        "Property Type"
+      ],
+      "grain": "quarterly",
+      "measure": "source_label",
+      "complete_through": null
+    },
+    "Transactions/resi_sales_finance_yearly.xlsx": {
+      "columns": [
+        "Period",
+        "End of Period",
+        "Financed Sales",
+        "Cash Sales",
+        "Total Sales",
+        "Sale Application Type",
+        "Municipality",
+        "District",
+        "Community",
+        "Project Name",
+        "Asset Class",
+        "Property Type"
+      ],
+      "sheet": "Resi Financing By Period",
+      "numeric_columns": [
+        "Financed Sales",
+        "Cash Sales",
+        "Total Sales"
+      ],
+      "date_columns": [
+        "End of Period"
+      ],
+      "categories": {
+        "Sale Application Type": [
+          "off-plan",
+          "ready"
+        ],
+        "Municipality": [
+          "Abu Dhabi City",
+          "Al Ain City",
+          "Al Dhafra Region"
+        ],
+        "Asset Class": [
+          "residential"
+        ],
+        "Property Type": [
+          "apartment",
+          "duplex",
+          "penthouse",
+          "plot for other residential plot",
+          "plot for townhouse / attached villa",
+          "plot for villa",
+          "townhouse / attached villa",
+          "villa"
+        ]
+      },
+      "candidate_key": [
+        "Period",
+        "End of Period",
+        "Sale Application Type",
+        "Municipality",
+        "District",
+        "Community",
+        "Project Name",
+        "Asset Class",
+        "Property Type"
+      ],
+      "grain": "yearly",
+      "measure": "source_label",
+      "complete_through": null
+    },
+    "Transactions/sales_by_asset_monthly_count.xlsx": {
+      "columns": [
+        "End of Period",
+        "Period Description",
+        "Value (count/AED)",
+        "Transaction Type",
+        "Asset Class",
+        "Municipality",
+        "District",
+        "Property Type"
+      ],
+      "sheet": "Total Sales By Asset Class",
+      "numeric_columns": [
+        "Value (count/AED)"
+      ],
+      "date_columns": [
+        "End of Period"
+      ],
+      "categories": {
+        "Transaction Type": [
+          "sales"
+        ],
+        "Asset Class": [
+          "commercial",
+          "other",
+          "residential (complexes)",
+          "residential (units)"
+        ],
+        "Municipality": [
+          "Abu Dhabi City",
+          "Al Ain City",
+          "Al Dhafra Region"
+        ],
+        "Property Type": [
+          "apartment",
+          "duplex",
+          "farm",
+          "hotel / resort / serviced apartments",
+          "mall / market / retail center",
+          "office",
+          "office complex",
+          "other",
+          "other commercial plot",
+          "other mixed-use plot",
+          "other plot",
+          "other recreational plot",
+          "other residential plot",
+          "penthouse",
+          "plot for farm",
+          "plot for hotel / resort / serviced apartments",
+          "plot for mall / market / retail center",
+          "plot for office complex",
+          "plot for parking",
+          "plot for residential complex",
+          "plot for residential complex (staff accommodation)",
+          "plot for townhouse / attached villa",
+          "plot for villa",
+          "residential complex",
+          "residential complex (staff accommodation)",
+          "retail",
+          "townhouse / attached villa",
+          "villa"
+        ]
+      },
+      "candidate_key": [
+        "End of Period",
+        "Period Description",
+        "Transaction Type",
+        "Asset Class",
+        "Municipality",
+        "District",
+        "Property Type"
+      ],
+      "grain": "monthly",
+      "measure": "count",
+      "complete_through": null
+    },
+    "Transactions/sales_by_asset_monthly_value_aed.xlsx": {
+      "columns": [
+        "End of Period",
+        "Period Description",
+        "Value (count/AED)",
+        "Transaction Type",
+        "Asset Class",
+        "Municipality",
+        "District",
+        "Property Type"
+      ],
+      "sheet": "Total Sales By Asset Class",
+      "numeric_columns": [
+        "Value (count/AED)"
+      ],
+      "date_columns": [
+        "End of Period"
+      ],
+      "categories": {
+        "Transaction Type": [
+          "sales"
+        ],
+        "Asset Class": [
+          "commercial",
+          "other",
+          "residential (complexes)",
+          "residential (units)"
+        ],
+        "Municipality": [
+          "Abu Dhabi City",
+          "Al Ain City",
+          "Al Dhafra Region"
+        ],
+        "Property Type": [
+          "apartment",
+          "duplex",
+          "farm",
+          "hotel / resort / serviced apartments",
+          "mall / market / retail center",
+          "office",
+          "office complex",
+          "other",
+          "other commercial plot",
+          "other mixed-use plot",
+          "other plot",
+          "other recreational plot",
+          "other residential plot",
+          "penthouse",
+          "plot for farm",
+          "plot for hotel / resort / serviced apartments",
+          "plot for mall / market / retail center",
+          "plot for office complex",
+          "plot for parking",
+          "plot for residential complex",
+          "plot for residential complex (staff accommodation)",
+          "plot for townhouse / attached villa",
+          "plot for villa",
+          "residential complex",
+          "residential complex (staff accommodation)",
+          "retail",
+          "townhouse / attached villa",
+          "villa"
+        ]
+      },
+      "candidate_key": [
+        "End of Period",
+        "Period Description",
+        "Transaction Type",
+        "Asset Class",
+        "Municipality",
+        "District",
+        "Property Type"
+      ],
+      "grain": "monthly",
+      "measure": "AED",
+      "complete_through": null
+    },
+    "Transactions/sales_by_asset_quarterly_count.xlsx": {
+      "columns": [
+        "End of Period",
+        "Period Description",
+        "Value (count/AED)",
+        "Transaction Type",
+        "Asset Class",
+        "Municipality",
+        "District",
+        "Property Type"
+      ],
+      "sheet": "Total Sales By Asset Class",
+      "numeric_columns": [
+        "Value (count/AED)"
+      ],
+      "date_columns": [
+        "End of Period"
+      ],
+      "categories": {
+        "Transaction Type": [
+          "sales"
+        ],
+        "Asset Class": [
+          "commercial",
+          "other",
+          "residential (complexes)",
+          "residential (units)"
+        ],
+        "Municipality": [
+          "Abu Dhabi City",
+          "Al Ain City",
+          "Al Dhafra Region"
+        ],
+        "Property Type": [
+          "apartment",
+          "duplex",
+          "farm",
+          "hotel / resort / serviced apartments",
+          "mall / market / retail center",
+          "office",
+          "office complex",
+          "other",
+          "other commercial plot",
+          "other mixed-use plot",
+          "other plot",
+          "other recreational plot",
+          "other residential plot",
+          "penthouse",
+          "plot for clinic / hospital",
+          "plot for farm",
+          "plot for hotel / resort / serviced apartments",
+          "plot for mall / market / retail center",
+          "plot for office complex",
+          "plot for parking",
+          "plot for petrol station",
+          "plot for residential complex",
+          "plot for residential complex (staff accommodation)",
+          "plot for school",
+          "plot for townhouse / attached villa",
+          "plot for villa",
+          "residential complex",
+          "residential complex (staff accommodation)",
+          "retail",
+          "school",
+          "townhouse / attached villa",
+          "villa",
+          "workshop"
+        ]
+      },
+      "candidate_key": [
+        "End of Period",
+        "Period Description",
+        "Transaction Type",
+        "Asset Class",
+        "Municipality",
+        "District",
+        "Property Type"
+      ],
+      "grain": "quarterly",
+      "measure": "count",
+      "complete_through": null
+    },
+    "Transactions/sales_by_asset_quarterly_value_aed.xlsx": {
+      "columns": [
+        "End of Period",
+        "Period Description",
+        "Value (count/AED)",
+        "Transaction Type",
+        "Asset Class",
+        "Municipality",
+        "District",
+        "Property Type"
+      ],
+      "sheet": "Total Sales By Asset Class",
+      "numeric_columns": [
+        "Value (count/AED)"
+      ],
+      "date_columns": [
+        "End of Period"
+      ],
+      "categories": {
+        "Transaction Type": [
+          "sales"
+        ],
+        "Asset Class": [
+          "commercial",
+          "other",
+          "residential (complexes)",
+          "residential (units)"
+        ],
+        "Municipality": [
+          "Abu Dhabi City",
+          "Al Ain City",
+          "Al Dhafra Region"
+        ],
+        "Property Type": [
+          "apartment",
+          "duplex",
+          "farm",
+          "hotel / resort / serviced apartments",
+          "mall / market / retail center",
+          "office",
+          "office complex",
+          "other",
+          "other commercial plot",
+          "other mixed-use plot",
+          "other plot",
+          "other recreational plot",
+          "other residential plot",
+          "penthouse",
+          "plot for clinic / hospital",
+          "plot for farm",
+          "plot for hotel / resort / serviced apartments",
+          "plot for mall / market / retail center",
+          "plot for office complex",
+          "plot for parking",
+          "plot for petrol station",
+          "plot for residential complex",
+          "plot for residential complex (staff accommodation)",
+          "plot for school",
+          "plot for townhouse / attached villa",
+          "plot for villa",
+          "residential complex",
+          "residential complex (staff accommodation)",
+          "retail",
+          "school",
+          "townhouse / attached villa",
+          "villa",
+          "workshop"
+        ]
+      },
+      "candidate_key": [
+        "End of Period",
+        "Period Description",
+        "Transaction Type",
+        "Asset Class",
+        "Municipality",
+        "District",
+        "Property Type"
+      ],
+      "grain": "quarterly",
+      "measure": "AED",
+      "complete_through": null
+    },
+    "Transactions/sales_by_asset_yearly_count.xlsx": {
+      "columns": [
+        "End of Period",
+        "Period Description",
+        "Value (count/AED)",
+        "Transaction Type",
+        "Asset Class",
+        "Municipality",
+        "District",
+        "Property Type"
+      ],
+      "sheet": "Total Sales By Asset Class",
+      "numeric_columns": [
+        "Value (count/AED)"
+      ],
+      "date_columns": [
+        "End of Period"
+      ],
+      "categories": {
+        "Transaction Type": [
+          "sales"
+        ],
+        "Asset Class": [
+          "commercial",
+          "other",
+          "residential",
+          "residential (complexes)",
+          "residential (units)"
+        ],
+        "Municipality": [
+          "Abu Dhabi City",
+          "Al Ain City",
+          "Al Dhafra Region"
+        ],
+        "Property Type": [
+          "apartment",
+          "clinic / hospital",
+          "cooling utility",
+          "duplex",
+          "factory",
+          "farm",
+          "hotel / resort / serviced apartments",
+          "mall / market / retail center",
+          "mosque",
+          "office",
+          "office complex",
+          "other",
+          "other commercial plot",
+          "other industrial plot",
+          "other mixed-use plot",
+          "other plot",
+          "other recreational plot",
+          "other residential plot",
+          "penthouse",
+          "petrol station",
+          "plot for clinic / hospital",
+          "plot for cooling utility",
+          "plot for farm",
+          "plot for hotel / resort / serviced apartments",
+          "plot for mall / market / retail center",
+          "plot for office complex",
+          "plot for park",
+          "plot for parking",
+          "plot for petrol station",
+          "plot for residential complex",
+          "plot for residential complex (staff accommodation)",
+          "plot for school",
+          "plot for townhouse / attached villa",
+          "plot for villa",
+          "residential complex",
+          "residential complex (staff accommodation)",
+          "retail",
+          "school",
+          "townhouse / attached villa",
+          "villa",
+          "workshop"
+        ]
+      },
+      "candidate_key": [
+        "End of Period",
+        "Period Description",
+        "Transaction Type",
+        "Asset Class",
+        "Municipality",
+        "District",
+        "Property Type"
+      ],
+      "grain": "yearly",
+      "measure": "count",
+      "complete_through": null
+    },
+    "Transactions/sales_by_asset_yearly_value_aed.xlsx": {
+      "columns": [
+        "End of Period",
+        "Period Description",
+        "Value (count/AED)",
+        "Transaction Type",
+        "Asset Class",
+        "Municipality",
+        "District",
+        "Property Type"
+      ],
+      "sheet": "Total Sales By Asset Class",
+      "numeric_columns": [
+        "Value (count/AED)"
+      ],
+      "date_columns": [
+        "End of Period"
+      ],
+      "categories": {
+        "Transaction Type": [
+          "sales"
+        ],
+        "Asset Class": [
+          "commercial",
+          "other",
+          "residential",
+          "residential (complexes)",
+          "residential (units)"
+        ],
+        "Municipality": [
+          "Abu Dhabi City",
+          "Al Ain City",
+          "Al Dhafra Region"
+        ],
+        "Property Type": [
+          "apartment",
+          "clinic / hospital",
+          "cooling utility",
+          "duplex",
+          "factory",
+          "farm",
+          "hotel / resort / serviced apartments",
+          "mall / market / retail center",
+          "mosque",
+          "office",
+          "office complex",
+          "other",
+          "other commercial plot",
+          "other industrial plot",
+          "other mixed-use plot",
+          "other plot",
+          "other recreational plot",
+          "other residential plot",
+          "penthouse",
+          "petrol station",
+          "plot for clinic / hospital",
+          "plot for cooling utility",
+          "plot for farm",
+          "plot for hotel / resort / serviced apartments",
+          "plot for mall / market / retail center",
+          "plot for office complex",
+          "plot for park",
+          "plot for parking",
+          "plot for petrol station",
+          "plot for residential complex",
+          "plot for residential complex (staff accommodation)",
+          "plot for school",
+          "plot for townhouse / attached villa",
+          "plot for villa",
+          "residential complex",
+          "residential complex (staff accommodation)",
+          "retail",
+          "school",
+          "townhouse / attached villa",
+          "villa",
+          "workshop"
+        ]
+      },
+      "candidate_key": [
+        "End of Period",
+        "Period Description",
+        "Transaction Type",
+        "Asset Class",
+        "Municipality",
+        "District",
+        "Property Type"
+      ],
+      "grain": "yearly",
+      "measure": "AED",
+      "complete_through": null
+    },
+    "Transactions/total_transactions_monthly_count.xlsx": {
+      "columns": [
+        "End of Period",
+        "Period Description",
+        "Transaction Type",
+        "Asset Class",
+        "Property Type",
+        "Time Aggregation",
+        "Description",
+        "Value (count/AED)"
+      ],
+      "sheet": "Total Transactions By Type",
+      "numeric_columns": [
+        "Value (count/AED)"
+      ],
+      "date_columns": [
+        "End of Period"
+      ],
+      "categories": {
+        "Transaction Type": [
+          "mortgages",
+          "others",
+          "sales"
+        ],
+        "Asset Class": [
+          "commercial",
+          "other",
+          "residential"
+        ],
+        "Property Type": [
+          "apartment",
+          "clinic / hospital",
+          "duplex",
+          "electric utility",
+          "factory",
+          "farm",
+          "government complex",
+          "hotel / resort / serviced apartments",
+          "mall / market / retail center",
+          "office",
+          "office complex",
+          "other",
+          "other commercial plot",
+          "other mixed-use plot",
+          "other plot",
+          "other recreational plot",
+          "other residential plot",
+          "park",
+          "parking",
+          "penthouse",
+          "petrol station",
+          "plot for farm",
+          "plot for hotel / resort / serviced apartments",
+          "plot for mall / market / retail center",
+          "plot for office complex",
+          "plot for parking",
+          "plot for residential complex",
+          "plot for residential complex (staff accommodation)",
+          "plot for townhouse / attached villa",
+          "plot for villa",
+          "residential complex",
+          "residential complex (staff accommodation)",
+          "retail",
+          "school",
+          "sports facility",
+          "townhouse / attached villa",
+          "villa",
+          "warehouse / storage",
+          "workshop"
+        ],
+        "Time Aggregation": [
+          "monthly"
+        ],
+        "Description": [
+          "volume"
+        ]
+      },
+      "candidate_key": [
+        "End of Period",
+        "Period Description",
+        "Transaction Type",
+        "Asset Class",
+        "Property Type",
+        "Time Aggregation",
+        "Description"
+      ],
+      "grain": "monthly",
+      "measure": "count",
+      "complete_through": null
+    },
+    "Transactions/total_transactions_monthly_value_aed.xlsx": {
+      "columns": [
+        "End of Period",
+        "Period Description",
+        "Transaction Type",
+        "Asset Class",
+        "Property Type",
+        "Time Aggregation",
+        "Description",
+        "Value (count/AED)"
+      ],
+      "sheet": "Total Transactions By Type",
+      "numeric_columns": [
+        "Value (count/AED)"
+      ],
+      "date_columns": [
+        "End of Period"
+      ],
+      "categories": {
+        "Transaction Type": [
+          "mortgages",
+          "others",
+          "sales"
+        ],
+        "Asset Class": [
+          "commercial",
+          "other",
+          "residential"
+        ],
+        "Property Type": [
+          "apartment",
+          "clinic / hospital",
+          "duplex",
+          "electric utility",
+          "factory",
+          "farm",
+          "government complex",
+          "hotel / resort / serviced apartments",
+          "mall / market / retail center",
+          "office",
+          "office complex",
+          "other",
+          "other commercial plot",
+          "other mixed-use plot",
+          "other plot",
+          "other recreational plot",
+          "other residential plot",
+          "park",
+          "parking",
+          "penthouse",
+          "petrol station",
+          "plot for farm",
+          "plot for hotel / resort / serviced apartments",
+          "plot for mall / market / retail center",
+          "plot for office complex",
+          "plot for parking",
+          "plot for residential complex",
+          "plot for residential complex (staff accommodation)",
+          "plot for townhouse / attached villa",
+          "plot for villa",
+          "residential complex",
+          "residential complex (staff accommodation)",
+          "retail",
+          "school",
+          "sports facility",
+          "townhouse / attached villa",
+          "villa",
+          "warehouse / storage",
+          "workshop"
+        ],
+        "Time Aggregation": [
+          "monthly"
+        ],
+        "Description": [
+          "value (AED)"
+        ]
+      },
+      "candidate_key": [
+        "End of Period",
+        "Period Description",
+        "Transaction Type",
+        "Asset Class",
+        "Property Type",
+        "Time Aggregation",
+        "Description"
+      ],
+      "grain": "monthly",
+      "measure": "AED",
+      "complete_through": null
+    },
+    "Transactions/total_transactions_quarterly_count.xlsx": {
+      "columns": [
+        "End of Period",
+        "Period Description",
+        "Transaction Type",
+        "Asset Class",
+        "Property Type",
+        "Time Aggregation",
+        "Description",
+        "Value (count/AED)"
+      ],
+      "sheet": "Total Transactions By Type",
+      "numeric_columns": [
+        "Value (count/AED)"
+      ],
+      "date_columns": [
+        "End of Period"
+      ],
+      "categories": {
+        "Transaction Type": [
+          "mortgages",
+          "others",
+          "sales"
+        ],
+        "Asset Class": [
+          "commercial",
+          "other",
+          "residential"
+        ],
+        "Property Type": [
+          "apartment",
+          "clinic / hospital",
+          "college / university",
+          "cooling utility",
+          "data center",
+          "duplex",
+          "electric utility",
+          "factory",
+          "farm",
+          "government complex",
+          "hotel / resort / serviced apartments",
+          "mall / market / retail center",
+          "mosque",
+          "office",
+          "office complex",
+          "other",
+          "other commercial plot",
+          "other mixed-use plot",
+          "other plot",
+          "other recreational plot",
+          "other residential plot",
+          "park",
+          "parking",
+          "penthouse",
+          "petrol station",
+          "plot for clinic / hospital",
+          "plot for farm",
+          "plot for hotel / resort / serviced apartments",
+          "plot for mall / market / retail center",
+          "plot for office complex",
+          "plot for parking",
+          "plot for petrol station",
+          "plot for residential complex",
+          "plot for residential complex (staff accommodation)",
+          "plot for school",
+          "plot for townhouse / attached villa",
+          "plot for villa",
+          "residential complex",
+          "residential complex (staff accommodation)",
+          "retail",
+          "school",
+          "seaport",
+          "sports facility",
+          "townhouse / attached villa",
+          "villa",
+          "warehouse / storage",
+          "workshop"
+        ],
+        "Time Aggregation": [
+          "quarterly"
+        ],
+        "Description": [
+          "volume"
+        ]
+      },
+      "candidate_key": [
+        "End of Period",
+        "Period Description",
+        "Transaction Type",
+        "Asset Class",
+        "Property Type",
+        "Time Aggregation",
+        "Description"
+      ],
+      "grain": "quarterly",
+      "measure": "count",
+      "complete_through": null
+    },
+    "Transactions/total_transactions_quarterly_value_aed.xlsx": {
+      "columns": [
+        "End of Period",
+        "Period Description",
+        "Transaction Type",
+        "Asset Class",
+        "Property Type",
+        "Time Aggregation",
+        "Description",
+        "Value (count/AED)"
+      ],
+      "sheet": "Total Transactions By Type",
+      "numeric_columns": [
+        "Value (count/AED)"
+      ],
+      "date_columns": [
+        "End of Period"
+      ],
+      "categories": {
+        "Transaction Type": [
+          "mortgages",
+          "others",
+          "sales"
+        ],
+        "Asset Class": [
+          "commercial",
+          "other",
+          "residential"
+        ],
+        "Property Type": [
+          "apartment",
+          "clinic / hospital",
+          "college / university",
+          "cooling utility",
+          "data center",
+          "duplex",
+          "electric utility",
+          "factory",
+          "farm",
+          "government complex",
+          "hotel / resort / serviced apartments",
+          "mall / market / retail center",
+          "mosque",
+          "office",
+          "office complex",
+          "other",
+          "other commercial plot",
+          "other mixed-use plot",
+          "other plot",
+          "other recreational plot",
+          "other residential plot",
+          "park",
+          "parking",
+          "penthouse",
+          "petrol station",
+          "plot for clinic / hospital",
+          "plot for farm",
+          "plot for hotel / resort / serviced apartments",
+          "plot for mall / market / retail center",
+          "plot for office complex",
+          "plot for parking",
+          "plot for petrol station",
+          "plot for residential complex",
+          "plot for residential complex (staff accommodation)",
+          "plot for school",
+          "plot for townhouse / attached villa",
+          "plot for villa",
+          "residential complex",
+          "residential complex (staff accommodation)",
+          "retail",
+          "school",
+          "seaport",
+          "sports facility",
+          "townhouse / attached villa",
+          "villa",
+          "warehouse / storage",
+          "workshop"
+        ],
+        "Time Aggregation": [
+          "quarterly"
+        ],
+        "Description": [
+          "value (AED)"
+        ]
+      },
+      "candidate_key": [
+        "End of Period",
+        "Period Description",
+        "Transaction Type",
+        "Asset Class",
+        "Property Type",
+        "Time Aggregation",
+        "Description"
+      ],
+      "grain": "quarterly",
+      "measure": "AED",
+      "complete_through": null
+    },
+    "Transactions/total_transactions_yearly_count.xlsx": {
+      "columns": [
+        "End of Period",
+        "Period Description",
+        "Transaction Type",
+        "Asset Class",
+        "Property Type",
+        "Time Aggregation",
+        "Description",
+        "Value (count/AED)"
+      ],
+      "sheet": "Total Transactions By Type",
+      "numeric_columns": [
+        "Value (count/AED)"
+      ],
+      "date_columns": [
+        "End of Period"
+      ],
+      "categories": {
+        "Transaction Type": [
+          "mortgages",
+          "others",
+          "sales"
+        ],
+        "Asset Class": [
+          "commercial",
+          "other",
+          "residential"
+        ],
+        "Property Type": [
+          "apartment",
+          "clinic / hospital",
+          "college / university",
+          "cooling utility",
+          "data center",
+          "duplex",
+          "electric utility",
+          "factory",
+          "farm",
+          "government complex",
+          "hotel / resort / serviced apartments",
+          "mall / market / retail center",
+          "mosque",
+          "office",
+          "office complex",
+          "other",
+          "other commercial plot",
+          "other industrial plot",
+          "other mixed-use plot",
+          "other plot",
+          "other recreational plot",
+          "other residential plot",
+          "palace",
+          "park",
+          "parking",
+          "penthouse",
+          "petrol station",
+          "plot for clinic / hospital",
+          "plot for cooling utility",
+          "plot for farm",
+          "plot for hotel / resort / serviced apartments",
+          "plot for mall / market / retail center",
+          "plot for office complex",
+          "plot for park",
+          "plot for parking",
+          "plot for petrol station",
+          "plot for residential complex",
+          "plot for residential complex (staff accommodation)",
+          "plot for school",
+          "plot for townhouse / attached villa",
+          "plot for villa",
+          "residential complex",
+          "residential complex (staff accommodation)",
+          "retail",
+          "school",
+          "seaport",
+          "sports facility",
+          "townhouse / attached villa",
+          "villa",
+          "warehouse / storage",
+          "workshop"
+        ],
+        "Time Aggregation": [
+          "yearly"
+        ],
+        "Description": [
+          "volume"
+        ]
+      },
+      "candidate_key": [
+        "End of Period",
+        "Period Description",
+        "Transaction Type",
+        "Asset Class",
+        "Property Type",
+        "Time Aggregation",
+        "Description"
+      ],
+      "grain": "yearly",
+      "measure": "count",
+      "complete_through": null
+    },
+    "Transactions/total_transactions_yearly_value_aed.xlsx": {
+      "columns": [
+        "End of Period",
+        "Period Description",
+        "Transaction Type",
+        "Asset Class",
+        "Property Type",
+        "Time Aggregation",
+        "Description",
+        "Value (count/AED)"
+      ],
+      "sheet": "Total Transactions By Type",
+      "numeric_columns": [
+        "Value (count/AED)"
+      ],
+      "date_columns": [
+        "End of Period"
+      ],
+      "categories": {
+        "Transaction Type": [
+          "mortgages",
+          "others",
+          "sales"
+        ],
+        "Asset Class": [
+          "commercial",
+          "other",
+          "residential"
+        ],
+        "Property Type": [
+          "apartment",
+          "clinic / hospital",
+          "college / university",
+          "cooling utility",
+          "data center",
+          "duplex",
+          "electric utility",
+          "factory",
+          "farm",
+          "government complex",
+          "hotel / resort / serviced apartments",
+          "mall / market / retail center",
+          "mosque",
+          "office",
+          "office complex",
+          "other",
+          "other commercial plot",
+          "other industrial plot",
+          "other mixed-use plot",
+          "other plot",
+          "other recreational plot",
+          "other residential plot",
+          "palace",
+          "park",
+          "parking",
+          "penthouse",
+          "petrol station",
+          "plot for clinic / hospital",
+          "plot for cooling utility",
+          "plot for farm",
+          "plot for hotel / resort / serviced apartments",
+          "plot for mall / market / retail center",
+          "plot for office complex",
+          "plot for park",
+          "plot for parking",
+          "plot for petrol station",
+          "plot for residential complex",
+          "plot for residential complex (staff accommodation)",
+          "plot for school",
+          "plot for townhouse / attached villa",
+          "plot for villa",
+          "residential complex",
+          "residential complex (staff accommodation)",
+          "retail",
+          "school",
+          "seaport",
+          "sports facility",
+          "townhouse / attached villa",
+          "villa",
+          "warehouse / storage",
+          "workshop"
+        ],
+        "Time Aggregation": [
+          "yearly"
+        ],
+        "Description": [
+          "value (AED)"
+        ]
+      },
+      "candidate_key": [
+        "End of Period",
+        "Period Description",
+        "Transaction Type",
+        "Asset Class",
+        "Property Type",
+        "Time Aggregation",
+        "Description"
+      ],
+      "grain": "yearly",
+      "measure": "AED",
+      "complete_through": null
+    }
+  }
+}

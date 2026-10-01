@@ -10,10 +10,11 @@ interface ExampleQuestionsProps {
   examples: ExampleQuestion[];
   onPick: (question: string) => void;
   busy: boolean;
+  arabic: boolean;
 }
 
-export function ExampleQuestions({ examples, onPick, busy }: ExampleQuestionsProps) {
-  const [lang, setLang] = useState<Lang>("en");
+export function ExampleQuestions({ examples, onPick, busy, arabic }: ExampleQuestionsProps) {
+  const [lang, setLang] = useState<Lang>(arabic ? "ar" : "en");
   const [expanded, setExpanded] = useState(false);
 
   const pool = useMemo(() => examples.filter((example) => example.lang === lang), [examples, lang]);
@@ -22,14 +23,16 @@ export function ExampleQuestions({ examples, onPick, busy }: ExampleQuestionsPro
   if (examples.length === 0) return null;
 
   return (
-    <section className="mt-10">
+    <section dir={arabic ? "rtl" : "ltr"}>
       <div className="flex items-baseline justify-between">
-        <h2 className="label-mono">Try</h2>
+        <h2 className="section-heading">{arabic ? "جرّب سؤالًا" : "Try a question"}</h2>
         <div className="flex items-center gap-3">
           {(["en", "ar"] as const).map((code) => (
             <button
               key={code}
               type="button"
+              aria-label={code === "en" ? "English examples" : "Arabic examples"}
+              aria-pressed={lang === code}
               onClick={() => {
                 setLang(code);
                 setExpanded(false);
@@ -44,14 +47,14 @@ export function ExampleQuestions({ examples, onPick, busy }: ExampleQuestionsPro
         </div>
       </div>
 
-      <ul className="mt-4" dir={lang === "ar" ? "rtl" : "ltr"}>
+      <ul className="mt-5 grid gap-x-8 sm:grid-cols-2" dir={lang === "ar" ? "rtl" : "ltr"}>
         {visible.map((example) => (
           <li key={example.id}>
             <button
               type="button"
               disabled={busy}
               onClick={() => onPick(example.text)}
-              className="group/q flex w-full cursor-pointer items-baseline gap-2 py-[0.4375rem] text-start text-[1.0625rem] font-medium leading-snug text-sand transition-colors hover:text-ink disabled:cursor-default disabled:hover:text-sand"
+              className="example-question group/q flex w-full cursor-pointer items-baseline gap-2 py-[0.4375rem] text-start text-[1.0625rem] font-medium leading-snug text-sand transition-colors hover:text-ink disabled:cursor-default disabled:hover:text-sand"
             >
               <span
                 aria-hidden
@@ -71,7 +74,7 @@ export function ExampleQuestions({ examples, onPick, busy }: ExampleQuestionsPro
           onClick={() => setExpanded((open) => !open)}
           className="label-mono mt-2 ms-5 cursor-pointer text-sand transition-colors hover:text-sage"
         >
-          {expanded ? "Show fewer" : `Show all ${pool.length}`}
+          {expanded ? (arabic ? "عرض أقل" : "Show fewer") : (arabic ? `عرض الكل (${pool.length})` : `Show all ${pool.length}`)}
         </button>
       ) : null}
     </section>

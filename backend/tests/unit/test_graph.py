@@ -1,267 +1,228 @@
-from __future__ import annotations
-
 import pytest
 from langchain_core.messages import AIMessage
+from app.config import Settings
+from app.services import graph
+from app.services.graph import run_pipeline
+from app.services.schema_introspector import introspect_schema
+
+
+class Model:
+    def __init__(self, *responses):
+        self.responses = iter(responses)
+        self.calls = 0
+
+    def invoke(self, messages):
+        self.calls += 1
+        return AIMessage(content=next(self.responses, ''))
 
-from app.services.graph import (
-    EMPTY_RESPONSE,
-    EXECUTION_ERROR,
-    MAX_ATTEMPTS,
-    PARSE_ERROR,
-    UNSAFE_SQL,
-    VALIDATION_ERROR,
-    run_pipeline,
-)
 
-GOOD_SQL = "<sql>SELECT name_en FROM communities ORDER BY id</sql>"
+class FailingModel:
+    def invoke(self, messages):
+        raise ConnectionError('internal-provider-url:secret')
+
 
-
-class FakeChatModel:
-    """Replays canned responses in order so each retry path can be forced.
-
-    The same model serves both graph LLM nodes, so prompts are split by shape:
-    a SQL-generation prompt leads with the schema, a synthesis prompt does not.
-    """
-
-    def __init__(self, *responses: str) -> None:
-        self._responses = list(responses)
-        self.prompts: list[str] = []
-
-    def invoke(self, messages, **kwargs) -> AIMessage:
-        self.prompts.append(messages[-1].content)
-        return AIMessage(content=self._responses.pop(0) if self._responses else "")
-
-    @property
-    def generation_prompts(self) -> list[str]:
-        return [p for p in self.prompts if p.startswith("Schema:")]
-
-    @property
-    def synthesis_prompts(self) -> list[str]:
-        return [p for p in self.prompts if not p.startswith("Schema:")]
-
-
-def _run(engine, *responses: str):
-    model = FakeChatModel(*responses)
-    state = run_pipeline("how many communities are there", chat_model=model, engine=engine, engine_ro=engine)
-    return state, model
-
-
-def _exhaust(engine, response: str):
-    state, _ = _run(engine, *([response] * MAX_ATTEMPTS))
-    return state
-
-
-def test_happy_path_returns_the_generated_sql(sqlite_engine) -> None:
-    state, _ = _run(sqlite_engine, GOOD_SQL)
-    assert state["sql"] == "SELECT name_en FROM communities ORDER BY id"
-
-
-def test_happy_path_returns_executed_rows(sqlite_engine) -> None:
-    state, _ = _run(sqlite_engine, GOOD_SQL)
-    assert state["exec_result"].rows == [["Yas Island"], ["Al Reem Island"]]
-
-
-def test_happy_path_returns_column_names(sqlite_engine) -> None:
-    state, _ = _run(sqlite_engine, GOOD_SQL)
-    assert state["exec_result"].columns == ["name_en"]
-
-
-def test_happy_path_takes_a_single_attempt(sqlite_engine) -> None:
-    state, _ = _run(sqlite_engine, GOOD_SQL)
-    assert state["attempts"] == 1
-
-
-def test_happy_path_reports_no_failure(sqlite_engine) -> None:
-    state, _ = _run(sqlite_engine, GOOD_SQL)
-    assert state["failure"] is None
-
-
-def test_schema_context_is_retrieved(sqlite_engine) -> None:
-    state, _ = _run(sqlite_engine, GOOD_SQL)
-    assert "communities" in state["schema_context"]
-
-
-def test_tables_used_is_populated(sqlite_engine) -> None:
-    state, _ = _run(sqlite_engine, GOOD_SQL)
-    assert "communities" in state["tables_used"]
-
-
-def test_latency_is_recorded(sqlite_engine) -> None:
-    state, _ = _run(sqlite_engine, GOOD_SQL)
-    assert state["latency_ms"] >= 0
-
-
-def test_unsafe_sql_is_classified(sqlite_engine) -> None:
-    state = _exhaust(sqlite_engine, "<sql>SELECT * INTO copies FROM communities</sql>")
-    assert state["failure"]["type"] == UNSAFE_SQL
-
-
-def test_unparseable_response_is_classified(sqlite_engine) -> None:
-    state = _exhaust(sqlite_engine, "I am afraid I cannot help with that question.")
-    assert state["failure"]["type"] == PARSE_ERROR
-
-
-def test_empty_response_is_classified(sqlite_engine) -> None:
-    state = _exhaust(sqlite_engine, "")
-    assert state["failure"]["type"] == EMPTY_RESPONSE
-
-
-def test_sql_shaped_but_mutating_response_is_classified_as_validation_error(sqlite_engine) -> None:
-    state = _exhaust(sqlite_engine, "<sql>DELETE FROM communities</sql>")
-    assert state["failure"]["type"] == VALIDATION_ERROR
-
-
-def test_execution_error_is_classified(sqlite_engine) -> None:
-    state = _exhaust(sqlite_engine, "<sql>SELECT no_such_column FROM communities</sql>")
-    assert state["failure"]["type"] == EXECUTION_ERROR
-
-
-@pytest.mark.parametrize(
-    "bad",
-    [
-        "<sql>SELECT * INTO copies FROM communities</sql>",
-        "I am afraid I cannot help with that question.",
-        "",
-        "<sql>DELETE FROM communities</sql>",
-        "<sql>SELECT no_such_column FROM communities</sql>",
-    ],
-)
-def test_pipeline_recovers_on_the_retry_after_any_failure(sqlite_engine, bad: str) -> None:
-    state, _ = _run(sqlite_engine, bad, GOOD_SQL)
-    assert state["sql"] == "SELECT name_en FROM communities ORDER BY id"
-    assert state["failure"] is None
-    assert state["attempts"] == 2
-
-
-def test_retry_sends_feedback_back_to_the_model(sqlite_engine) -> None:
-    _, model = _run(sqlite_engine, "<sql>DELETE FROM communities</sql>", GOOD_SQL)
-    assert len(model.generation_prompts) == 2
-    assert "Previous attempt" in model.generation_prompts[1]
-
-
-def test_first_attempt_carries_no_feedback(sqlite_engine) -> None:
-    _, model = _run(sqlite_engine, GOOD_SQL)
-    assert "Previous attempt" not in model.generation_prompts[0]
-
-
-def test_execution_failure_feedback_quotes_the_database_error(sqlite_engine) -> None:
-    _, model = _run(sqlite_engine, "<sql>SELECT no_such_column FROM communities</sql>", GOOD_SQL)
-    assert "no_such_column" in model.generation_prompts[1]
-
-
-def test_pipeline_gives_up_after_max_attempts(sqlite_engine) -> None:
-    state = _exhaust(sqlite_engine, "")
-    assert state["attempts"] == MAX_ATTEMPTS
-
-
-def test_pipeline_stops_calling_the_model_once_exhausted(sqlite_engine) -> None:
-    model = FakeChatModel(*([""] * 10))
-    run_pipeline("q", chat_model=model, engine=sqlite_engine, engine_ro=sqlite_engine)
-    assert len(model.generation_prompts) == MAX_ATTEMPTS
-
-
-def test_exhausted_pipeline_returns_no_exec_result(sqlite_engine) -> None:
-    assert _exhaust(sqlite_engine, "")["exec_result"] is None
-
-
-def test_exhausted_pipeline_returns_no_sql(sqlite_engine) -> None:
-    assert _exhaust(sqlite_engine, "I cannot help.")["sql"] is None
-
-
-def test_failure_carries_a_detail_message(sqlite_engine) -> None:
-    state = _exhaust(sqlite_engine, "<sql>SELECT no_such_column FROM communities</sql>")
-    assert state["failure"]["detail"]
-
-
-CHARTABLE_SQL = "<sql>SELECT name_en, id FROM communities ORDER BY id</sql>"
-NARRATIVE = "Yas Island and Al Reem Island are the two communities."
-
-
-def test_successful_run_returns_a_synthesized_answer(sqlite_engine) -> None:
-    state, _ = _run(sqlite_engine, GOOD_SQL, NARRATIVE)
-    assert state["answer"] == NARRATIVE
-
-
-def test_synthesis_is_given_the_executed_rows(sqlite_engine) -> None:
-    _, model = _run(sqlite_engine, GOOD_SQL, NARRATIVE)
-    assert "Yas Island" in model.synthesis_prompts[0]
-
-
-def test_synthesis_runs_once_per_successful_request(sqlite_engine) -> None:
-    _, model = _run(sqlite_engine, GOOD_SQL, NARRATIVE)
-    assert len(model.synthesis_prompts) == 1
-
-
-def test_successful_run_returns_a_chart_spec(sqlite_engine) -> None:
-    state, _ = _run(sqlite_engine, CHARTABLE_SQL, NARRATIVE)
-    assert state["chart"].type == "bar"
-    assert state["chart"].x_key == "name_en"
-
-
-def test_chart_is_absent_when_the_result_shape_does_not_suit_one(sqlite_engine) -> None:
-    state, _ = _run(sqlite_engine, GOOD_SQL, NARRATIVE)
-    assert state["chart"] is None
-
-
-def test_exhausted_pipeline_never_reaches_synthesis(sqlite_engine) -> None:
-    model = FakeChatModel(*([""] * MAX_ATTEMPTS))
-    state = run_pipeline("q", chat_model=model, engine=sqlite_engine, engine_ro=sqlite_engine)
-    assert model.synthesis_prompts == []
-    assert state["answer"] == ""
-    assert state["chart"] is None
-
-
-def test_dry_run_returns_validated_sql_without_executing(sqlite_engine) -> None:
-    model = FakeChatModel(GOOD_SQL)
-    state = run_pipeline(
-        "q", dry_run=True, chat_model=model, engine=sqlite_engine, engine_ro=sqlite_engine
+@pytest.fixture
+def run(sqlite_engine, monkeypatch):
+    monkeypatch.setattr(graph, 'introspect_product_schema', lambda _: introspect_schema(sqlite_engine))
+    def invoke(*responses, dry_run=False):
+        model = Model(*responses)
+        return run_pipeline('sales count', chat_model=model, engine=sqlite_engine, engine_ro=sqlite_engine, dry_run=dry_run), model
+    return invoke
+
+
+def test_pipeline_returns_executed_evidence(run):
+    state, model = run('<sql>SELECT count(*) AS n FROM transactions</sql>', '600 observations.')
+    assert not state['failure']
+    assert state['exec_result'].rows == [[600]]
+    assert state['tables_used'] == ['transactions']
+    assert state['sql'] == state['exec_result'].executed_sql
+    assert model.calls == 2
+
+
+def test_pipeline_records_model_usage_for_evaluation(sqlite_engine, monkeypatch):
+    monkeypatch.setattr(graph, 'introspect_product_schema', lambda _: introspect_schema(sqlite_engine))
+    class UsageModel:
+        def __init__(self):
+            self.calls = 0
+
+        def invoke(self, messages):
+            self.calls += 1
+            content = '<sql>SELECT count(*) AS observation_count FROM transactions</sql>' if self.calls == 1 else '600 observations.'
+            return AIMessage(content=content,
+                             usage_metadata={'input_tokens': 100, 'output_tokens': 20, 'total_tokens': 120},
+                             response_metadata={'model_name': 'claude-haiku-4-5-20251001'})
+
+    state = run_pipeline('sales count', chat_model=UsageModel(), engine=sqlite_engine, engine_ro=sqlite_engine)
+    assert state['model_usage'] == {
+        'calls': 2, 'input_tokens': 200, 'output_tokens': 40,
+        'model': 'claude-haiku-4-5-20251001',
+    }
+
+
+def test_retry_repairs_unsafe_query(run):
+    state, _ = run('<sql>SELECT * FROM mortgages</sql>', '<sql>SELECT count(*) FROM transactions</sql>', '600 observations.')
+    assert not state['failure'] and state['attempts'] == 2
+
+
+def test_explicit_ready_residential_scope_gets_repair_feedback(sqlite_engine, monkeypatch):
+    monkeypatch.setattr(graph, 'introspect_product_schema', lambda _: introspect_schema(sqlite_engine))
+    question = 'For ready residential apartment sales in 2025 with sold area above 1 sqm, what was the average calculated AED per sqm?'
+    incomplete = "<sql>SELECT AVG(calculated_rate_aed_sqm) FROM transactions WHERE sale_type = 'ready' AND property_type = 'apartment' AND sold_area_sqm > 1 AND transaction_date >= DATE '2025-01-01' AND transaction_date < DATE '2026-01-01'</sql>"
+    complete = "<sql>SELECT AVG(calculated_rate_aed_sqm) FROM transactions WHERE sale_type = 'ready' AND property_type = 'apartment' AND asset_class = 'residential' AND sold_area_sqm > 1 AND transaction_date >= DATE '2025-01-01' AND transaction_date < DATE '2026-01-01'</sql>"
+    model = Model(incomplete, complete)
+    state = run_pipeline(question, chat_model=model, engine=sqlite_engine,
+                         engine_ro=sqlite_engine, dry_run=True)
+    assert state['failure'] is None and state['attempts'] == 2
+    assert "asset_class = 'residential'" in state['sql']
+
+
+def test_unsupported_stops_without_execution(run):
+    state, model = run('<unsupported>No lender records.</unsupported>')
+    assert state['failure']['type'] == 'UNSUPPORTED'
+    assert model.calls == 1 and state['exec_result'] is None
+
+
+def test_model_clarification_stops_without_retry(run):
+    state, model = run('<clarification>Which period?</clarification>')
+    assert state['failure']['type'] == 'CLARIFICATION'
+    assert model.calls == 1 and state['exec_result'] is None
+
+
+def test_explicit_year_gets_one_recovery_attempt(sqlite_engine, monkeypatch):
+    monkeypatch.setattr(graph, 'introspect_product_schema', lambda _: introspect_schema(sqlite_engine))
+    model = Model('<clarification>Which year?</clarification>',
+                  '<sql>SELECT count(*) AS observation_count FROM transactions</sql>')
+    state = run_pipeline('How many exported apartment sales observations in 2025?',
+                         chat_model=model, engine=sqlite_engine, engine_ro=sqlite_engine,
+                         dry_run=True)
+    assert state['failure'] is None
+    assert state['attempts'] == 2 and model.calls == 2
+
+
+def test_empty_result_has_explicit_outcome_without_synthesis(run):
+    state, model = run('<sql>SELECT id FROM transactions WHERE id < 0</sql>')
+    assert state['failure'] is None
+    assert state['outcome'] == 'no_data'
+    assert state['answer'] == 'No matching data was returned for this question.'
+    assert model.calls == 1
+
+
+def test_zero_count_is_a_valid_answer(run):
+    state, model = run('<sql>SELECT count(*) AS observation_count FROM transactions WHERE id < 0</sql>', 'Zero observations.')
+    assert state['outcome'] == 'answer'
+    assert state['exec_result'].rows == [[0]]
+    assert model.calls == 2
+
+
+def test_generation_provider_failure_is_explicit(sqlite_engine, monkeypatch):
+    monkeypatch.setattr(graph, 'introspect_product_schema', lambda _: introspect_schema(sqlite_engine))
+    state = run_pipeline('sales count', chat_model=FailingModel(), engine=sqlite_engine, engine_ro=sqlite_engine)
+    assert state['failure']['type'] == 'PROVIDER_UNAVAILABLE'
+    assert state['attempts'] == 1
+
+
+def test_synthesis_provider_failure_is_explicit(sqlite_engine, monkeypatch):
+    monkeypatch.setattr(graph, 'introspect_product_schema', lambda _: introspect_schema(sqlite_engine))
+    class FirstCallModel:
+        calls = 0
+        def invoke(self, messages):
+            self.calls += 1
+            if self.calls == 1:
+                return AIMessage(content='<sql>SELECT count(*) AS observation_count FROM transactions</sql>')
+            raise ConnectionError('internal-provider-url:secret')
+    state = run_pipeline('sales count', chat_model=FirstCallModel(), engine=sqlite_engine, engine_ro=sqlite_engine)
+    assert state['failure']['type'] == 'PROVIDER_UNAVAILABLE'
+    assert state['exec_result'].rows == [[600]]
+
+
+@pytest.mark.parametrize('question', ['What were the latest sales?', 'كم بلغت مبيعات البطين في 2025؟'])
+def test_clarification_preflight_avoids_model_and_database(question):
+    model = Model('<sql>SELECT 1</sql>')
+    state = run_pipeline(question, chat_model=model,
+                         settings=Settings(database_url='postgresql://unused/unused', readonly_db_password='unused'))
+    assert state['failure']['type'] == 'CLARIFICATION'
+    assert state['attempts'] == 0 and model.calls == 0
+
+
+def test_arabic_bateen_district_uses_validated_source_plan(sqlite_engine, monkeypatch):
+    monkeypatch.setattr(graph, 'introspect_product_schema', lambda _: introspect_schema(sqlite_engine))
+    model = Model('unneeded')
+    state = run_pipeline('كم قيمة المبيعات في منطقه البطين عام 2025؟',
+                         chat_model=model, engine=sqlite_engine, engine_ro=sqlite_engine,
+                         dry_run=True)
+    assert state['failure'] is None
+    assert state['query_method'] == 'source_plan:sales_district_value'
+    assert "district = 'Al Bateen'" in state['sql']
+    assert state['language'] == 'ar'
+    assert model.calls == 0
+
+
+@pytest.mark.parametrize('question', ['What is the rental yield?', 'ما العائد الإيجاري؟'])
+def test_gross_segment_yield_can_reach_query_generation(sqlite_engine, monkeypatch, question):
+    monkeypatch.setattr(graph, 'introspect_product_schema', lambda _: introspect_schema(sqlite_engine))
+    model = Model("<sql>SELECT 100 * source_annual_rent / NULLIF(source_average_sale_price_aed, 0) AS gross_yield_proxy_pct FROM rental_observations WHERE source_file = 'Price Indices/average_sale_rent_prices_by_product_area.xlsx' AND period_end = DATE '2026-06-30' AND source_annual_rent > 0 AND source_average_sale_price_aed > 0</sql>")
+    state = run_pipeline(question, chat_model=model, engine=sqlite_engine,
+                         engine_ro=sqlite_engine, dry_run=True)
+    assert state['failure'] is None
+    assert state['attempts'] == 1 and model.calls == 1
+
+
+@pytest.mark.parametrize('question', [
+    'What is the net rental yield for an individual Al Reem Island apartment in Q2 2026?',
+    'ما صافي العائد الإيجاري لشقة في Al Reem Island في الربع الثاني 2026؟',
+])
+def test_source_answerable_yield_uses_validated_plan(sqlite_engine, monkeypatch, question):
+    monkeypatch.setattr(graph, 'introspect_product_schema', lambda _: introspect_schema(sqlite_engine))
+    model = Model('<unsupported>Missing costs</unsupported>')
+    state = run_pipeline(question, chat_model=model, engine=sqlite_engine,
+                         engine_ro=sqlite_engine, dry_run=True)
+    assert state['failure'] is None
+    assert state['query_method'] == 'source_plan:gross_segment_yield'
+    assert state['attempts'] == 0 and model.calls == 0
+
+
+def test_dry_run_validates_without_execution(run):
+    state, model = run('<sql>SELECT count(*) FROM transactions</sql>', dry_run=True)
+    assert not state['failure'] and state['exec_result'] is None and model.calls == 1
+
+
+def test_generation_attempt_limit_is_configurable(sqlite_engine, monkeypatch):
+    monkeypatch.setattr(
+        graph, 'introspect_product_schema', lambda _: introspect_schema(sqlite_engine)
     )
-    assert state["sql"] == "SELECT name_en FROM communities ORDER BY id"
-    assert state["exec_result"] is None
-    assert state["failure"] is None
-
-
-def test_dry_run_skips_synthesis_and_charting(sqlite_engine) -> None:
-    model = FakeChatModel(GOOD_SQL)
-    state = run_pipeline(
-        "q", dry_run=True, chat_model=model, engine=sqlite_engine, engine_ro=sqlite_engine
+    model = Model(
+        '<sql>SELECT * FROM mortgages</sql>',
+        '<sql>SELECT count(*) FROM transactions</sql>',
     )
-    assert model.synthesis_prompts == []
-    assert state["answer"] == ""
-    assert state["chart"] is None
+    settings = Settings(model_generation_attempts=1)
 
-
-def test_dry_run_still_retries_unsafe_sql(sqlite_engine) -> None:
-    model = FakeChatModel("<sql>DROP TABLE communities</sql>", GOOD_SQL)
     state = run_pipeline(
-        "q", dry_run=True, chat_model=model, engine=sqlite_engine, engine_ro=sqlite_engine
+        'sales count',
+        chat_model=model,
+        engine=sqlite_engine,
+        engine_ro=sqlite_engine,
+        settings=settings,
     )
-    assert state["attempts"] == 2
-    assert state["sql"] == "SELECT name_en FROM communities ORDER BY id"
+
+    assert state['failure']['type'] == 'UNSAFE_SQL'
+    assert state['attempts'] == 1
+    assert model.calls == 1
 
 
-class ExplodingSynthesis(FakeChatModel):
-    def invoke(self, messages, **kwargs):
-        if not messages[-1].content.startswith("Schema:"):
-            raise RuntimeError("provider unavailable")
-        return super().invoke(messages, **kwargs)
+def test_expired_total_deadline_stops_before_model_call(sqlite_engine, monkeypatch):
+    monkeypatch.setattr(
+        graph, 'introspect_product_schema', lambda _: introspect_schema(sqlite_engine)
+    )
+    model = Model('<sql>SELECT count(*) FROM transactions</sql>')
+    settings = Settings(request_timeout_s=0.000001)
 
+    state = run_pipeline(
+        'sales count',
+        chat_model=model,
+        engine=sqlite_engine,
+        engine_ro=sqlite_engine,
+        settings=settings,
+    )
 
-def test_synthesis_failure_still_returns_sql_and_rows(sqlite_engine) -> None:
-    model = ExplodingSynthesis(CHARTABLE_SQL)
-    state = run_pipeline("q", chat_model=model, engine=sqlite_engine, engine_ro=sqlite_engine)
-    assert state["sql"] == "SELECT name_en, id FROM communities ORDER BY id"
-    assert state["exec_result"].row_count == 2
-    assert state["answer"] == ""
-
-
-def test_synthesis_failure_does_not_retry_sql_generation(sqlite_engine) -> None:
-    model = ExplodingSynthesis(CHARTABLE_SQL)
-    run_pipeline("q", chat_model=model, engine=sqlite_engine, engine_ro=sqlite_engine)
-    assert len(model.generation_prompts) == 1
-
-
-def test_synthesis_failure_still_produces_a_chart(sqlite_engine) -> None:
-    model = ExplodingSynthesis(CHARTABLE_SQL)
-    state = run_pipeline("q", chat_model=model, engine=sqlite_engine, engine_ro=sqlite_engine)
-    assert state["chart"].type == "bar"
+    assert state['failure']['type'] == 'REQUEST_TIMEOUT'
+    assert model.calls == 0

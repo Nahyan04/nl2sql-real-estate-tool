@@ -1,33 +1,27 @@
 import type { SchemaTable } from "@/lib/types";
 
-const DATE_TYPE = /^(date|timestamp)/i;
+const SUBJECTS = [
+  { table: "transactions", en: "Sales transactions", ar: "معاملات البيع" },
+  { table: "rental_observations", en: "Rental observations", ar: "بيانات الإيجارات" },
+  { table: "price_indices", en: "Price and rent indices", ar: "مؤشرات الأسعار والإيجارات" },
+] as const;
 
-/** A table carrying a date column is a fact table; the rest describe it. */
-function isFact(table: SchemaTable) {
-  return table.columns.some((column) => DATE_TYPE.test(column.type));
-}
-
-export function DataSurface({ tables }: { tables: SchemaTable[] }) {
-  if (tables.length === 0) return null;
-
-  const groups = [
-    { label: "Facts", names: tables.filter(isFact).map((table) => table.name) },
-    { label: "Reference", names: tables.filter((table) => !isFact(table)).map((table) => table.name) },
-  ].filter((group) => group.names.length > 0);
+export function DataSurface({ tables, arabic }: { tables: SchemaTable[]; arabic: boolean }) {
+  const names = new Set(tables.map((table) => table.name));
+  const subjects = SUBJECTS.filter((subject) => names.has(subject.table));
+  if (subjects.length === 0) return null;
 
   return (
-    <section className="mt-16 border-t border-rule pt-5">
-      <h2 className="label-mono">What you can ask about</h2>
-      <dl className="mt-4 grid gap-x-8 gap-y-3 sm:grid-cols-[auto_1fr]">
-        {groups.map((group) => (
-          <div key={group.label} className="contents">
-            <dt className="label-mono pt-px text-sand">{group.label}</dt>
-            <dd className="font-mono text-[0.9375rem] leading-relaxed text-sand">
-              {group.names.join("  ·  ")}
-            </dd>
-          </div>
+    <section dir={arabic ? "rtl" : "ltr"} className="rounded-xl border border-rule bg-paper-flat px-5 py-5 sm:px-6">
+      <h2 className="section-heading">{arabic ? "الموضوعات المتاحة" : "Available data"}</h2>
+      <ul className="mt-5 space-y-3 border-t border-rule pt-5">
+        {subjects.map((subject) => (
+          <li key={subject.table} className="flex items-baseline gap-3 text-[1rem] font-medium text-ink">
+            <span className="size-1.5 shrink-0 rounded-full bg-sage" aria-hidden />
+            {arabic ? subject.ar : subject.en}
+          </li>
         ))}
-      </dl>
+      </ul>
     </section>
   );
 }

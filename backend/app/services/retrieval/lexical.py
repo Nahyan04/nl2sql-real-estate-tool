@@ -104,6 +104,8 @@ def build_table_descriptor(table: dict[str, Any]) -> str:
     if fk_parts:
         descriptor += " | FK: " + ", ".join(fk_parts)
 
+    if table.get("description"):
+        descriptor += " | " + table["description"]
     return descriptor
 
 

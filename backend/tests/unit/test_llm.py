@@ -16,6 +16,7 @@ def _settings(**overrides) -> Settings:
         "llm_base_url": "http://localhost:11434",
         "anthropic_model": "claude-sonnet-5",
         "ollama_model": "qwen2.5-coder:7b",
+        "ollama_reasoning": None,
         "anthropic_api_key": "sk-test",
     }
     values.update(overrides)
@@ -31,8 +32,18 @@ def test_anthropic_model_comes_from_settings() -> None:
     assert model.model == "claude-opus-5"
 
 
-def test_anthropic_temperature_is_zero() -> None:
-    assert get_chat_model("anthropic", _settings()).temperature == 0
+def test_anthropic_uses_model_default_temperature() -> None:
+    assert get_chat_model("anthropic", _settings()).temperature is None
+
+
+def test_anthropic_calls_are_bounded_without_hidden_retries() -> None:
+    model = get_chat_model(
+        "anthropic",
+        _settings(model_call_timeout_s=7, model_max_output_tokens=900),
+    )
+    assert model.default_request_timeout == 7
+    assert model.max_retries == 0
+    assert model.max_tokens == 900
 
 
 def test_anthropic_api_key_comes_from_settings() -> None:
@@ -56,6 +67,20 @@ def test_ollama_base_url_comes_from_settings() -> None:
 
 def test_ollama_temperature_is_zero() -> None:
     assert get_chat_model("ollama", _settings()).temperature == 0
+
+
+def test_ollama_reasoning_is_server_configured() -> None:
+    assert get_chat_model("ollama", _settings()).reasoning is None
+    assert get_chat_model("ollama", _settings(ollama_reasoning=False)).reasoning is False
+
+
+def test_ollama_output_and_http_timeout_are_bounded() -> None:
+    model = get_chat_model(
+        "ollama",
+        _settings(model_call_timeout_s=7, model_max_output_tokens=900),
+    )
+    assert model.num_predict == 900
+    assert model.sync_client_kwargs["timeout"] == 7
 
 
 def test_missing_provider_falls_back_to_settings_provider() -> None:

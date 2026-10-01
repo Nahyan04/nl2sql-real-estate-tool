@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from langchain_anthropic import ChatAnthropic
@@ -10,6 +11,7 @@ from app.config import Settings
 
 ANTHROPIC = "anthropic"
 OLLAMA = "ollama"
+logger = logging.getLogger(__name__)
 
 
 def message_text(message: Any) -> str:
@@ -29,15 +31,24 @@ def get_chat_model(provider: str | None, settings: Settings) -> BaseChatModel:
     if name == ANTHROPIC:
         return ChatAnthropic(
             model=settings.anthropic_model,
-            temperature=0,
             api_key=settings.anthropic_api_key,
+            max_tokens=settings.model_max_output_tokens,
+            timeout=settings.model_call_timeout_s,
+            max_retries=0,
         )
 
     if name == OLLAMA:
+        logger.info("ollama model configured model=%s reasoning=%s", settings.ollama_model, settings.ollama_reasoning)
+        client_kwargs = {"headers": {"Authorization": f"Bearer {settings.ollama_api_key}"}} if settings.ollama_api_key else {}
         return ChatOllama(
             model=settings.ollama_model,
             base_url=settings.llm_base_url,
             temperature=0,
+            reasoning=settings.ollama_reasoning,
+            num_predict=settings.model_max_output_tokens,
+            client_kwargs=client_kwargs,
+            sync_client_kwargs={"timeout": settings.model_call_timeout_s},
+            async_client_kwargs={"timeout": settings.model_call_timeout_s},
         )
 
     raise ValueError(f"unknown llm provider: {name!r}")

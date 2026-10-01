@@ -69,22 +69,22 @@ def test_inject_limit_passes_unlimitable_statements_through_untouched(statement:
 
 
 def test_returns_column_names(sqlite_engine) -> None:
-    result = execute_readonly(sqlite_engine, "SELECT id, name_en FROM communities")
-    assert result.columns == ["id", "name_en"]
+    result = execute_readonly(sqlite_engine, "SELECT id, price_aed FROM transactions LIMIT 2")
+    assert result.columns == ["id", "price_aed"]
 
 
 def test_returns_rows(sqlite_engine) -> None:
-    result = execute_readonly(sqlite_engine, "SELECT name_en FROM communities ORDER BY id")
-    assert result.rows == [["Yas Island"], ["Al Reem Island"]]
+    result = execute_readonly(sqlite_engine, "SELECT id FROM transactions ORDER BY id LIMIT 2")
+    assert result.rows == [[1], [2]]
 
 
 def test_row_count_matches_returned_rows(sqlite_engine) -> None:
-    result = execute_readonly(sqlite_engine, "SELECT id FROM communities")
+    result = execute_readonly(sqlite_engine, "SELECT id FROM transactions LIMIT 2")
     assert result.row_count == len(result.rows) == 2
 
 
 def test_small_result_is_not_truncated(sqlite_engine) -> None:
-    result = execute_readonly(sqlite_engine, "SELECT id FROM communities")
+    result = execute_readonly(sqlite_engine, "SELECT id FROM transactions LIMIT 2")
     assert result.truncated is False
 
 
@@ -114,4 +114,22 @@ def test_custom_limit_is_honoured(sqlite_engine) -> None:
 
 def test_sql_errors_propagate_to_the_caller(sqlite_engine) -> None:
     with pytest.raises(SQLAlchemyError):
-        execute_readonly(sqlite_engine, "SELECT nonexistent_column FROM communities")
+        execute_readonly(sqlite_engine, "SELECT nonexistent_column FROM transactions")
+
+
+def test_result_byte_cap_keeps_complete_rows_and_marks_truncation(sqlite_engine) -> None:
+    result = execute_readonly(
+        sqlite_engine,
+        "SELECT 'abcdefghijklmnopqrstuvwxyz' AS label FROM transactions",
+        max_result_bytes=100,
+    )
+    assert result.truncated is True
+    assert result.truncation_reason == "result_bytes"
+    assert 0 < len(result.rows) < 500
+
+
+def test_oversized_first_cell_is_rejected(sqlite_engine) -> None:
+    from app.services.executor import ResultSizeError
+
+    with pytest.raises(ResultSizeError):
+        execute_readonly(sqlite_engine, "SELECT 'abcdefghijklmnopqrstuvwxyz' AS label", max_cell_bytes=10)

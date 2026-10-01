@@ -16,29 +16,41 @@ services:
       retries: 10
       start_period: 5s
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
   api:
-    image: python:3.11-slim
-    working_dir: /app
+    build: ./backend
     depends_on:
       postgres:
         condition: service_healthy
     env_file:
-      - backend/.env
+      - backend/.env.runtime
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-postgres}
+      DATABASE_URL: postgresql://nl2sql_runtime:${RUNTIME_DB_PASSWORD:?Set RUNTIME_DB_PASSWORD in the root .env}@postgres:5432/${POSTGRES_DB:-postgres}
     ports:
-      - "8000:8000"
-    volumes:
-      - ./backend:/app
-    command: >
-      bash -c "pip install --no-cache-dir -r requirements.txt &&
-               uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      test:
+        ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/ready', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3000:3000"
 
 volumes:
   postgres_data:

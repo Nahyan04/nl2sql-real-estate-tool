@@ -1,4 +1,4 @@
-import { formatCell, humanizeColumn, looksNumericColumn } from "@/lib/format";
+import { formatMetricCell, humanizeColumn, looksNumericColumn } from "@/lib/format";
 import type { Cell } from "@/lib/types";
 
 interface ResultsTableProps {
@@ -6,24 +6,27 @@ interface ResultsTableProps {
   rows: Cell[][];
   rowCount: number;
   truncated: boolean;
+  truncationReason: "row_limit" | "cell_size" | "result_bytes" | null;
+  arabic?: boolean;
 }
 
 function firstValue(rows: Cell[][], index: number): Cell {
   return rows.find((row) => row[index] !== null)?.[index] ?? null;
 }
 
-export function ResultsTable({ columns, rows, rowCount, truncated }: ResultsTableProps) {
+export function ResultsTable({ columns, rows, rowCount, truncated, truncationReason, arabic = false }: ResultsTableProps) {
   if (columns.length === 0) return null;
 
   const numeric = columns.map((column, index) => looksNumericColumn(column, firstValue(rows, index)));
 
   return (
-    <section className="mt-12">
+    <section dir={arabic ? "rtl" : "ltr"} className="mt-12">
       <div className="flex items-baseline justify-between gap-6">
-        <h2 className="label-mono">Result</h2>
+        <h2 className="section-heading">{arabic ? "البيانات" : "Data"}</h2>
         <p className="label-mono text-sand">
-          {rowCount} {rowCount === 1 ? "row" : "rows"} · {columns.length}{" "}
-          {columns.length === 1 ? "column" : "columns"}
+          {arabic
+            ? `${rowCount} صف · ${columns.length} عمود`
+            : `${rowCount} ${rowCount === 1 ? "row" : "rows"} · ${columns.length} ${columns.length === 1 ? "column" : "columns"}`}
         </p>
       </div>
 
@@ -39,7 +42,7 @@ export function ResultsTable({ columns, rows, rowCount, truncated }: ResultsTabl
                     numeric[index] ? "text-end" : "text-start"
                   }`}
                 >
-                  {humanizeColumn(column)}
+                  {humanizeColumn(column, arabic)}
                 </th>
               ))}
             </tr>
@@ -57,7 +60,7 @@ export function ResultsTable({ columns, rows, rowCount, truncated }: ResultsTabl
                         : "text-start text-sand"
                     }`}
                   >
-                    {formatCell(cell)}
+                    {formatMetricCell(cell, columns[cellIndex], arabic)}
                   </td>
                 ))}
               </tr>
@@ -68,7 +71,10 @@ export function ResultsTable({ columns, rows, rowCount, truncated }: ResultsTabl
 
       {truncated ? (
         <p className="mt-3 text-[0.9375rem] text-sand">
-          Capped at {rowCount} rows. Add a filter or a time range to see a complete set.
+          {truncationReason === "row_limit"
+            ? (arabic ? `اقتُطعت النتيجة عند ${rowCount} صف.` : `Capped at ${rowCount} rows.`)
+            : (arabic ? "اقتُطعت النتيجة بسبب حجمها." : "The response was capped by its size.")}
+          {arabic ? " أضف مرشحًا أو فترة زمنية لرؤية مجموعة أكمل." : " Add a filter or a time range to see a complete set."}
         </p>
       ) : null}
     </section>

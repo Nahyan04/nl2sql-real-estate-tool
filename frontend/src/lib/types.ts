@@ -1,6 +1,14 @@
 export type Provider = "anthropic" | "ollama";
 
+export interface ProviderStatus {
+  available: boolean;
+  status: string;
+}
+
+export type ProvidersResponse = Record<Provider, ProviderStatus>;
+
 export type Lang = "en" | "ar";
+export type LanguageChoice = Lang | "auto";
 
 export type ChartType = "line" | "bar" | "stat";
 
@@ -9,6 +17,7 @@ export type Cell = string | number | boolean | null;
 
 export interface QueryRequest {
   question: string;
+  language?: LanguageChoice;
   provider?: Provider | null;
   dry_run?: boolean;
 }
@@ -22,16 +31,23 @@ export interface ChartSpec {
 
 export interface QueryResponse {
   answer: string;
+  language: Lang;
+  outcome: "answer" | "no_data";
+  answer_limited: boolean;
+  snapshot_id: string | null;
+  date_conditions: string[];
   sql: string;
   columns: string[];
   rows: Cell[][];
   row_count: number;
   truncated: boolean;
+  truncation_reason: "row_limit" | "cell_size" | "result_bytes" | null;
   chart: ChartSpec | null;
   tables_used: string[];
   retry_count: number;
   latency_ms: number;
   provider: string;
+  query_method?: string;
 }
 
 export interface ExampleQuestion {
@@ -47,6 +63,7 @@ export interface ExamplesResponse {
 export interface ErrorPayload {
   error: string;
   detail: string;
+  request_id?: string | null;
 }
 
 export interface SchemaColumn {
@@ -73,16 +90,44 @@ export interface SchemaTable {
 
 export interface SchemaResponse {
   schema: string;
+  snapshot_id: string;
   tables: SchemaTable[];
+  coverage: SourceCoverage[];
+}
+
+export interface SourceCoverage {
+  source_file: string;
+  grain: string | null;
+  measure: string | null;
+  observed_from: string | null;
+  observed_through: string | null;
+  complete_through: string | null;
 }
 
 /** Codes the pipeline and the route can return in `ErrorPayload.error`. */
 export type ApiErrorCode =
   | "PARSE_ERROR"
   | "VALIDATION_ERROR"
+  | "SCOPE_ERROR"
   | "UNSAFE_SQL"
+  | "UNSUPPORTED"
+  | "CLARIFICATION"
   | "EMPTY_RESPONSE"
   | "EXECUTION_ERROR"
+  | "DATABASE_BUSY"
+  | "QUERY_TIMEOUT"
+  | "RESULT_TOO_LARGE"
+  | "MODEL_BUSY"
+  | "SERVER_BUSY"
+  | "SESSION_RATE_LIMIT"
+  | "SESSION_DAILY_LIMIT"
+  | "IP_RATE_LIMIT"
+  | "IP_DAILY_LIMIT"
+  | "LIMITER_UNAVAILABLE"
+  | "REQUEST_TIMEOUT"
   | "UNKNOWN_PROVIDER"
+  | "PROVIDER_UNAVAILABLE"
+  | "LANGUAGE_MISMATCH"
+  | "INVALID_REQUEST"
   | "UPSTREAM_ERROR"
   | "NETWORK_ERROR";

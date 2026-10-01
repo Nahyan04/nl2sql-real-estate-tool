@@ -3,11 +3,13 @@ from __future__ import annotations
 from typing import Any
 
 from pydantic import BaseModel, Field
+from app.core.language import Language, LanguageChoice
 
 
 class QueryRequest(BaseModel):
     question: str = Field(min_length=1, max_length=1000)
     provider: str | None = None
+    language: LanguageChoice = "auto"
     dry_run: bool = False
 
 
@@ -20,21 +22,29 @@ class ChartSpecPayload(BaseModel):
 
 class QueryResponse(BaseModel):
     answer: str = ""
+    language: Language = "en"
+    outcome: str = "answer"
+    answer_limited: bool = False
+    snapshot_id: str | None = None
+    date_conditions: list[str] = Field(default_factory=list)
     sql: str = ""
     columns: list[str] = Field(default_factory=list)
     rows: list[list[Any]] = Field(default_factory=list)
     row_count: int = 0
     truncated: bool = False
+    truncation_reason: str | None = None
     chart: ChartSpecPayload | None = None
     tables_used: list[str] = Field(default_factory=list)
     retry_count: int = 0
     latency_ms: int = 0
     provider: str = ""
+    query_method: str = "model"
 
 
 class ErrorResponse(BaseModel):
     error: str
     detail: str = ""
+    request_id: str | None = None
 
 
 class ExampleQuestion(BaseModel):

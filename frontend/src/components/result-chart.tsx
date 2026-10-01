@@ -12,7 +12,7 @@ import {
   YAxis,
 } from "recharts";
 
-import { formatCell, formatCompact, humanizeColumn, sentenceCase } from "@/lib/format";
+import { formatCompact, formatMetricCell, humanizeColumn, sentenceCase } from "@/lib/format";
 import type { Cell, ChartSpec } from "@/lib/types";
 
 /** Fixed order, never cycled. One series wears the brand gold; more than one
@@ -24,11 +24,12 @@ const AXIS = { fill: "var(--sand)", fontSize: 12, fontFamily: "var(--font-mono)"
 const GRID = "var(--rule)";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}/;
-const MONTH_LABEL = new Intl.DateTimeFormat("en-GB", { month: "short", year: "2-digit" });
+const MONTH_LABEL_EN = new Intl.DateTimeFormat("en-GB", { month: "short", year: "2-digit" });
+const MONTH_LABEL_AR = new Intl.DateTimeFormat("ar-AE-u-nu-latn", { month: "short", year: "2-digit" });
 
-function formatAxisLabel(value: unknown): string {
+function formatAxisLabel(value: unknown, arabic = false): string {
   if (typeof value === "string" && ISO_DATE.test(value)) {
-    return MONTH_LABEL.format(new Date(value));
+    return (arabic ? MONTH_LABEL_AR : MONTH_LABEL_EN).format(new Date(value));
   }
   return String(value ?? "");
 }
@@ -75,11 +76,12 @@ interface ResultChartProps {
   chart: ChartSpec;
   columns: string[];
   rows: Cell[][];
+  arabic?: boolean;
 }
 
-export function ResultChart({ chart, columns, rows }: ResultChartProps) {
+export function ResultChart({ chart, columns, rows, arabic = false }: ResultChartProps) {
   if (chart.type === "stat") {
-    return <StatFigure chart={chart} columns={columns} rows={rows} />;
+    return <StatFigure chart={chart} columns={columns} rows={rows} arabic={arabic} />;
   }
 
   const data = toRows(columns, rows);
@@ -94,10 +96,10 @@ export function ResultChart({ chart, columns, rows }: ResultChartProps) {
   const Figure = chart.type === "line" ? LineFigure : BarFigure;
 
   return (
-    <section className="mt-12">
+    <section dir={arabic ? "rtl" : "ltr"} className="mt-12">
       <div className="flex items-baseline justify-between gap-6">
-        <h2 className="label-mono">Chart</h2>
-        {shown.length > 1 && !faceted ? <Legend keys={shown} colorFor={colorFor} /> : null}
+        <h2 className="section-heading">{arabic ? "الرسم البياني" : "Chart"}</h2>
+        {shown.length > 1 && !faceted ? <Legend keys={shown} colorFor={colorFor} arabic={arabic} /> : null}
       </div>
 
       {faceted ? (
@@ -105,45 +107,51 @@ export function ResultChart({ chart, columns, rows }: ResultChartProps) {
           {shown.map((key, index) => (
             <figure key={key}>
               <figcaption className="text-[1.0625rem] text-ink">
-                {sentenceCase(`${humanizeColumn(key)} by ${humanizeColumn(xKey)}`)}
+                {arabic ? `${humanizeColumn(key, true)} حسب ${humanizeColumn(xKey, true)}` : sentenceCase(`${humanizeColumn(key)} by ${humanizeColumn(xKey)}`)}
               </figcaption>
-              <div className="mt-3 rounded-lg border border-rule bg-paper p-5 pe-7">
-                <Figure data={data} xKey={xKey} keys={[key]} colorFor={() => SERIES[index]} />
+              <div className="mt-3 overflow-x-auto rounded-lg border border-rule bg-paper p-5 pe-7">
+                <div className={chart.type === "bar" ? "min-w-[420px]" : "min-w-[320px]"}>
+                  <Figure data={data} xKey={xKey} keys={[key]} colorFor={() => SERIES[index]} arabic={arabic} />
+                </div>
               </div>
             </figure>
           ))}
         </div>
       ) : (
         <>
-          <p className="mt-3 text-[1.0625rem] text-ink">{chart.title}</p>
-          <div className="mt-5 rounded-lg border border-rule bg-paper p-5 pe-7">
-            <Figure data={data} xKey={xKey} keys={shown} colorFor={colorFor} />
+          <p className="mt-3 text-[1.0625rem] text-ink">{arabic ? `${humanizeColumn(shown[0], true)} حسب ${humanizeColumn(xKey, true)}` : chart.title}</p>
+          <div className="mt-5 overflow-x-auto rounded-lg border border-rule bg-paper p-5 pe-7">
+            <div className={chart.type === "bar" ? "min-w-[420px]" : "min-w-[320px]"}>
+              <Figure data={data} xKey={xKey} keys={shown} colorFor={colorFor} arabic={arabic} />
+            </div>
           </div>
         </>
       )}
 
       {keys.length > shown.length ? (
         <p className="mt-3 text-[0.9375rem] text-sand">
-          Charting the first {shown.length} measures. The rest are in the result table.
+          {arabic ? `يعرض الرسم أول ${shown.length} مقاييس. تظهر بقية المقاييس في الجدول.` : `Charting the first ${shown.length} measures. The rest are in the result table.`}
         </p>
       ) : null}
     </section>
   );
 }
 
-function StatFigure({ chart, columns, rows }: ResultChartProps) {
+function StatFigure({ chart, columns, rows, arabic = false }: ResultChartProps) {
   const key = chart.y_keys[0] ?? columns[0];
   const index = columns.indexOf(key);
   const value = index >= 0 ? rows[0]?.[index] : null;
   if (value === undefined || value === null) return null;
 
   return (
-    <section className="mt-12">
-      <h2 className="label-mono">Result</h2>
+    <section dir={arabic ? "rtl" : "ltr"} className="mt-12">
+      <h2 className="section-heading">{arabic ? "النتيجة" : "Result"}</h2>
       <p className="mt-4 text-[3.25rem] leading-none font-semibold text-ink">
-        {formatCell(value)}
+        {formatMetricCell(value, key, arabic)}
       </p>
-      <p className="mt-3 text-[1.0625rem] text-sand">{chart.title}</p>
+      <p className="mt-3 text-[1.0625rem] text-sand">
+        {arabic ? humanizeColumn(key, true) : chart.title}
+      </p>
     </section>
   );
 }
@@ -153,9 +161,10 @@ interface FigureProps {
   xKey: string;
   keys: string[];
   colorFor: (index: number) => string;
+  arabic: boolean;
 }
 
-function LineFigure({ data, xKey, keys, colorFor }: FigureProps) {
+function LineFigure({ data, xKey, keys, colorFor, arabic }: FigureProps) {
   return (
     <ResponsiveContainer width="100%" height={300}>
       <LineChart data={data} margin={{ top: 8, right: 24, bottom: 0, left: 0 }}>
@@ -163,20 +172,20 @@ function LineFigure({ data, xKey, keys, colorFor }: FigureProps) {
         <XAxis
           dataKey={xKey}
           tick={AXIS}
-          tickFormatter={formatAxisLabel}
+          tickFormatter={(value) => formatAxisLabel(value, arabic)}
           tickLine={false}
           axisLine={{ stroke: GRID }}
           minTickGap={24}
         />
         <YAxis
           tick={AXIS}
-          tickFormatter={(value) => formatCompact(Number(value))}
+          tickFormatter={(value) => formatCompact(Number(value), arabic)}
           tickLine={false}
           axisLine={false}
           width={64}
           domain={fittedDomain}
         />
-        <Tooltip content={<ChartTooltip colorFor={colorFor} keys={keys} />} cursor={{ stroke: GRID }} />
+        <Tooltip content={<ChartTooltip colorFor={colorFor} keys={keys} arabic={arabic} />} cursor={{ stroke: GRID }} />
         {keys.map((key, index) => (
           <Line
             key={key}
@@ -195,7 +204,7 @@ function LineFigure({ data, xKey, keys, colorFor }: FigureProps) {
 
 /** Rankings carry text categories, which collide as vertical tick labels;
  *  horizontal bars give every label a full line. */
-function BarFigure({ data, xKey, keys, colorFor }: FigureProps) {
+function BarFigure({ data, xKey, keys, colorFor, arabic }: FigureProps) {
   const height = Math.max(200, data.length * (keys.length > 1 ? 30 * keys.length : 44) + 40);
 
   return (
@@ -205,7 +214,7 @@ function BarFigure({ data, xKey, keys, colorFor }: FigureProps) {
         <XAxis
           type="number"
           tick={AXIS}
-          tickFormatter={(value) => formatCompact(Number(value))}
+          tickFormatter={(value) => formatCompact(Number(value), arabic)}
           tickLine={false}
           axisLine={{ stroke: GRID }}
         />
@@ -213,14 +222,14 @@ function BarFigure({ data, xKey, keys, colorFor }: FigureProps) {
           type="category"
           dataKey={xKey}
           tick={AXIS}
-          tickFormatter={formatAxisLabel}
+          tickFormatter={(value) => formatAxisLabel(value, arabic)}
           tickLine={false}
           tickMargin={10}
           axisLine={{ stroke: GRID }}
           width={158}
         />
         <Tooltip
-          content={<ChartTooltip colorFor={colorFor} keys={keys} />}
+          content={<ChartTooltip colorFor={colorFor} keys={keys} arabic={arabic} />}
           cursor={{ fill: "var(--secondary)" }}
         />
         {keys.map((key, index) => (
@@ -231,7 +240,7 @@ function BarFigure({ data, xKey, keys, colorFor }: FigureProps) {
   );
 }
 
-function Legend({ keys, colorFor }: { keys: string[]; colorFor: (index: number) => string }) {
+function Legend({ keys, colorFor, arabic }: { keys: string[]; colorFor: (index: number) => string; arabic: boolean }) {
   return (
     <ul className="flex flex-wrap items-center gap-x-5 gap-y-1.5">
       {keys.map((key, index) => (
@@ -241,7 +250,7 @@ function Legend({ keys, colorFor }: { keys: string[]; colorFor: (index: number) 
             className="size-2 shrink-0 rounded-full"
             style={{ background: colorFor(index) }}
           />
-          {humanizeColumn(key)}
+          {humanizeColumn(key, arabic)}
         </li>
       ))}
     </ul>
@@ -254,14 +263,15 @@ interface TooltipProps {
   payload?: { dataKey?: string | number; value?: number }[];
   keys: string[];
   colorFor: (index: number) => string;
+  arabic: boolean;
 }
 
-function ChartTooltip({ active, label, payload, keys, colorFor }: TooltipProps) {
+function ChartTooltip({ active, label, payload, keys, colorFor, arabic }: TooltipProps) {
   if (!active || !payload?.length) return null;
 
   return (
     <div className="rounded-md border border-rule bg-paper px-3.5 py-2.5 shadow-[0_8px_24px_rgba(26,24,22,0.12)]">
-      <p className="label-mono text-sand">{formatAxisLabel(label)}</p>
+      <p className="label-mono text-sand">{formatAxisLabel(label, arabic)}</p>
       <ul className="mt-2 space-y-1">
         {payload.map((entry) => {
           const key = String(entry.dataKey ?? "");
@@ -272,8 +282,8 @@ function ChartTooltip({ active, label, payload, keys, colorFor }: TooltipProps) 
                 className="size-2 shrink-0 rounded-full"
                 style={{ background: colorFor(keys.indexOf(key)) }}
               />
-              <span className="text-sand">{humanizeColumn(key)}</span>
-              <span className="ms-auto font-mono text-ink">{formatCell(entry.value ?? null)}</span>
+              <span className="text-sand">{humanizeColumn(key, arabic)}</span>
+              <span className="ms-auto font-mono text-ink">{formatMetricCell(entry.value ?? null, key, arabic)}</span>
             </li>
           );
         })}

@@ -38,6 +38,72 @@ def test_returns_the_models_answer() -> None:
     assert answer == "Yas Island led with AED 9.35 billion."
 
 
+def test_sales_observation_count_uses_the_result_and_question_language() -> None:
+    result = ExecResult(columns=["sales_observation_count"], rows=[[25114]], row_count=1)
+    model = FakeChatModel("جواب بلغة خاطئة")
+    assert synthesize_answer("How many sales observations are in the export for 2025?", SQL, result, model) == (
+        "The export contains 25,114 sales observations in 2025."
+    )
+    assert synthesize_answer("كم عدد سجلات المبيعات لعام 2025؟", SQL, result, model) == (
+        "تتضمن البيانات 25,114 سجل مبيعات مُصدّر في عام 2025."
+    )
+    assert model.prompts == []
+
+
+def test_district_sales_ranking_names_and_amounts_come_from_rows() -> None:
+    result = ExecResult(
+        columns=["district", "sales_value_aed"],
+        rows=[["Al Reem Island", Decimal("152340000000")], ["Yas Island", Decimal("92450000000")]],
+        row_count=2,
+    )
+    model = FakeChatModel("Invented district (AED 999 billion)")
+    english = synthesize_answer("Which districts had the highest sales value in 2025?", SQL, result, model)
+    arabic = synthesize_answer("ما المناطق الأعلى بقيمة المبيعات في 2025؟", SQL, result, model)
+    assert "Al Reem Island (AED 152.34 billion)" in english
+    assert "Yas Island (AED 92.45 billion)" in english
+    assert "Al Reem Island (152.34 مليار درهم)" in arabic
+    assert "Invented" not in english and model.prompts == []
+
+
+def test_lease_value_answer_uses_returned_amount_and_language() -> None:
+    result = ExecResult(
+        columns=["total_lease_value_aed"], rows=[[Decimal("9324978842")]], row_count=1,
+    )
+    model = FakeChatModel("قيمة مختلفة")
+    english = synthesize_answer("What was residential lease value in Q1 and Q2 2026?", SQL, result, model)
+    assert english == "The source-labelled residential lease value for Q1 2026 and Q2 2026 was AED 9.32 billion."
+    assert model.prompts == []
+
+
+def test_average_rate_answer_does_not_infer_sample_size_or_yield() -> None:
+    result = ExecResult(columns=["avg_calculated_rate_aed_sqm"],
+                        rows=[[Decimal("14744.508107920448")]], row_count=1)
+    model = FakeChatModel("unsupported guess")
+    answer = synthesize_answer(
+        "For ready residential apartment sales in 2025 with sold area above 1 sqm, what was the average calculated AED per sqm?",
+        SQL, result, model,
+    )
+    assert "14,744.51" in answer and "2025" in answer
+    assert "501" not in answer and "yield" not in answer
+    assert model.prompts == []
+
+
+def test_sales_count_aggregate_does_not_call_row_limit_a_sample() -> None:
+    model = FakeChatModel("The count is only a sample of 501 rows.")
+    cases = [
+        ("How many off-plan sales observations were recorded in 2025?", "off_plan_sales_count",
+         "sale_type = 'off-plan'", 16697, "16,697 off-plan sales observations"),
+        ("How many exported 2025 sales observations had a sold ownership share greater than zero and less than one?",
+         "partial_ownership_sales_count", "sold_share > 0 AND sold_share < 1", 212,
+         "212 sales observations"),
+    ]
+    for question, alias, filter_sql, count, expected in cases:
+        sql = f"SELECT COUNT(*) AS {alias} FROM transactions WHERE {filter_sql} LIMIT 501"
+        answer = synthesize_answer(question, sql, ExecResult(columns=[alias], rows=[[count]], row_count=1), model)
+        assert expected in answer and "sample" not in answer and "501" not in answer
+    assert model.prompts == []
+
+
 def test_flattens_content_blocks_from_hosted_providers() -> None:
     model = FakeChatModel([{"type": "text", "text": "Yas Island led."}])
     assert synthesize_answer(QUESTION, SQL, _result(ROWS), model) == "Yas Island led."
@@ -81,6 +147,7 @@ def test_prompt_says_how_many_rows_were_withheld() -> None:
     model = FakeChatModel()
     synthesize_answer(QUESTION, SQL, _result(rows), model)
     assert str(200 - MAX_ANSWER_ROWS) in model.prompts[0]
+    assert "full-result conclusion" in model.prompts[0]
 
 
 def test_prompt_flags_a_truncated_result_set() -> None:
@@ -92,13 +159,13 @@ def test_prompt_flags_a_truncated_result_set() -> None:
 def test_prompt_does_not_flag_truncation_when_complete() -> None:
     model = FakeChatModel()
     synthesize_answer(QUESTION, SQL, _result(ROWS), model)
-    assert "truncated" not in model.prompts[0].lower()
+    assert "Note: the result was truncated" not in model.prompts[0]
 
 
-def test_prompt_asks_for_the_questions_language() -> None:
+def test_prompt_pins_the_answer_language() -> None:
     model = FakeChatModel()
     synthesize_answer(QUESTION, SQL, _result(ROWS), model)
-    assert "same language" in model.prompts[0].lower()
+    assert "required answer language: english" in model.prompts[0].lower()
 
 
 def test_prompt_pins_arabic_answers_to_western_digits() -> None:

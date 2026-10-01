@@ -7,6 +7,9 @@
 /* Warm paper canvas with a sage accent — a printed government record rather
    than a console. Cream ground, white tiles, sage-tinted hairlines. */
 :root {
+  --font-plex-sans: "IBM Plex Sans";
+  --font-plex-arabic: "IBM Plex Sans Arabic";
+  --font-plex-mono: "IBM Plex Mono";
   --canvas: #e7e1de;
   --paper: #ffffff;
   --paper-flat: #faf8f5;
@@ -144,10 +147,50 @@
 }
 
 @layer components {
-  /* Small mono caps used for every structural label: section heads, stage
-     names, table headers, metadata. */
   .label-mono {
-    @apply font-mono text-[0.75rem] font-medium uppercase tracking-[0.14em] text-sand;
+    @apply font-mono text-[0.75rem] font-medium uppercase tracking-[0.1em] text-sand;
+  }
+  .section-heading {
+    @apply font-sans text-[1.125rem] font-semibold leading-snug text-ink;
+  }
+  .control-label {
+    @apply font-sans text-[0.8125rem] font-semibold text-ink;
+  }
+  .control-option {
+    @apply font-sans text-[0.875rem] font-semibold whitespace-nowrap;
+  }
+  html[lang="ar"] .label-mono {
+    font-family: var(--font-plex-arabic), sans-serif;
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  html[lang="ar"] .section-heading {
+    font-size: 1.375rem;
+    line-height: 1.5;
+  }
+  html[lang="ar"] .header-subtitle {
+    font-size: 1.125rem;
+  }
+  html[lang="ar"] .query-field {
+    font-size: 1.75rem;
+  }
+  html[lang="ar"] .example-question {
+    font-size: 1.3125rem;
+    line-height: 1.6;
+  }
+  html[lang="ar"] .answer-copy {
+    font-size: 1.4375rem;
+  }
+  html[lang="ar"] .evidence-copy {
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+  html[lang="ar"] .control-label,
+  html[lang="ar"] .control-option {
+    font-size: 1rem;
+    line-height: 1.5;
   }
 }
 
