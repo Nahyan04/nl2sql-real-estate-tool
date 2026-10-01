@@ -6,7 +6,11 @@ The application uses a private snapshot of real ADREC exports. It does not downl
 
 ## Run locally
 
-You need Docker, and a populated Bayan PostgreSQL volume or the private ADREC snapshot. On a new machine, copy `.env.example` to `.env`, `backend/.env.example` to `backend/.env`, and `backend/.env.runtime.example` to `backend/.env.runtime`. Set the **same PostgreSQL bootstrap user, password, database, and runtime password** in the first two files; `backend/.env`'s `DATABASE_URL` uses the bootstrap account for one-time database setup. Set the same read-only role password in both backend files. Keep all three files private. If you already have a populated local Docker volume, retain its existing bootstrap credentials. Set one model provider in `backend/.env.runtime`: `ANTHROPIC_API_KEY` for Cloud API, or an installed `OLLAMA_MODEL` with `OLLAMA_ENABLED=true` for local Ollama. The Docker API reaches host Ollama at `host.docker.internal:11434`.
+You need Docker and a populated Bayan PostgreSQL volume or the private ADREC snapshot. The repository does not include the real source data.
+
+1. Copy `.env.example` to `.env`, `backend/.env.example` to `backend/.env`, and `backend/.env.runtime.example` to `backend/.env.runtime`.
+2. Set matching PostgreSQL bootstrap, runtime and read-only passwords in the indicated files. Keep these files private. On an existing populated volume, retain its original bootstrap credentials.
+3. Configure Cloud API with `ANTHROPIC_API_KEY`, or local Self-hosted with a running Ollama model and `OLLAMA_ENABLED=true`. The Docker API reaches host Ollama at `host.docker.internal:11434`.
 
 ```sh
 docker compose up -d postgres
@@ -52,7 +56,7 @@ Database integration tests require an explicitly disposable, populated staging d
 
 ## Deployment preparation
 
-Deploy `frontend/` as the Vercel project root and set `NEXT_PUBLIC_API_URL` to the **public HTTPS API origin** before building. This variable is embedded in the browser bundle and must never contain credentials; Vercel builds fail if it is missing or local. Host the FastAPI image and validated PostgreSQL snapshot separately; configure HTTPS, `CORS_ORIGINS`, the restricted API runtime and read-only query credentials, and request limits on the API. For a cross-site Vercel/API pair, set `SESSION_COOKIE_SECURE=true` and `SESSION_COOKIE_SAMESITE=none`, and trust forwarded IP headers only from your actual proxy. Never give the public API the bootstrap/migration database URL or password. The local Compose defaults are for local development, not public database credentials. Leave `OLLAMA_ENABLED=false` unless a protected remote endpoint and its model have been tested end to end. Public deployment also needs a fresh English/Arabic browser check against that exact build and snapshot.
+For a free prototype, use the [Neon + Render + Vercel guide](docs/deploy-free.md). Vercel hosts `frontend/`; the API and validated PostgreSQL snapshot need separate hosts. Public release requires a fresh browser and provider check against the deployed build.
 
 ## License
 
