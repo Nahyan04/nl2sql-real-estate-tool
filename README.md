@@ -56,7 +56,7 @@ Database integration tests require an explicitly disposable, populated staging d
 
 ## Deployment preparation
 
-For a free prototype, use the [Neon + Render + Vercel guide](docs/deploy-free.md). Vercel hosts `frontend/`; the API and validated PostgreSQL snapshot need separate hosts. Public release requires a fresh browser and provider check against the deployed build.
+Vercel hosts `frontend/`; the API and validated PostgreSQL snapshot need separate hosts. Public release requires a fresh browser and provider check against the deployed build.
 
 ## License
 
