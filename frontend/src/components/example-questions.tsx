@@ -25,7 +25,7 @@ export function ExampleQuestions({ examples, onPick, busy, arabic }: ExampleQues
   return (
     <section dir={arabic ? "rtl" : "ltr"}>
       <div className="flex items-baseline justify-between">
-        <h2 className="section-heading">{arabic ? "جرّب سؤالًا" : "Try a question"}</h2>
+        <h2 className="section-heading">{arabic ? "جرب سؤالًا" : "Try a question"}</h2>
         <div className="flex items-center gap-3">
           {(["en", "ar"] as const).map((code) => (
             <button

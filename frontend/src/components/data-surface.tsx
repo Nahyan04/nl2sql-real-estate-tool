@@ -13,7 +13,7 @@ export function DataSurface({ tables, arabic }: { tables: SchemaTable[]; arabic:
 
   return (
     <section dir={arabic ? "rtl" : "ltr"} className="rounded-xl border border-rule bg-paper-flat px-5 py-5 sm:px-6">
-      <h2 className="section-heading">{arabic ? "الموضوعات المتاحة" : "Available data"}</h2>
+      <h2 className="section-heading">{arabic ? "المواضيع المتاحة" : "Available data"}</h2>
       <ul className="mt-5 space-y-3 border-t border-rule pt-5">
         {subjects.map((subject) => (
           <li key={subject.table} className="flex items-baseline gap-3 text-[1rem] font-medium text-ink">
