@@ -1,4 +1,4 @@
-"""Configure the dedicated query role after restoring a verified fresh snapshot."""
+"""Configure the dedicated read-only role for Bayan query views."""
 import argparse
 import sys
 from pathlib import Path
@@ -28,7 +28,7 @@ def main():
             command = 'ALTER' if exists else 'CREATE'
             connection.execute(text(f'{command} ROLE nl2sql_readonly LOGIN PASSWORD :password'), {'password': settings.readonly_db_password})
             grant_query_role(connection, settings.query_connections)
-        print('Fresh-data read-only role configured')
+        print('Read-only query role configured')
     except Exception as exc:
         parser.exit(1, f'Role configuration failed ({type(exc).__name__}); transaction rolled back.\n')
     finally:

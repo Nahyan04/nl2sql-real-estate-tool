@@ -1,77 +1,107 @@
-# ADREC native source contract
+# Data setup and source contract
 
-The fresh-data path takes an explicit incoming snapshot and never falls back to older exports or synthetic records. Native workbooks/CSV are primary; overlapping JSON responses are evidence only. The application reads only the `bayan` query views over one active native snapshot. Legacy loaders, seeds, synthetic generators and the old export copies have been removed.
+Bayan reads a private ADREC export snapshot from PostgreSQL. The repository contains the schema and import tools, but no source data or database dump. The application queries four views in the `bayan` schema: `transactions`, `rental_observations`, `price_indices`, and `dataset_coverage`. Source rows and provenance remain in the private `adrec_intake` schema.
 
-From the repository root:
+## Prepare a snapshot
 
-```sh
-backend/.venv/bin/python backend/scripts/profile_snapshot.py \
-  --snapshot ADREC_DATA/incoming/2026-09-24 \
-  --output .agent-notes/data-profile/profile.json
+Place one snapshot in `ADREC_DATA/incoming/<snapshot-id>/`:
+
+```text
+ADREC_DATA/incoming/<snapshot-id>/
+├── native-export-manifest.jsonl
+└── native-exports/
+    ├── Transactions/...
+    ├── Residential Leases/...
+    └── Price Indices/...
 ```
 
-This read-only command validates all 31 manifest entries, hashes, sizes, sheets, exact headers/order, CSV widths, numeric/date parsing and categorical domains against `backend/app/resources/adrec_source_contract.json`. Unexpected categories fail for review instead of becoming Other. The report contains nulls, categories, numeric ranges, fractional values, duplicate candidates, source coverage, lease outer-join accounting, ambiguous districts and financing arithmetic. Incoming files must never be rewritten. Snapshot-specific reports remain local, not committed.
+The [source contract](../app/resources/adrec_source_contract.json) lists the 31 expected filenames, sheets, columns, and accepted source categories. Keep the exports unchanged. Each JSONL manifest entry needs `file` (relative to the snapshot directory), `sha256`, `bytes`, `retrieved_at_utc`, and `parameters` (the export filters). Use a new directory name for each snapshot. Record the actual export time and filters; they cannot be inferred from a filename.
 
-## Grain and identity
+The current query surface supports transaction detail, rental observations, and price indices. Other exports are stored for provenance and reconciliation, but are not exposed as query facts. Municipality is unavailable on Recent Sales rows and remains null. District, community, project, Share, asset class, sale type, and layout keep their source meanings. A source period label does not establish a complete reporting period.
 
-Every source has an independent contract, measure and grain. Monthly, quarterly and yearly exports overlap and must never be added together. Count/AED is selected from the manifest-backed source filename, not inferred from the ambiguous value column. Financing unit definitions remain unresolved even when cash + financed equals total.
+## Check the files
 
-Workbook candidate keys comprise all non-measure columns, including period labels and geography. A candidate key is a profiling assertion, not permission to discard duplicates. Recent Sales has no proven natural key: preserve every row, including identical-looking observations. Its ingestion identity is snapshot + source file + one-based data-row ordinal, backed by the source checksum. This identity does not permit incremental appends across snapshots.
+From the repository root, after installing `backend/requirements.txt` in `backend/.venv`, set the snapshot and database names for your own setup:
 
-Preserve district, community, project, asset class, layout, sale application type, sale sequence and fractional Share exactly. Bayan interprets Share as the fraction of ownership interest transferred: 1 means a whole interest, and a positive fraction below 1 means a partial interest. It is neither a row count nor a multiplier for recorded price or area. Municipality is absent from Recent Sales and must remain unresolved; cross-source district labels do not establish a parent relationship. Never pair EN/AR lookup lists by position. Keep 5+ beds and 6+ beds separate. All asset classes and industrial series are retained for profiling; publication scope remains a later explicit decision.
+```sh
+export BAYAN_SNAPSHOT_ID=2026-09-24
+export BAYAN_STAGING_DB=bayan_staging_local
+export BAYAN_TARGET_DB=postgres
+umask 077
+backend/.venv/bin/python backend/scripts/profile_snapshot.py \
+  --snapshot "ADREC_DATA/incoming/$BAYAN_SNAPSHOT_ID" \
+  --output /tmp/bayan-profile.json
+```
 
-## Metrics and coverage
+The profile verifies file checksums, workbook sheets, CSV width, columns, numeric and date values, and known categories. A format failure stops import so a changed export is mapped deliberately. The JSON report records column nulls and ranges, source coverage, duplicate candidate keys, lease join coverage, geography ambiguity, small sold areas, and financing arithmetic. Its `review_items` section summarizes findings for manual review; these findings **do not stop import or change app answers**.
 
-Keep each source's fact/period date separate from retrieval time. Dates past retrieval are period labels, not future facts. `complete_through` remains null for every dataset because a past month-end alone does not prove reporting completeness. Recent Sales is observed detail through its own maximum date, not a complete market census.
+Review the report before loading:
 
-Lease units and values join at Date, Property Type, Municipality, District and Property Layout, with null groups retained and an outer join. The ADREC H1 2026 report defines active leases as period-end stock and residential lease value as annual rent value accrued over the stated period. The native Q1+Q2 2026 `Sum of active_value_aed` totals AED 9,324,978,842 at Emirate scope, consistent with the report's rounded AED 9.3bn H1 value. Treat each export quarter as source lease value for that quarter; sum non-overlapping quarters for a half-year value, never annualize one quarter. Native Q2 `Leased Units` totals 228,456 versus the report's 233,000 active leases, so label it source quarter-end leased units rather than the report's stock count or new contracts.
+- `unmatched_lease_keys`: compare `lease_join.join_counts` at Date, Property Type, Municipality, District, and Property Layout. Lease units and values have different detail levels, so keep unmatched groups visible.
+- `ambiguous_districts`: inspect `ambiguous_districts`. Do not assign a municipality to a sales row by district name alone.
+- `small_sold_areas`: inspect `transaction_area_flags`. Raw rows remain; Bayan leaves its calculated price per sqm null when sold area is at most 1 sqm.
+- `duplicate_candidate_keys`: inspect the named source's key and rows. Repeated Recent Sales rows are retained because they have no proven unique transaction key.
+- `financing_arithmetic`: inspect `financing_arithmetic` and source units before interpreting totals. Financing is not part of the public query views.
 
-For an annual-rent estimate spanning several segments, use the comparison export's `Annual Rent` at one quarter and join the lease-unit export at the exact shared key: period end, municipality, district, property type and layout. Aggregate lease-unit rows to that key before joining, because their community/project dimensions are finer. Weight each positive annual-rent observation by its positive quarter-end leased-unit count: `SUM(annual_rent * leased_units) / SUM(leased_units)`. Do not re-average the monthly `rolling_average` values; they remain directly reportable at their original segment grain.
+Rental comparisons and indicative gross yield need a separate analyst check when the source or business definition changes. For a multi-segment annual rent, match the comparison export to positive leased units at the same period, municipality, district, property type, and layout; weight annual rent by those units. Indicative gross segment yield uses annual rent and average sale price from the **same comparison row**, then weights matched segment ratios by leased units. Report matched segment/unit coverage. A mismatch with another published figure is a review finding, not a reason to stop the database or show an internal warning in Bayan. Net and individual-property yield are unsupported.
 
-For an indicative gross rental-yield estimate, require both positive `Annual Rent` and positive `Average of average_sale_price_aed` on the **same comparison-export row**. The segment ratio is `100 * annual_rent / average_sale_price_aed`; a multi-segment estimate is the leased-unit-weighted mean of those matched ratios. Include the matched segment and unit counts so the smaller sale-observed population is visible. At Q2 2026, 703 of 706 comparison rent segments match positive leased-unit weights (220,547 units), giving AED 79,231 as the weighted annual-rent estimate. Only 90 segments also have positive sale price (56,870 matched units), giving an indicative gross yield of 5.74%. This is a segment-level gross estimate before costs, not a property-specific or net yield. Do not combine Recent Sales transaction prices with lease observations for this calculation.
+## Import into a new database
 
-Index keys retain municipality, Zone/District, original property group, App Type and date. Zone/District in index exports can mean investment-zone grouping rather than a named district. Keep all-rents and new-rents separate. The ADREC H1 2026 report describes a same-unit repeat lease index rebased to Q1 2020; native June 2025 to June 2026 rates match its rounded figures. The exact monthly estimator remains unpublished, so compare only within one source series.
+Use a separate PostgreSQL database named `bayan_staging_<name>` and set `BAYAN_STAGING_URL` privately to its owner connection URL. With the local Docker database from the README, create it with:
 
-Preserve raw area/rate fields. Null, nonpositive and very small sold areas require quality flags; suppress newly calculated per-area rates for areas <= 1 sqm pending investigation. This threshold is a conservative quality policy, not a claim that every such record is invalid.
+```sh
+docker compose exec -e BAYAN_STAGING_DB="$BAYAN_STAGING_DB" postgres \
+  sh -c 'createdb -U "$POSTGRES_USER" "$BAYAN_STAGING_DB"'
+```
 
-## Schema and seed transition
-
-`backend/db/adrec_staging.sql` defines a separate intake schema, source provenance and lossless observation records. Dimensions and metrics retain their native names; no curated geography, developer, broker or loan rows are seeded. It intentionally grants no access to the application role. It is applied only to an explicitly named staging database; the working database is unchanged.
-
-The intake schema preserves native rows. `adrec_views.sql` provides source-preserving typed views; `bayan_query_v1.sql` exposes the three supported fact views and `dataset_coverage` for one active snapshot. The application role has SELECT only on those four query views. Unsupported finance aggregates remain in private source storage.
-
-`import_snapshot.py` loads every source in one transaction, verifies row accounting, rejects changed hashes under an existing snapshot identity, and makes identical repeat imports no-ops. `prepare_query_schema.py` installs the versioned query schema and selects the validated snapshot. No curated geography or synthetic seed records are used.
-
-## Import into an isolated staging database
-
-Create a separate PostgreSQL database whose name starts with `bayan_staging_`. Put its connection URL in a dedicated environment variable, then run:
+The import scripts require the exact expected database name and do not read the application connection URL.
 
 ```sh
 backend/.venv/bin/python backend/scripts/import_snapshot.py \
-  --snapshot ADREC_DATA/incoming/2026-09-24 \
+  --snapshot "ADREC_DATA/incoming/$BAYAN_SNAPSHOT_ID" \
   --staging-url-env BAYAN_STAGING_URL \
-  --expected-database bayan_staging_review
-```
+  --expected-database "$BAYAN_STAGING_DB"
 
-The importer verifies the actual database name and refuses mismatches before DDL. It never reads the application's database configuration. The staging target must be private and dedicated; no application read-only grants are created. A transaction-scoped lock serializes imports. Sources are rechecked during loading, numeric CSV strings preserve decimal precision, and all source rows survive. Schema version 1 requires a fresh staging schema; future schema changes need an explicit migration.
-
-Staging snapshot status `validated` means source shape, checksums and row accounting passed; it is not an assertion that unresolved business definitions or application acceptance have passed. Full native files are the only seed input; reference names are taken directly from source observations. No fabricated dimension relationships are seeded.
-
-## Query schema and promotion
-
-After importing, prepare the query surface in the same staging database:
-
-```sh
 backend/.venv/bin/python backend/scripts/prepare_query_schema.py \
   --staging-url-env BAYAN_STAGING_URL \
-  --expected-database bayan_staging_review \
-  --snapshot-id 2026-09-24
+  --expected-database "$BAYAN_STAGING_DB" \
+  --snapshot-id "$BAYAN_SNAPSHOT_ID"
 ```
 
-Back up the explicitly identified working database and restore that backup in a separate target first. Export only `adrec_intake` and `bayan` from the verified staging database and restore them into the prepared working target in one transaction. Do not overwrite an unknown populated target. Keep the backup outside tracked files. Existing populated schemas require an explicit reviewed replacement; the importer does not drop them automatically.
+The importer keeps every source row with its file, checksum, and row number. Repeating the same import is safe. A different set of bytes requires a new snapshot ID. Review the staged row counts and `bayan` views before promoting them.
 
-From `backend/`, run `python scripts/configure_query_role.py --expected-database <working-name>` to create/update the dedicated role using `READONLY_DB_PASSWORD` from server configuration. The script refuses unexpected public tables, privileged/inherited query roles, or residual access to private source tables. Restart the API to clear engine state and verify `/ready`, `/api/v1/schema` and a source-supported query.
+For a **new, empty** application database, move the two prepared schemas from staging with PostgreSQL tools. Set `BAYAN_TARGET_URL` privately to the target owner URL and verify both URLs point to the intended databases before running these commands:
 
-Install the shared limiter tables with `python scripts/init_runtime_store.py --database <working-name>`, then run `python scripts/configure_runtime_role.py --expected-database <working-name>` with `RUNTIME_DB_PASSWORD` in private server configuration. The API process uses this restricted role for snapshot metadata and shared rate-limit writes; generated SQL uses the separate read-only role. Keep the bootstrap/migration URL out of the public API process.
+```sh
+pg_dump --dbname="$BAYAN_STAGING_URL" --format=custom \
+  --schema=adrec_intake --schema=bayan --file=/tmp/bayan-snapshot.dump
+pg_restore --dbname="$BAYAN_TARGET_URL" --no-owner --no-acl \
+  --single-transaction --exit-on-error /tmp/bayan-snapshot.dump
+```
 
-The configured local working database was promoted on September 25, 2026 after backup/restore verification. Its public schema had no user tables. The only application data is now the September 24 native snapshot; old source files and generation paths are removed. Rollback backups are recovery artifacts, not a runtime data source.
+Keep the dump private. For a populated database, back it up, test restoration separately, reconcile the staged snapshot, and use a reviewed promotion/rollback procedure. Do not restore over the deployed database as a first-time setup step.
+
+Configure the target's separate API runtime and read-only query roles using the private values in `backend/.env`. These commands use `DATABASE_URL` for the owner connection; set it to the verified target URL in the command environment:
+
+```sh
+cd backend
+DATABASE_URL="$BAYAN_TARGET_URL" .venv/bin/python scripts/init_runtime_store.py --database "$BAYAN_TARGET_DB"
+DATABASE_URL="$BAYAN_TARGET_URL" .venv/bin/python scripts/configure_query_role.py --expected-database "$BAYAN_TARGET_DB"
+DATABASE_URL="$BAYAN_TARGET_URL" .venv/bin/python scripts/configure_runtime_role.py --expected-database "$BAYAN_TARGET_DB"
+```
+
+The API uses the restricted runtime role for metadata and shared limits; generated SQL uses the separate read-only role. Keep the owner URL out of the running API and frontend. Start the app, then check `/ready` for the snapshot ID and `/api/v1/schema` for the four query views.
+
+## Inspect stored flags
+
+`adrec_intake.observations.quality_flags` stores row-level import flags. They are for database review, not application warnings. For example, in a private SQL session:
+
+```sql
+SELECT source_file, flag, count(*) AS rows
+FROM adrec_intake.observations AS o
+CROSS JOIN LATERAL jsonb_array_elements_text(o.quality_flags) AS flags(flag)
+GROUP BY source_file, flag
+ORDER BY source_file, flag;
+```
+
+For source-level questions, inspect the profile JSON and `adrec_intake.sources`. For application-visible data, query `bayan.dataset_coverage` and the three fact views. Monthly, quarterly, and yearly aggregates overlap; never sum them together as independent transactions.

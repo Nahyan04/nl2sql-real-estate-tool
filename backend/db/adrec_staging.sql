@@ -1,5 +1,5 @@
 -- Separate intake schema: apply only to an explicitly selected staging target.
--- No synthetic dimensions or grants to the application's query role.
+-- The application's query role does not access this schema.
 CREATE SCHEMA IF NOT EXISTS adrec_intake;
 CREATE TABLE IF NOT EXISTS adrec_intake.snapshots (
     snapshot_id text PRIMARY KEY,

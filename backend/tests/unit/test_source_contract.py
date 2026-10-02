@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from scripts.genlib.source_contract import CONTRACT, ContractError, lease_reconciliation, read_source, validate_frame
+from scripts.genlib.source_contract import CONTRACT, ContractError, lease_reconciliation, read_source, review_items, validate_frame
 
 
 def spec():
@@ -52,6 +52,21 @@ def test_null_and_unmatched_lease_keys_are_accounted_for():
     assert result['join_counts'] == {'both': 1, 'left_only': 1, 'right_only': 0}
     assert result['units_null_key_rows'] == 1
     assert not result['derived_annual_rent_supported']
+
+
+def test_reconciliation_findings_are_advisory():
+    report = {'lease_join': {'join_counts': {'left_only': 2, 'right_only': 1}},
+              'ambiguous_districts': {'Al Bateen': ['Abu Dhabi City', 'Al Dhafra Region']},
+              'transaction_area_flags': {'at_or_below_one_sqm': 3},
+              'sources': {'source.xlsx': {'duplicate_keys_after_first': 2}},
+              'financing_arithmetic': {'finance.xlsx': {'nonzero_delta_rows': 4}}}
+    assert review_items(report) == [
+        {'code': 'unmatched_lease_keys', 'count': 3},
+        {'code': 'ambiguous_districts', 'count': 1},
+        {'code': 'small_sold_areas', 'count': 3},
+        {'code': 'duplicate_candidate_keys', 'source_file': 'source.xlsx', 'count': 2},
+        {'code': 'financing_arithmetic', 'source_file': 'finance.xlsx', 'count': 4},
+    ]
 
 
 def test_contract_keeps_all_31_sources_and_index_dimensions():

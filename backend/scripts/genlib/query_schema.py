@@ -58,4 +58,4 @@ def grant_query_role(connection, connection_limit: int = 4) -> None:
         WHERE n.nspname IN ('public','adrec_intake') AND c.relkind IN ('r','v','m','p')
         AND has_table_privilege('nl2sql_readonly',c.oid,'SELECT')""")).scalar_one()
     if forbidden:
-        raise ContractError('Read-only role still has legacy/intake access through ownership or PUBLIC grants')
+        raise ContractError('Read-only role still has access to private source tables through ownership or PUBLIC grants')
