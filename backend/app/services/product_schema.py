@@ -1,4 +1,4 @@
-"""Fresh-data query contract; no discovery of legacy or raw intake relations."""
+"""Query contract for the supported Bayan views."""
 from sqlalchemy import inspect, text
 
 from app.services.schema_introspector import build_table_metadata

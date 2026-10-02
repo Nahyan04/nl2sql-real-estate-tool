@@ -6,28 +6,23 @@ The application uses a private snapshot of real ADREC exports. It does not downl
 
 ## Run locally
 
-You need Docker and a populated Bayan PostgreSQL volume or the private ADREC snapshot. The repository does not include the real source data.
+You need Docker and a private ADREC export snapshot prepared for Bayan. The repository does not include source data or a database dump. If you already have a populated Bayan PostgreSQL database, keep its existing data and credentials.
 
 1. Copy `.env.example` to `.env`, `backend/.env.example` to `backend/.env`, and `backend/.env.runtime.example` to `backend/.env.runtime`.
-2. Set matching PostgreSQL bootstrap, runtime and read-only passwords in the indicated files. Keep these files private. On an existing populated volume, retain its original bootstrap credentials.
-3. Configure Cloud API with `ANTHROPIC_API_KEY`, or local Self-hosted with a running Ollama model and `OLLAMA_ENABLED=true`. The Docker API reaches host Ollama at `host.docker.internal:11434`.
+2. Set the PostgreSQL owner, runtime, and read-only passwords in those files. Keep them private. An existing PostgreSQL volume must use its original owner credentials.
+3. Configure Cloud API with `ANTHROPIC_API_KEY`, or Self-hosted with a running Ollama model and `OLLAMA_ENABLED=true`. The Docker API reaches host Ollama at `host.docker.internal:11434`.
 
 ```sh
 docker compose up -d postgres
 ```
 
-On a new machine, import the private snapshot using the [source contract and import guide](backend/docs/adrec-source-contract.md). Then install the shared limiter tables and configure the query and API runtime roles. The commands below use the default `postgres` database; replace that name if your verified target differs. The repository contains no public database dump; do not run legacy seed commands against an existing database.
+For a new database, follow the [data setup guide](backend/docs/adrec-source-contract.md) to profile the snapshot, import it into staging, promote the prepared schemas, and configure restricted roles. The guide also explains how to inspect advisory data flags. Skip this import if your database is already populated.
 
 The import tools and local backend checks use Python 3.11:
 
 ```sh
 python3.11 -m venv backend/.venv
 backend/.venv/bin/python -m pip install -r backend/requirements.txt
-cd backend
-.venv/bin/python scripts/init_runtime_store.py --database postgres
-.venv/bin/python scripts/configure_query_role.py --expected-database postgres
-.venv/bin/python scripts/configure_runtime_role.py --expected-database postgres
-cd ..
 ```
 
 Once the database is populated:
@@ -52,11 +47,7 @@ cd backend && .venv/bin/python -m pytest tests/unit -q
 cd ../frontend && npm run lint && npx tsc --noEmit && npm run build
 ```
 
-Database integration tests require an explicitly disposable, populated staging database. The [import guide](backend/docs/adrec-source-contract.md) documents the data contract and refresh procedure.
-
-## Deployment preparation
-
-Vercel hosts `frontend/`; the API and validated PostgreSQL snapshot need separate hosts. Public release requires a fresh browser and provider check against the deployed build.
+Database integration tests require an explicitly disposable, populated staging database. See the [data setup guide](backend/docs/adrec-source-contract.md) for the database schema and source checks.
 
 ## License
 

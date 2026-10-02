@@ -82,6 +82,30 @@ def lease_reconciliation(units: pd.DataFrame, values: pd.DataFrame) -> dict:
             'derived_annual_rent_supported': False}
 
 
+def review_items(report: dict) -> list[dict]:
+    """Summarize observations that need human review but do not block intake."""
+    items = []
+    joins = report['lease_join']['join_counts']
+    unmatched = joins.get('left_only', 0) + joins.get('right_only', 0)
+    if unmatched:
+        items.append({'code': 'unmatched_lease_keys', 'count': unmatched})
+    ambiguous = len(report['ambiguous_districts'])
+    if ambiguous:
+        items.append({'code': 'ambiguous_districts', 'count': ambiguous})
+    small_areas = report['transaction_area_flags']['at_or_below_one_sqm']
+    if small_areas:
+        items.append({'code': 'small_sold_areas', 'count': small_areas})
+    for name, source in report['sources'].items():
+        duplicates = source.get('duplicate_keys_after_first', 0)
+        if duplicates:
+            items.append({'code': 'duplicate_candidate_keys', 'source_file': name, 'count': duplicates})
+    for name, finance in report['financing_arithmetic'].items():
+        if finance['nonzero_delta_rows']:
+            items.append({'code': 'financing_arithmetic', 'source_file': name,
+                          'count': finance['nonzero_delta_rows']})
+    return items
+
+
 def profile_snapshot(snapshot: Path) -> dict:
     contract = json.loads(CONTRACT.read_text())
     entries = [json.loads(line) for line in (snapshot / 'native-export-manifest.jsonl').read_text().splitlines() if line]
@@ -112,7 +136,9 @@ def profile_snapshot(snapshot: Path) -> dict:
         if 'Financed Sales' in frame:
             delta = frame['Financed Sales'] + frame['Cash Sales'] - frame['Total Sales']
             finance[name] = {'nonzero_delta_rows': int(delta.abs().gt(0.01).sum()), 'max_absolute_delta': float(delta.abs().max()), 'unit_confirmed': False}
-    return {'contract_version': contract['version'], 'snapshot': snapshot.name, 'sources': reports,
+    report = {'contract_version': contract['version'], 'snapshot': snapshot.name, 'sources': reports,
             'lease_join': lease_reconciliation(units, values), 'ambiguous_districts': ambiguous,
             'transaction_area_flags': {'nonpositive': int(areas.le(0).sum()), 'at_or_below_one_sqm': int(areas.le(1).sum()), 'policy': 'preserve raw values; do not derive rates from areas <= 1 sqm pending review'},
             'financing_arithmetic': finance, 'database_modified': False}
+    report['review_items'] = review_items(report)
+    return report
