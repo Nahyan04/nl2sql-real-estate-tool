@@ -27,6 +27,7 @@ export interface ChartSpec {
   x_key: string | null;
   y_keys: string[];
   title: string;
+  category_keys?: string[];
 }
 
 export interface QueryResponse {
@@ -131,6 +132,10 @@ export type ApiErrorCode =
   | "REQUEST_TIMEOUT"
   | "UNKNOWN_PROVIDER"
   | "PROVIDER_UNAVAILABLE"
+  | "PROVIDER_TIMEOUT"
+  | "PROVIDER_RATE_LIMIT"
+  | "PROVIDER_CONFIGURATION_ERROR"
+  | "PROVIDER_REQUEST_ERROR"
   | "LANGUAGE_MISMATCH"
   | "INVALID_REQUEST"
   | "UPSTREAM_ERROR"

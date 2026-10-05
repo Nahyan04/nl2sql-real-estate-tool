@@ -50,20 +50,24 @@ def _jsonable_rows(rows: list[list[Any]]) -> list[list[Any]]:
 
 
 SAFE_FAILURE_DETAILS = {
-    "PARSE_ERROR": "The model did not produce a usable query. Try a more specific question.",
+    "PARSE_ERROR": "The model could not generate a usable query. Try again or simplify the calculation.",
     "EMPTY_RESPONSE": "The model did not produce a query. Please try again.",
     "VALIDATION_ERROR": "The generated query could not be validated. Try a narrower question.",
     "SCOPE_ERROR": "The generated query omitted a filter from the question. Try again.",
     "UNSAFE_SQL": "The generated query was rejected by the read-only validator.",
     "UNSUPPORTED": "The available data does not support this question as asked.",
     "CLARIFICATION": "Specify an exact period or an unambiguous source place so this question can be answered.",
-    "EXECUTION_ERROR": "The query could not be completed. Try a narrower question.",
+    "EXECUTION_ERROR": "The generated query could not run. Try again; retain the request ID for diagnosis.",
     "DATABASE_BUSY": "The database is busy. Please try again shortly.",
     "QUERY_TIMEOUT": "The query exceeded its time limit. Try a narrower question.",
     "RESULT_TOO_LARGE": "The result is too large. Add a filter or grouping.",
     "MODEL_BUSY": "The model is busy. Please try again shortly.",
     "REQUEST_TIMEOUT": "The analysis exceeded its time limit. Try a narrower question.",
     "PROVIDER_UNAVAILABLE": "The selected model provider is unavailable. Try again when it is online.",
+    "PROVIDER_TIMEOUT": "The selected provider did not respond within the model call time limit. Try again.",
+    "PROVIDER_RATE_LIMIT": "The selected provider's request or account limit was reached. Check the indicated wait time or provider account limits.",
+    "PROVIDER_CONFIGURATION_ERROR": "The selected provider requires a server credential, model-access or billing configuration check.",
+    "PROVIDER_REQUEST_ERROR": "The selected provider rejected the request. Check server configuration and provider account limits.",
     "LANGUAGE_MISMATCH": "The selected model could not answer in the requested language. Try again.",
 }
 
@@ -82,14 +86,16 @@ def _error(
 
 
 def _failure_status(failure_type: str) -> int:
-    if failure_type == "MODEL_BUSY":
+    if failure_type in {"MODEL_BUSY", "PROVIDER_RATE_LIMIT"}:
         return 429
-    if failure_type in {"REQUEST_TIMEOUT", "QUERY_TIMEOUT"}:
+    if failure_type in {"REQUEST_TIMEOUT", "QUERY_TIMEOUT", "PROVIDER_TIMEOUT"}:
         return 504
     if failure_type == "DATABASE_BUSY":
         return 503
-    if failure_type == "PROVIDER_UNAVAILABLE":
+    if failure_type in {"PROVIDER_UNAVAILABLE", "PROVIDER_CONFIGURATION_ERROR"}:
         return 503
+    if failure_type == "PROVIDER_REQUEST_ERROR":
+        return 502
     return 422
 
 
@@ -141,6 +147,7 @@ def query(
                 dry_run=payload.dry_run,
                 chat_model=chat_model,
                 settings=settings,
+                request_id=request_id,
             )
     except LimitRejected as exc:
         result = _error(429, exc.code, "Request allowance reached; retry after the indicated delay.", request_id, exc.retry_after)
@@ -165,7 +172,7 @@ def query(
             failure_type,
             SAFE_FAILURE_DETAILS.get(failure_type, "The analysis could not be completed."),
             request_id,
-            2 if failure_type == "MODEL_BUSY" else None,
+            2 if failure_type == "MODEL_BUSY" else failure.get("retry_after"),
         )
         if fresh_session:
             attach_cookie(result, session)

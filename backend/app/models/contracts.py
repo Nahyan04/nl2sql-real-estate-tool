@@ -18,6 +18,7 @@ class ChartSpecPayload(BaseModel):
     x_key: str | None = None
     y_keys: list[str] = Field(default_factory=list)
     title: str = ""
+    category_keys: list[str] = Field(default_factory=list)
 
 
 class QueryResponse(BaseModel):

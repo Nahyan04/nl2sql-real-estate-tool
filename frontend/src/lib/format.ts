@@ -31,7 +31,7 @@ export function formatMetricCell(value: Cell, column: string, arabic = false): s
     return arabic ? `${GROUPED.format(value)} درهم` : `AED ${GROUPED.format(value)}`;
   }
   if (name.endsWith("_aed")) return arabic ? `${GROUPED.format(value)} درهم` : `AED ${GROUPED.format(value)}`;
-  if (name.endsWith("_pct") || name.endsWith("_percent")) return `${GROUPED.format(value)}%`;
+  if (/(?:^|_)(?:pct|percent|percentage)(?:_|$)/.test(name)) return `${GROUPED.format(value)}%`;
   if (name.endsWith("_sqm")) return arabic ? `${grouped(value)} م²` : `${grouped(value)} sqm`;
   if (/(?:^|_)count(?:_|$)/.test(name)) return WHOLE.format(value);
   return formatCell(value);

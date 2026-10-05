@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import datetime as dt
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any
 
@@ -19,6 +19,7 @@ class ChartSpec:
     x_key: str | None
     y_keys: list[str]
     title: str
+    category_keys: list[str] = field(default_factory=list)
 
 
 def _first_value(rows: list[list[Any]], index: int) -> Any:
@@ -48,6 +49,25 @@ def _title(text: str) -> str:
     return text[:1].upper() + text[1:]
 
 
+def _category_keys(result: ExecResult, dimensions: list[str]) -> list[str]:
+    indices = {col: result.columns.index(col) for col in dimensions}
+    selected: list[str] = []
+    remaining = list(dimensions)
+    # Refine categories without an exponential search through column subsets.
+    while remaining:
+        def distinct_count(column: str) -> int:
+            keys = selected + [column]
+            return len({tuple(row[indices[key]] for key in keys) for row in result.rows})
+
+        best = max(remaining, key=distinct_count)
+        count = distinct_count(best)
+        selected.append(best)
+        remaining.remove(best)
+        if count == len(result.rows):
+            return [col for col in dimensions if col in selected]
+    return []
+
+
 def build_chart_spec(result: ExecResult) -> ChartSpec | None:
     """Pick a chart for a result set, or None when a table says it better."""
     if not result.rows or not result.columns:
@@ -66,6 +86,16 @@ def build_chart_spec(result: ExecResult) -> ChartSpec | None:
 
     if temporal:
         x_key = temporal[0]
+        index = result.columns.index(x_key)
+        if len({row[index] for row in result.rows}) != len(result.rows):
+            return None
+        # One populated value is a comparison detail, not a time series.
+        measures = [
+            col for col in measures
+            if sum(_is_numeric(row[result.columns.index(col)]) for row in result.rows) >= 2
+        ]
+        if not measures:
+            return None
         return ChartSpec(
             type="line",
             x_key=x_key,
@@ -79,12 +109,18 @@ def build_chart_spec(result: ExecResult) -> ChartSpec | None:
         if col not in measures and col not in temporal and value is not None
     ]
     if dimensions and result.row_count <= MAX_BAR_CATEGORIES:
-        x_key = dimensions[0]
+        # A category must identify the row: constant municipality labels hide
+        # district/layout segments, and duplicate categories imply aggregation.
+        category_keys = _category_keys(result, dimensions)
+        if not category_keys:
+            return None
+        x_key = category_keys[0]
         return ChartSpec(
             type="bar",
             x_key=x_key,
             y_keys=measures,
-            title=_title(f"{_humanize(measures[0])} by {_humanize(x_key)}"),
+            title=_title(f"{_humanize(measures[0])} by {' / '.join(_humanize(key) for key in category_keys)}"),
+            category_keys=category_keys,
         )
 
     return None

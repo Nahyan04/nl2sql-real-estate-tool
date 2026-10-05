@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import re
 import time
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -14,7 +14,7 @@ from sqlalchemy.exc import SQLAlchemyError, TimeoutError as PoolTimeout
 
 from app.config import Settings, get_settings
 from app.core.database import get_engine, get_readonly_engine
-from app.core.llm import get_chat_model, message_text
+from app.core.llm import get_chat_model, message_text, provider_failure
 from app.core.prompt_builder import build_system_prompt, build_user_prompt
 from app.services.answer_synthesizer import synthesize_answer
 from app.services.chart_spec import ChartSpec, build_chart_spec
@@ -58,9 +58,11 @@ _EXPLICIT_YEAR = re.compile(r"\b(?:19|20)\d{2}\b")
 class Failure(TypedDict):
     type: str
     detail: str
+    retry_after: NotRequired[int]
 
 
 class PipelineState(TypedDict, total=False):
+    request_id: str | None
     question: str
     language: Language
     provider: str | None
@@ -121,9 +123,10 @@ def _retry_feedback(failure: Failure) -> str:
         )
     if failure_type == "CLARIFICATION_RETRY":
         return (
-            "The question already gives a year or reporting period. Use that period to produce SQL "
+            f"Previous clarification: {detail}. The question already gives a year or reporting period. Use that period to produce SQL "
             "when the remaining scope is source-matchable. Ask for clarification only if a place "
-            "or another necessary filter is genuinely ambiguous."
+            "or another necessary filter is genuinely ambiguous. Requests for all/each source district "
+            "do not require a named place or a sales municipality. Coverage audits must preserve unmatched segments."
         )
     return (
         "Previous attempt could not be parsed. "
@@ -151,6 +154,14 @@ def _invoke_model(state: PipelineState, config: RunnableConfig, messages: list[A
     if model:
         usage["model"] = model
     return response
+
+
+def _provider_failure(exc: Exception, state: PipelineState, phase: str) -> Failure:
+    failure = provider_failure(exc)
+    logger.error("model failure request_id=%s phase=%s provider=%s code=%s status=%s exception_type=%s",
+                 state.get("request_id"), phase, state.get("provider"), failure["type"],
+                 getattr(exc, "status_code", None), type(exc).__name__)
+    return Failure(**failure)
 
 
 def retrieve_schema(state: PipelineState, config: RunnableConfig) -> dict[str, Any]:
@@ -217,11 +228,10 @@ def generate_sql(state: PipelineState, config: RunnableConfig) -> dict[str, Any]
             ),
         }
     except Exception as exc:  # noqa: BLE001 - provider transport and SDK errors vary
-        logger.error("sql generation provider failure exception_type=%s", type(exc).__name__)
         return {
             "attempts": attempts,
             "sql": None,
-            "failure": Failure(type="PROVIDER_UNAVAILABLE", detail="The selected model provider is unavailable."),
+            "failure": _provider_failure(exc, state, "generation"),
         }
     unsupported = re.fullmatch(r"\s*<unsupported>(.*?)</unsupported>\s*", raw, re.DOTALL)
     if unsupported:
@@ -236,10 +246,8 @@ def generate_sql(state: PipelineState, config: RunnableConfig) -> dict[str, Any]
 
     if parsed is None:
         failure_type = _classify_raw(raw)
-        logger.warning(
-            "sql generation failed",
-            extra={"attempt": attempts, "failure_type": failure_type},
-        )
+        logger.warning("sql generation failed request_id=%s attempt=%s failure_type=%s",
+                       state.get("request_id"), attempts, failure_type)
         return {
             "attempts": attempts,
             "sql": None,
@@ -301,7 +309,9 @@ def execute_sql(state: PipelineState, config: RunnableConfig) -> dict[str, Any]:
             kind = "REQUEST_TIMEOUT" if request_budget_limited else "QUERY_TIMEOUT"
             return {"sql": None, "exec_result": None, "failure": Failure(type=kind, detail="Database query timed out or capacity is unavailable.")}
         detail = str(getattr(exc, "orig", exc))[:DETAIL_LIMIT]
-        logger.warning("sql execution failed", extra={"detail": detail})
+        logger.warning("sql execution failed request_id=%s attempt=%s sqlstate=%s exception_type=%s",
+                       state.get("request_id"), state.get("attempts"), getattr(getattr(exc, "orig", None), "pgcode", None),
+                       type(getattr(exc, "orig", exc)).__name__)
         return {
             "sql": None,
             "exec_result": None,
@@ -353,8 +363,7 @@ def synthesize_answer_node(state: PipelineState, config: RunnableConfig) -> dict
     except ValueError:
         return {"answer": "", "failure": Failure(type="LANGUAGE_MISMATCH", detail="Answer language did not match request.")}
     except Exception as exc:  # noqa: BLE001 - provider transport and SDK errors vary
-        logger.error("answer synthesis provider failure exception_type=%s", type(exc).__name__)
-        return {"answer": "", "failure": Failure(type="PROVIDER_UNAVAILABLE", detail="The selected model provider is unavailable.")}
+        return {"answer": "", "failure": _provider_failure(exc, state, "synthesis")}
     return {"answer": answer}
 
 
@@ -371,7 +380,7 @@ def build_chart_node(state: PipelineState, config: RunnableConfig) -> dict[str, 
 def _route(state: PipelineState, on_success: str) -> str:
     if not state.get("failure"):
         return on_success
-    if state.get("failure", {}).get("type") in {"UNSUPPORTED", "CLARIFICATION", "DATABASE_BUSY", "QUERY_TIMEOUT", "RESULT_TOO_LARGE", "MODEL_BUSY", "REQUEST_TIMEOUT", "PROVIDER_UNAVAILABLE", "LANGUAGE_MISMATCH"}:
+    if state.get("failure", {}).get("type") in {"UNSUPPORTED", "CLARIFICATION", "DATABASE_BUSY", "QUERY_TIMEOUT", "RESULT_TOO_LARGE", "MODEL_BUSY", "REQUEST_TIMEOUT", "PROVIDER_UNAVAILABLE", "PROVIDER_TIMEOUT", "PROVIDER_RATE_LIMIT", "PROVIDER_CONFIGURATION_ERROR", "PROVIDER_REQUEST_ERROR", "LANGUAGE_MISMATCH"}:
         return END
     if state.get("attempts", 0) < state.get("max_attempts", 1):
         return "generate_sql"
@@ -431,6 +440,7 @@ def run_pipeline(
     engine_ro: Engine | None = None,
     settings: Settings | None = None,
     model_runtime: ModelRuntime | None = None,
+    request_id: str | None = None,
 ) -> PipelineState:
     settings = settings or get_settings()
     started = time.perf_counter()
@@ -455,6 +465,7 @@ def run_pipeline(
     state: PipelineState = GRAPH.invoke(
         {
             "question": question,
+            "request_id": request_id,
             "language": resolved_language,
             "provider": provider,
             "dry_run": dry_run,

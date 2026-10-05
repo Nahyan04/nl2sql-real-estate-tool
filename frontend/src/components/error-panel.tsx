@@ -4,7 +4,7 @@ import type { ApiErrorCode } from "@/lib/types";
 const EXPLANATIONS: Record<ApiErrorCode, { title: string; guidance: string }> = {
   PARSE_ERROR: {
     title: "No query produced",
-    guidance: "The model did not return usable SQL. Name the measure and the time range you want.",
+    guidance: "The model could not generate a usable query. Keep your question and try again, or simplify the requested calculation.",
   },
   EMPTY_RESPONSE: {
     title: "No query produced",
@@ -32,7 +32,7 @@ const EXPLANATIONS: Record<ApiErrorCode, { title: string; guidance: string }> = 
   },
   EXECUTION_ERROR: {
     title: "Query failed to run",
-    guidance: "The database rejected the query. A shorter time range or fewer joins usually fixes it.",
+    guidance: "The generated query could not run against the data schema. Try again; the request ID can help diagnose the failure.",
   },
   DATABASE_BUSY: {
     title: "Database is busy",
@@ -86,6 +86,22 @@ const EXPLANATIONS: Record<ApiErrorCode, { title: string; guidance: string }> = 
     title: "Model temporarily unavailable",
     guidance: "The selected provider could not complete the analysis. Keep your question and try again when that provider is online.",
   },
+  PROVIDER_TIMEOUT: {
+    title: "Model response timed out",
+    guidance: "The selected provider took longer than the allowed model call time. Keep your question and try again.",
+  },
+  PROVIDER_RATE_LIMIT: {
+    title: "Cloud provider limit reached",
+    guidance: "The provider's request or account limit was reached. Wait for the indicated retry time. If it persists, the provider account limits need checking.",
+  },
+  PROVIDER_CONFIGURATION_ERROR: {
+    title: "Model configuration needs attention",
+    guidance: "The provider rejected the configured credentials, model access or billing setup. The server configuration needs checking.",
+  },
+  PROVIDER_REQUEST_ERROR: {
+    title: "Model request rejected",
+    guidance: "The provider rejected the request. Server configuration or provider account limits may need attention.",
+  },
   LANGUAGE_MISMATCH: {
     title: "Answer language mismatch",
     guidance: "The model could not answer in the selected language. Try again.",
@@ -105,14 +121,14 @@ const EXPLANATIONS: Record<ApiErrorCode, { title: string; guidance: string }> = 
 };
 
 const ARABIC_EXPLANATIONS: Record<ApiErrorCode, { title: string; guidance: string }> = {
-  PARSE_ERROR: { title: "تعذر إنشاء الاستعلام", guidance: "لم يُنتج النموذج استعلامًا صالحًا. حدد المقياس والفترة المطلوبة." },
+  PARSE_ERROR: { title: "تعذر إنشاء الاستعلام", guidance: "لم يُنتج النموذج استعلامًا صالحًا. حاول مجددًا أو بسّط العملية المطلوبة." },
   EMPTY_RESPONSE: { title: "تعذر إنشاء الاستعلام", guidance: "لم يُرجع النموذج استعلامًا. أعد صياغة السؤال." },
   VALIDATION_ERROR: { title: "رُفض الاستعلام", guidance: "تعذر التحقق من الاستعلام. جرّب سؤالًا أكثر تحديدًا." },
   SCOPE_ERROR: { title: "نطاق الاستعلام غير مكتمل", guidance: "لم يتضمن الاستعلام أحد شروط السؤال. حاول تحديد الشروط بوضوح أكبر." },
   UNSAFE_SQL: { title: "رُفض الاستعلام", guidance: "لم يجتز الاستعلام ضوابط القراءة فقط، لذلك لم يُنفذ." },
   UNSUPPORTED: { title: "هذا السؤال غير مدعوم", guidance: "البيانات الموثقة لا تدعم هذا السؤال. اسأل عن المبيعات أو الإيجارات أو المؤشرات أو العائد الإجمالي التقديري للمجموعة." },
   CLARIFICATION: { title: "يرجى توضيح السؤال", guidance: "حدد فترة صريحة. إذا كان اسم المكان ملتبسًا، حدد هل تقصد المنطقة أو المجتمع كما يرد في المصدر." },
-  EXECUTION_ERROR: { title: "تعذر تنفيذ الاستعلام", guidance: "رفضت قاعدة البيانات الاستعلام. جرّب فترة أقصر أو نطاقًا أضيق." },
+  EXECUTION_ERROR: { title: "تعذر تنفيذ الاستعلام", guidance: "تعذر تنفيذ الاستعلام على مخطط البيانات. حاول مجددًا؛ يساعد معرّف الطلب في تشخيص السبب." },
   DATABASE_BUSY: { title: "قاعدة البيانات مشغولة", guidance: "هناك استعلامات كثيرة قيد التنفيذ. حاول مرة أخرى بعد قليل." },
   QUERY_TIMEOUT: { title: "استغرق الاستعلام وقتًا طويلًا", guidance: "حدد فترة أقصر أو موضوعًا أدق." },
   RESULT_TOO_LARGE: { title: "النتيجة كبيرة جدًا", guidance: "أضف شرطًا أو تجميعًا لتقليل حجم النتيجة." },
@@ -126,6 +142,10 @@ const ARABIC_EXPLANATIONS: Record<ApiErrorCode, { title: string; guidance: strin
   REQUEST_TIMEOUT: { title: "انتهت مهلة التحليل", guidance: "استغرق التحليل وقتًا طويلًا. ضيّق نطاق السؤال." },
   UNKNOWN_PROVIDER: { title: "النموذج غير مهيأ", guidance: "خيار النموذج المحدد غير مهيأ على الخادم." },
   PROVIDER_UNAVAILABLE: { title: "النموذج غير متاح", guidance: "تعذر على مزود النموذج إكمال التحليل. حاول لاحقًا." },
+  PROVIDER_TIMEOUT: { title: "انتهت مهلة النموذج", guidance: "استغرق رد المزود وقتًا أطول من المهلة المحددة. احتفظ بسؤالك وحاول مجددًا." },
+  PROVIDER_RATE_LIMIT: { title: "تم بلوغ حد المزود السحابي", guidance: "تم بلوغ حد الطلبات أو الحساب لدى المزود. انتظر مهلة إعادة المحاولة إن ظهرت. إذا استمر الخطأ، يلزم التحقق من حدود حساب المزود." },
+  PROVIDER_CONFIGURATION_ERROR: { title: "إعداد النموذج يحتاج إلى مراجعة", guidance: "رفض المزود بيانات الدخول أو صلاحية النموذج أو إعدادات الفوترة. يلزم التحقق من إعدادات الخادم." },
+  PROVIDER_REQUEST_ERROR: { title: "رفض المزود طلب النموذج", guidance: "رفض المزود الطلب. قد يلزم التحقق من إعدادات الخادم أو حدود حساب المزود." },
   LANGUAGE_MISMATCH: { title: "تعذر الالتزام باللغة", guidance: "لم يتمكن النموذج من الإجابة باللغة المحددة. حاول مرة أخرى." },
   INVALID_REQUEST: { title: "تحقق من الطلب", guidance: "أدخل سؤالًا واختر نموذجًا متاحًا." },
   UPSTREAM_ERROR: { title: "فشل الطلب", guidance: "لم تستجب خدمة النموذج أو قاعدة البيانات." },

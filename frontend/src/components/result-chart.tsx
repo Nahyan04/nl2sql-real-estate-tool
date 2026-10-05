@@ -34,6 +34,27 @@ function formatAxisLabel(value: unknown, arabic = false): string {
   return String(value ?? "");
 }
 
+function categoryLines(value: unknown): string[] {
+  return String(value ?? "").split(" / ").flatMap((part) => {
+    const lines = [""];
+    for (const word of part.split(" ")) {
+      const last = lines.length - 1;
+      if (lines[last] && lines[last].length + word.length + 1 > 20) lines.push(word);
+      else lines[last] = [lines[last], word].filter(Boolean).join(" ");
+    }
+    return lines;
+  });
+}
+
+function CategoryTick({ x = 0, y = 0, payload }: { x?: number; y?: number; payload?: { value?: unknown } }) {
+  const lines = categoryLines(payload?.value);
+  return (
+    <text className="chart-category-label" x={x} y={y - ((lines.length - 1) * 16) / 2} textAnchor="end" dominantBaseline="central" style={AXIS}>
+      {lines.map((line, index) => <tspan key={index} x={x} dy={index === 0 ? 0 : 16}>{line}</tspan>)}
+    </text>
+  );
+}
+
 /** A price index runs 100–160; anchoring it to zero flattens the whole story.
  *  Lines encode value by position, so they fit the data — bars, which encode it
  *  by length, keep their zero baseline. */
@@ -65,6 +86,16 @@ function toRows(columns: string[], rows: Cell[][]): Row[] {
  *  correlation, so measures an order of magnitude apart get their own chart. */
 function needsSmallMultiples(data: Row[], keys: string[]): boolean {
   if (keys.length < 2) return false;
+  const units = keys.map((key) => {
+    if (key.endsWith("_aed_sqm")) return "AED/sqm";
+    if (key.endsWith("_aed")) return "AED";
+    if (/(?:^|_)(?:pct|percent|percentage)(?:_|$)/i.test(key)) return "%";
+    if (/(?:^|_)index(?:_|$)/i.test(key)) return "index";
+    if (/(?:^|_)count(?:_|$)/i.test(key)) return "count";
+    if (key.endsWith("_sqm")) return "sqm";
+    return "unknown";
+  });
+  if (new Set(units).size > 1) return true;
   const peaks = keys.map((key) =>
     Math.max(...data.map((row) => Math.abs(Number(row[key]) || 0))),
   );
@@ -87,7 +118,16 @@ export function ResultChart({ chart, columns, rows, arabic = false }: ResultChar
   const data = toRows(columns, rows);
   const keys = chart.y_keys.filter((key) => columns.includes(key));
   const shown = keys.slice(0, SERIES.length);
-  const xKey = chart.x_key;
+  const categoryKeys = chart.category_keys?.filter((key) => columns.includes(key)) ?? [];
+  let xKey = chart.x_key;
+  if (categoryKeys.length > 1) {
+    let labelKey = "__bayan_category";
+    while (columns.includes(labelKey)) labelKey += "_";
+    for (const row of data) row[labelKey] = categoryKeys.map((key) => String(row[key] ?? (arabic ? "غير معروف" : "Unknown"))).join(" / ");
+    xKey = labelKey;
+  }
+  const categoryTitle = (categoryKeys.length ? categoryKeys : [chart.x_key ?? ""]).map((key) => humanizeColumn(key, arabic)).join(" / ");
+  const dimensionKeys = columns.filter((_, index) => rows.some((row) => typeof row[index] === "string" || typeof row[index] === "boolean"));
 
   if (!xKey || shown.length === 0 || data.length === 0) return null;
 
@@ -107,11 +147,11 @@ export function ResultChart({ chart, columns, rows, arabic = false }: ResultChar
           {shown.map((key, index) => (
             <figure key={key}>
               <figcaption className="text-base text-ink">
-                {arabic ? `${humanizeColumn(key, true)} حسب ${humanizeColumn(xKey, true)}` : sentenceCase(`${humanizeColumn(key)} by ${humanizeColumn(xKey)}`)}
+                {arabic ? `${humanizeColumn(key, true)} حسب ${categoryTitle}` : sentenceCase(`${humanizeColumn(key)} by ${categoryTitle}`)}
               </figcaption>
               <div dir="ltr" className="mt-3 overflow-x-auto rounded-lg border border-rule bg-paper p-5 pe-7">
                 <div className={chart.type === "bar" ? "min-w-[420px]" : "min-w-[320px]"}>
-                  <Figure data={data} xKey={xKey} keys={[key]} colorFor={() => SERIES[index]} arabic={arabic} />
+                  <Figure data={data} xKey={xKey} keys={[key]} dimensionKeys={dimensionKeys} colorFor={() => SERIES[index]} arabic={arabic} />
                 </div>
               </div>
             </figure>
@@ -119,10 +159,10 @@ export function ResultChart({ chart, columns, rows, arabic = false }: ResultChar
         </div>
       ) : (
         <>
-          <p className="mt-3 text-base text-ink">{arabic ? `${humanizeColumn(shown[0], true)} حسب ${humanizeColumn(xKey, true)}` : chart.title}</p>
+          <p className="mt-3 text-base text-ink">{arabic ? `${humanizeColumn(shown[0], true)} حسب ${categoryTitle}` : chart.title}</p>
           <div dir="ltr" className="mt-5 overflow-x-auto rounded-lg border border-rule bg-paper p-5 pe-7">
             <div className={chart.type === "bar" ? "min-w-[420px]" : "min-w-[320px]"}>
-              <Figure data={data} xKey={xKey} keys={shown} colorFor={colorFor} arabic={arabic} />
+              <Figure data={data} xKey={xKey} keys={shown} dimensionKeys={dimensionKeys} colorFor={colorFor} arabic={arabic} />
             </div>
           </div>
         </>
@@ -160,11 +200,12 @@ interface FigureProps {
   data: Row[];
   xKey: string;
   keys: string[];
+  dimensionKeys: string[];
   colorFor: (index: number) => string;
   arabic: boolean;
 }
 
-function LineFigure({ data, xKey, keys, colorFor, arabic }: FigureProps) {
+function LineFigure({ data, xKey, keys, dimensionKeys, colorFor, arabic }: FigureProps) {
   return (
     <ResponsiveContainer width="100%" height={300}>
       <LineChart data={data} margin={{ top: 8, right: 24, bottom: 0, left: 0 }}>
@@ -185,7 +226,7 @@ function LineFigure({ data, xKey, keys, colorFor, arabic }: FigureProps) {
           width={64}
           domain={fittedDomain}
         />
-        <Tooltip content={<ChartTooltip colorFor={colorFor} keys={keys} arabic={arabic} />} cursor={{ stroke: GRID }} />
+        <Tooltip content={<ChartTooltip colorFor={colorFor} keys={keys} dimensionKeys={dimensionKeys} arabic={arabic} />} cursor={{ stroke: GRID }} />
         {keys.map((key, index) => (
           <Line
             key={key}
@@ -193,7 +234,7 @@ function LineFigure({ data, xKey, keys, colorFor, arabic }: FigureProps) {
             dataKey={key}
             stroke={colorFor(index)}
             strokeWidth={2}
-            dot={false}
+            dot={data.length <= 12 ? { r: 3 } : false}
             activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--paper)" }}
           />
         ))}
@@ -204,8 +245,10 @@ function LineFigure({ data, xKey, keys, colorFor, arabic }: FigureProps) {
 
 /** Rankings carry text categories, which collide as vertical tick labels;
  *  horizontal bars give every label a full line. */
-function BarFigure({ data, xKey, keys, colorFor, arabic }: FigureProps) {
-  const height = Math.max(200, data.length * (keys.length > 1 ? 30 * keys.length : 44) + 40);
+function BarFigure({ data, xKey, keys, dimensionKeys, colorFor, arabic }: FigureProps) {
+  const labelLines = Math.max(...data.map((row) => categoryLines(row[xKey]).length));
+  const rowHeight = Math.max(44, 30 * keys.length, 18 * labelLines + 16);
+  const height = Math.max(200, data.length * rowHeight + 40);
 
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -221,15 +264,16 @@ function BarFigure({ data, xKey, keys, colorFor, arabic }: FigureProps) {
         <YAxis
           type="category"
           dataKey={xKey}
-          tick={AXIS}
-          tickFormatter={(value) => formatAxisLabel(value, arabic)}
+          tick={<CategoryTick />}
           tickLine={false}
           tickMargin={10}
           axisLine={{ stroke: GRID }}
-          width={180}
+          width={200}
+          interval={0}
+          allowDuplicatedCategory={false}
         />
         <Tooltip
-          content={<ChartTooltip colorFor={colorFor} keys={keys} arabic={arabic} />}
+          content={<ChartTooltip colorFor={colorFor} keys={keys} dimensionKeys={dimensionKeys} arabic={arabic} />}
           cursor={{ fill: "var(--secondary)" }}
         />
         {keys.map((key, index) => (
@@ -260,18 +304,27 @@ function Legend({ keys, colorFor, arabic }: { keys: string[]; colorFor: (index: 
 interface TooltipProps {
   active?: boolean;
   label?: unknown;
-  payload?: { dataKey?: string | number; value?: number }[];
+  payload?: { dataKey?: string | number; value?: number; payload?: Row }[];
   keys: string[];
+  dimensionKeys: string[];
   colorFor: (index: number) => string;
   arabic: boolean;
 }
 
-function ChartTooltip({ active, label, payload, keys, colorFor, arabic }: TooltipProps) {
+function ChartTooltip({ active, label, payload, keys, dimensionKeys, colorFor, arabic }: TooltipProps) {
   if (!active || !payload?.length) return null;
 
   return (
-    <div className="rounded-md border border-rule bg-paper px-3.5 py-2.5 shadow-[0_8px_24px_rgba(26,24,22,0.12)]">
+    <div className="max-w-[24rem] rounded-md border border-rule bg-paper px-3.5 py-2.5 shadow-[0_8px_24px_rgba(26,24,22,0.12)]" dir={arabic ? "rtl" : "ltr"}>
       <p className="label-mono text-sand">{formatAxisLabel(label, arabic)}</p>
+      <dl className="mt-2 space-y-1 text-sm text-sand">
+        {dimensionKeys.map((key) => (
+          <div key={key} className="flex gap-3">
+            <dt>{humanizeColumn(key, arabic)}</dt>
+            <dd className="ms-auto text-ink">{formatAxisLabel(payload[0].payload?.[key], arabic)}</dd>
+          </div>
+        ))}
+      </dl>
       <ul className="mt-2 space-y-1">
         {payload.map((entry) => {
           const key = String(entry.dataKey ?? "");

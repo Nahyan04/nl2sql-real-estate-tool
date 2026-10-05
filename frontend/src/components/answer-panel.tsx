@@ -7,7 +7,7 @@ const MARKDOWN = {
   h2: ({ children }: { children?: React.ReactNode }) => <h3 className="mt-5 text-lg font-semibold">{children}</h3>,
   h3: ({ children }: { children?: React.ReactNode }) => <h3 className="mt-5 text-base font-semibold">{children}</h3>,
   p: ({ children }: { children?: React.ReactNode }) => (
-    <p className="mt-4 first:mt-0">{children}</p>
+    <p className="mt-6 first:mt-0">{children}</p>
   ),
   strong: ({ children }: { children?: React.ReactNode }) => (
     <strong className="font-semibold text-sage">{children}</strong>
@@ -24,6 +24,19 @@ const MARKDOWN = {
   ),
   code: ({ children }: { children?: React.ReactNode }) => (
     <code className="font-mono text-sm text-sand">{children}</code>
+  ),
+  table: ({ children }: { children?: React.ReactNode }) => (
+    <div className="my-6 max-w-full overflow-x-auto rounded-lg border border-rule" tabIndex={0} role="region" aria-label="Answer table">
+      <table className="w-full border-collapse text-base leading-relaxed">{children}</table>
+    </div>
+  ),
+  thead: ({ children }: { children?: React.ReactNode }) => <thead className="bg-paper-flat">{children}</thead>,
+  tr: ({ children }: { children?: React.ReactNode }) => <tr className="border-b border-rule last:border-b-0">{children}</tr>,
+  th: ({ children, style }: { children?: React.ReactNode; style?: React.CSSProperties }) => (
+    <th scope="col" style={style} className="min-w-[8rem] px-5 py-3 text-start align-top font-semibold">{children}</th>
+  ),
+  td: ({ children, style }: { children?: React.ReactNode; style?: React.CSSProperties }) => (
+    <td style={style} className="min-w-[8rem] px-5 py-3 text-start align-top tabular-nums">{children}</td>
   ),
 };
 
