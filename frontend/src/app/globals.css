@@ -7,12 +7,10 @@
 /* Warm paper canvas with a sage accent — a printed government record rather
    than a console. Cream ground, white tiles, sage-tinted hairlines. */
 :root {
-  --font-plex-sans: "IBM Plex Sans";
   --font-plex-arabic: "IBM Plex Sans Arabic";
-  --font-plex-mono: "IBM Plex Mono";
-  --canvas: #e7e1de;
+  --canvas: #efebe5;
   --paper: #ffffff;
-  --paper-flat: #faf8f5;
+  --paper-flat: #faf8f4;
   --rule: #c9ccc2;
   --sage: #3f6238;
   --sage-dim: #7e9c72;
@@ -57,6 +55,21 @@
   --sidebar-ring: var(--sage);
 }
 
+@theme {
+  /* Shared type scale: no component-specific font sizes. */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
+  --text-display: 3.25rem;
+  --text-display--line-height: 1.12;
+  --font-sans: var(--font-geist-sans), var(--font-plex-arabic), ui-sans-serif, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-heading: var(--font-geist-sans), var(--font-plex-arabic), ui-sans-serif, sans-serif;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -68,9 +81,6 @@
   --color-sage-dim: var(--sage-dim);
   --color-ink: var(--ink);
   --color-sand: var(--sand);
-  --font-sans: var(--font-plex-sans), var(--font-plex-arabic), ui-sans-serif, sans-serif;
-  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
-  --font-heading: var(--font-plex-sans), var(--font-plex-arabic), ui-sans-serif, sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -121,12 +131,23 @@
   html {
     @apply font-sans;
   }
+  html[lang="ar"] {
+    --text-xs: 0.875rem;
+    --text-sm: 1rem;
+    --text-base: 1.125rem;
+    --text-lg: 1.25rem;
+    --font-sans: var(--font-plex-arabic), var(--font-geist-sans), ui-sans-serif, sans-serif;
+    font-family: var(--font-sans);
+  }
+  [lang="ar"] {
+    font-family: var(--font-plex-arabic), var(--font-geist-sans), sans-serif;
+  }
   ::selection {
     background: var(--sage);
     color: var(--paper);
   }
   :focus-visible {
-    outline: 1px solid var(--sage);
+    outline: 2px solid var(--sage);
     outline-offset: 3px;
   }
   ::-webkit-scrollbar {
@@ -147,50 +168,45 @@
 }
 
 @layer components {
+  .display-heading {
+    @apply font-sans text-2xl font-semibold leading-[1.12] tracking-[-0.035em] text-ink sm:text-display;
+    text-wrap: balance;
+  }
+  .composer {
+    @apply rounded-2xl border border-rule/80 bg-paper px-5 py-5 sm:px-7 sm:py-6;
+    box-shadow: 0 8px 30px rgba(60, 53, 43, 0.045);
+  }
+  .ask-button {
+    @apply inline-flex min-h-11 cursor-pointer items-center justify-center gap-3 rounded-lg bg-sage px-5 py-3 text-sm font-semibold text-paper transition duration-200 hover:bg-sage/90 active:translate-y-px disabled:cursor-default disabled:bg-rule disabled:text-sand;
+  }
+  .example-card {
+    @apply flex cursor-pointer flex-col rounded-xl border border-rule bg-paper-flat p-5 transition duration-200 hover:-translate-y-0.5 hover:border-sage/50 hover:bg-paper active:translate-y-px disabled:cursor-default disabled:opacity-55 disabled:hover:translate-y-0;
+  }
+  .nav-link {
+    @apply relative inline-flex min-h-11 items-center text-base font-medium transition-colors hover:text-sage after:absolute after:inset-x-0 after:bottom-1 after:h-0.5;
+  }
+  .skip-link {
+    @apply absolute start-5 top-3 z-50 -translate-y-24 rounded-md bg-sage px-4 py-3 text-paper focus:translate-y-0;
+  }
   .label-mono {
-    @apply font-mono text-[0.75rem] font-medium uppercase tracking-[0.1em] text-sand;
+    @apply font-sans text-xs font-semibold uppercase tracking-[0.1em] text-sand;
   }
   .section-heading {
-    @apply font-sans text-[1.125rem] font-semibold leading-snug text-ink;
+    @apply font-sans text-lg font-semibold leading-snug text-ink;
   }
   .control-label {
-    @apply font-sans text-[0.8125rem] font-semibold text-ink;
+    @apply font-sans text-sm font-semibold text-ink;
   }
   .control-option {
-    @apply font-sans text-[0.875rem] font-semibold whitespace-nowrap;
+    @apply font-sans text-sm font-medium whitespace-nowrap;
   }
   html[lang="ar"] .label-mono {
-    font-family: var(--font-plex-arabic), sans-serif;
-    font-size: 0.875rem;
-    font-weight: 600;
     letter-spacing: 0;
     text-transform: none;
   }
-  html[lang="ar"] .section-heading {
-    font-size: 1.375rem;
-    line-height: 1.5;
-  }
-  html[lang="ar"] .header-subtitle {
-    font-size: 1.125rem;
-  }
-  html[lang="ar"] .query-field {
-    font-size: 1.75rem;
-  }
-  html[lang="ar"] .example-question {
-    font-size: 1.3125rem;
-    line-height: 1.6;
-  }
-  html[lang="ar"] .answer-copy {
-    font-size: 1.4375rem;
-  }
-  html[lang="ar"] .evidence-copy {
-    font-size: 1rem;
-    line-height: 1.6;
-  }
-  html[lang="ar"] .control-label,
-  html[lang="ar"] .control-option {
-    font-size: 1rem;
-    line-height: 1.5;
+  html[lang="ar"] .display-heading {
+    letter-spacing: 0;
+    line-height: 1.4;
   }
 }
 

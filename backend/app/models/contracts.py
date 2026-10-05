@@ -51,6 +51,9 @@ class ExampleQuestion(BaseModel):
     id: str
     lang: str
     text: str
+    topic: str = "sales"
+    title: str = ""
+    featured: bool = False
 
 
 class ExamplesResponse(BaseModel):

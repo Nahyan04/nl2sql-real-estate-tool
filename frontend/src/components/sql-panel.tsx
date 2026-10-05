@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { tokenizeSql, type TokenKind } from "@/lib/sql-tokens";
 
@@ -27,7 +27,20 @@ function formatLatency(ms: number, arabic: boolean): string {
 }
 
 export function SqlPanel({ sql, tablesUsed, latencyMs, provider, queryMethod, arabic = false }: SqlPanelProps) {
+  const [expanded, setExpanded] = useState(false);
+  const [formatted, setFormatted] = useState<{ source: string; text: string } | null>(null);
+  useEffect(() => {
+    if (!expanded || !sql) return;
+    let current = true;
+    // Format only the display; execution and copying retain the original SQL.
+    import("sql-formatter").then(({ format }) => {
+      const text = format(sql, { language: "postgresql", tabWidth: 2, keywordCase: "upper" });
+      if (current) setFormatted({ source: sql, text });
+    }).catch(() => { if (current) setFormatted({ source: sql, text: sql }); });
+    return () => { current = false; };
+  }, [expanded, sql]);
   if (!sql) return null;
+  const displaySql = formatted?.source === sql ? formatted.text : sql;
 
   const sourcePlan = queryMethod?.startsWith("source_plan:");
   const providerLabel = provider === "anthropic"
@@ -35,7 +48,7 @@ export function SqlPanel({ sql, tablesUsed, latencyMs, provider, queryMethod, ar
     : provider === "ollama" ? (arabic ? "استضافة ذاتية" : "Self-hosted") : provider;
 
   return (
-    <details dir={arabic ? "rtl" : "ltr"} className="group mt-12 border-t border-rule">
+    <details dir={arabic ? "rtl" : "ltr"} onToggle={(event) => setExpanded(event.currentTarget.open)} className="group mt-12 border-t border-rule">
       <summary className="flex cursor-pointer list-none flex-wrap items-baseline justify-between gap-x-6 gap-y-2 py-4 [&::-webkit-details-marker]:hidden">
         <span className="section-heading flex items-baseline gap-2">
           <span aria-hidden className="text-sage transition-transform group-open:rotate-90">
@@ -54,19 +67,20 @@ export function SqlPanel({ sql, tablesUsed, latencyMs, provider, queryMethod, ar
         {tablesUsed.length > 0 ? (
           <div className="flex flex-wrap items-baseline gap-x-8 gap-y-2 pb-4">
             <span className="label-mono text-sand">{arabic ? "الجداول المستخدمة" : "Tables used"}</span>
-            <span className="font-mono text-[0.9375rem] text-sand">
+            <span className="font-mono text-sm text-sand">
               {tablesUsed.join("  ·  ")}
             </span>
           </div>
         ) : null}
 
         <div className="rounded-lg border border-rule bg-paper">
-          <div className="flex justify-end border-b border-rule px-3 py-2">
+          <div className="flex items-center justify-between gap-4 border-b border-rule px-5 py-3">
+            <span className="text-sm font-medium text-ink">{arabic ? "استعلام SQL المنفذ" : "Executed SQL"}</span>
             <CopyButton sql={sql} arabic={arabic} />
           </div>
-          <pre dir="ltr" className="overflow-x-auto px-5 py-4 font-mono text-[0.9375rem] leading-[1.7]">
+          <pre dir="ltr" className="whitespace-pre-wrap break-words px-5 py-6 font-mono text-sm leading-relaxed [overflow-wrap:anywhere] sm:px-6 sm:text-base">
             <code>
-              {tokenizeSql(sql).map((token, index) => (
+              {tokenizeSql(displaySql).map((token, index) => (
                 <span key={index} className={TOKEN_CLASS[token.kind]}>
                   {token.text}
                 </span>

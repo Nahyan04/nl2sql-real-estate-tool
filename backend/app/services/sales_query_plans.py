@@ -24,8 +24,8 @@ def sales_analysis_plan(question: str) -> tuple[str, str] | None:
     period = (f"transaction_date >= DATE '{year}-01-01' "
               f"AND transaction_date < DATE '{year + 1}-01-01'")
     plain = question.strip().rstrip("?؟. ")
-    if re.fullmatch(r"which (?:five|5) source districts had the highest (?:exported )?sales value in (?:19|20)\d{2}|"
-                    r"ما المناطق المصدرية الخمس الأعلى من حيث قيمة المبيعات الواردة في بيانات عام (?:19|20)\d{2}", plain, re.IGNORECASE):
+    if re.fullmatch(r"which (?:five|5) (?:source )?districts had the highest (?:exported )?sales value in (?:19|20)\d{2}|"
+                    r"ما المناطق (?:المصدرية )?الخمس الأعلى من حيث قيمة المبيعات (?:الواردة في بيانات عام|في عام) (?:19|20)\d{2}", plain, re.IGNORECASE):
         return ("SELECT district, SUM(price_aed) AS sales_value_aed "
                 f"FROM transactions WHERE {period} GROUP BY district "
                 "ORDER BY sales_value_aed DESC, district ASC LIMIT 5", "top_districts")
@@ -100,24 +100,24 @@ def render_sales_analysis(question: str, kind: str, rows: list[list[object]], la
         return f"Exported sales observations in {year} totaled {amount}."
     if kind == "top_districts":
         from app.services.answer_synthesizer import _format_aed
-        entries = ", ".join(f"{district}: {_format_aed(value, language == 'ar')}" for district, value in rows)
+        entries = "\n".join(f"- **{district}:** {_format_aed(value, language == 'ar')}" for district, value in rows)
         if language == "ar":
-            return f"المناطق المصدرية الخمس الأعلى بقيمة المبيعات المصدّرة في {year}: {entries}."
-        return f"The five source districts with the highest exported sales value in {year} were {entries}."
+            return f"المناطق الخمس الأعلى بقيمة المبيعات في بيانات عام {year}:\n\n{entries}"
+        return f"The five districts with the highest exported sales value in {year}:\n\n{entries}"
     if kind == "sale_type_value":
         from app.services.answer_synthesizer import _format_aed
-        entries = ", ".join(f"{_sale_type_label(sale_type, language)}: {_format_aed(value, language == 'ar')}" for sale_type, value in rows)
+        entries = "\n".join(f"- **{_sale_type_label(sale_type, language)}:** {_format_aed(value, language == 'ar')}" for sale_type, value in rows)
         if language == "ar":
-            return f"قيمة سجلات البيع المصدّرة حسب نوع البيع في {year}: {entries}."
-        return f"Exported sales value by source sale type in {year}: {entries}."
-    entries = ", ".join(f"{_sale_type_label(sale_type, language)}: {count:,}" for sale_type, count in rows)
+            return f"قيمة المبيعات حسب نوع البيع في بيانات عام {year}:\n\n{entries}"
+        return f"Exported sales value by sale type in {year}:\n\n{entries}"
+    entries = "\n".join(f"- **{_sale_type_label(sale_type, language)}:** {count:,}" for sale_type, count in rows)
     if kind == "district_sale_type_count":
         if language == "ar":
-            return f"عدد سجلات البيع المصدّرة في المنطقة المصدرية Al Reem Island عام {year} حسب نوع البيع: {entries}."
-        return f"Exported sales observation counts in the Al Reem Island source district in {year} by sale type: {entries}."
+            return f"عدد سجلات البيع في بيانات Al Reem Island لعام {year} حسب نوع البيع:\n\n{entries}"
+        return f"Exported sales observation counts in Al Reem Island in {year} by sale type:\n\n{entries}"
     if language == "ar":
-        return f"عدد سجلات البيع المصدّرة حسب نوع البيع في {year}: {entries}."
-    return f"Exported sales observation counts by source sale type in {year}: {entries}."
+        return f"عدد سجلات البيع حسب نوع البيع في بيانات عام {year}:\n\n{entries}"
+    return f"Exported sales observation counts by sale type in {year}:\n\n{entries}"
 
 
 def _sale_type_label(value: str, language: Language) -> str:

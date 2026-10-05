@@ -31,7 +31,7 @@ export function ResultsTable({ columns, rows, rowCount, truncated, truncationRea
       </div>
 
       <div className="mt-4 max-h-[26rem] overflow-auto rounded-lg border border-rule bg-paper">
-        <table className="w-full border-collapse text-[1rem] font-medium">
+        <table className="w-full border-collapse text-base font-normal">
           <thead className="sticky top-0 z-10 bg-paper">
             <tr>
               {columns.map((column, index) => (
@@ -70,7 +70,7 @@ export function ResultsTable({ columns, rows, rowCount, truncated, truncationRea
       </div>
 
       {truncated ? (
-        <p className="mt-3 text-[0.9375rem] text-sand">
+        <p className="mt-3 text-sm text-sand">
           {truncationReason === "row_limit"
             ? (arabic ? `اقتُطعت النتيجة عند ${rowCount} صف.` : `Capped at ${rowCount} rows.`)
             : (arabic ? "اقتُطعت النتيجة بسبب حجمها." : "The response was capped by its size.")}

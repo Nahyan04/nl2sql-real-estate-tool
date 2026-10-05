@@ -77,7 +77,7 @@ def lease_period_scope(question: str, arabic: bool) -> str:
 def _lease_value_plan(question: str) -> RentalPlan | None:
     plain = question.strip().rstrip("?؟. ")
     english = re.fullmatch(
-        r"what was the (?:sum of )?source-labelled residential lease value for "
+        r"what was the (?:sum of )?(?:source-labelled )?residential lease value for "
         r"Q[1-4](?: and Q[1-4])? 20\d{2}(?:,? in AED)?", plain, re.IGNORECASE,
     )
     arabic = re.fullmatch(

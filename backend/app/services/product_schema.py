@@ -33,7 +33,7 @@ def introspect_product_schema(engine):
         if version != [1] or len(active) != 1 or not populated:
             raise ValueError('Fresh-data snapshot is not ready')
         coverage = [dict(row._mapping) for row in connection.execute(text('''
-            SELECT source_file, grain, measure, observed_from, observed_through, complete_through
+            SELECT source_file, source_rows, grain, measure, observed_from, observed_through, complete_through
             FROM bayan.dataset_coverage ORDER BY source_file
         '''))]
     tables = []

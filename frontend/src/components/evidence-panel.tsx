@@ -140,7 +140,7 @@ export function EvidencePanel({ result, coverage, schemaSnapshotId, arabic }: Ev
       ) : null}
       {sources.length > 0 ? (
         <details className="mt-5 border-t border-rule pt-4">
-          <summary className="cursor-pointer text-sm font-medium text-sage">{labels.sourceCoverage} · {sources.length}</summary>
+          <summary className="cursor-pointer text-sm font-semibold text-sage">{labels.sourceCoverage} · {sources.length}</summary>
           <ul className="mt-3 space-y-3 text-sm text-sand">
             {sources.map((source) => (
               <li key={source.source_file} className="border-s-2 border-rule ps-3">

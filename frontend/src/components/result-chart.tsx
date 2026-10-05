@@ -20,7 +20,7 @@ import type { Cell, ChartSpec } from "@/lib/types";
 const SOLO = "var(--sage)";
 const SERIES = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
 
-const AXIS = { fill: "var(--sand)", fontSize: 12, fontFamily: "var(--font-mono)" };
+const AXIS = { fill: "var(--sand)", fontSize: "var(--text-xs)", fontFamily: "var(--font-mono)" };
 const GRID = "var(--rule)";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}/;
@@ -106,10 +106,10 @@ export function ResultChart({ chart, columns, rows, arabic = false }: ResultChar
         <div className="mt-4 space-y-4">
           {shown.map((key, index) => (
             <figure key={key}>
-              <figcaption className="text-[1.0625rem] text-ink">
+              <figcaption className="text-base text-ink">
                 {arabic ? `${humanizeColumn(key, true)} حسب ${humanizeColumn(xKey, true)}` : sentenceCase(`${humanizeColumn(key)} by ${humanizeColumn(xKey)}`)}
               </figcaption>
-              <div className="mt-3 overflow-x-auto rounded-lg border border-rule bg-paper p-5 pe-7">
+              <div dir="ltr" className="mt-3 overflow-x-auto rounded-lg border border-rule bg-paper p-5 pe-7">
                 <div className={chart.type === "bar" ? "min-w-[420px]" : "min-w-[320px]"}>
                   <Figure data={data} xKey={xKey} keys={[key]} colorFor={() => SERIES[index]} arabic={arabic} />
                 </div>
@@ -119,8 +119,8 @@ export function ResultChart({ chart, columns, rows, arabic = false }: ResultChar
         </div>
       ) : (
         <>
-          <p className="mt-3 text-[1.0625rem] text-ink">{arabic ? `${humanizeColumn(shown[0], true)} حسب ${humanizeColumn(xKey, true)}` : chart.title}</p>
-          <div className="mt-5 overflow-x-auto rounded-lg border border-rule bg-paper p-5 pe-7">
+          <p className="mt-3 text-base text-ink">{arabic ? `${humanizeColumn(shown[0], true)} حسب ${humanizeColumn(xKey, true)}` : chart.title}</p>
+          <div dir="ltr" className="mt-5 overflow-x-auto rounded-lg border border-rule bg-paper p-5 pe-7">
             <div className={chart.type === "bar" ? "min-w-[420px]" : "min-w-[320px]"}>
               <Figure data={data} xKey={xKey} keys={shown} colorFor={colorFor} arabic={arabic} />
             </div>
@@ -129,7 +129,7 @@ export function ResultChart({ chart, columns, rows, arabic = false }: ResultChar
       )}
 
       {keys.length > shown.length ? (
-        <p className="mt-3 text-[0.9375rem] text-sand">
+        <p className="mt-3 text-sm text-sand">
           {arabic ? `يعرض الرسم أول ${shown.length} مقاييس. تظهر بقية المقاييس في الجدول.` : `Charting the first ${shown.length} measures. The rest are in the result table.`}
         </p>
       ) : null}
@@ -146,10 +146,10 @@ function StatFigure({ chart, columns, rows, arabic = false }: ResultChartProps) 
   return (
     <section dir={arabic ? "rtl" : "ltr"} className="mt-12">
       <h2 className="section-heading">{arabic ? "النتيجة" : "Result"}</h2>
-      <p className="mt-4 text-[3.25rem] leading-none font-semibold text-ink">
+      <p className="mt-4 break-words text-xl leading-tight sm:text-display sm:leading-none font-semibold text-ink">
         {formatMetricCell(value, key, arabic)}
       </p>
-      <p className="mt-3 text-[1.0625rem] text-sand">
+      <p className="mt-3 text-base text-sand">
         {arabic ? humanizeColumn(key, true) : chart.title}
       </p>
     </section>
@@ -209,7 +209,7 @@ function BarFigure({ data, xKey, keys, colorFor, arabic }: FigureProps) {
 
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <BarChart data={data} layout="vertical" margin={{ top: 0, right: 16, bottom: 0, left: 0 }} barGap={2}>
+      <BarChart data={data} layout="vertical" margin={{ top: 0, right: 40, bottom: 0, left: 0 }} barGap={2}>
         <CartesianGrid stroke={GRID} horizontal={false} />
         <XAxis
           type="number"
@@ -226,7 +226,7 @@ function BarFigure({ data, xKey, keys, colorFor, arabic }: FigureProps) {
           tickLine={false}
           tickMargin={10}
           axisLine={{ stroke: GRID }}
-          width={158}
+          width={180}
         />
         <Tooltip
           content={<ChartTooltip colorFor={colorFor} keys={keys} arabic={arabic} />}
@@ -276,7 +276,7 @@ function ChartTooltip({ active, label, payload, keys, colorFor, arabic }: Toolti
         {payload.map((entry) => {
           const key = String(entry.dataKey ?? "");
           return (
-            <li key={key} className="flex items-center gap-2.5 text-[0.9375rem]">
+            <li key={key} className="flex items-center gap-2.5 text-sm">
               <span
                 aria-hidden
                 className="size-2 shrink-0 rounded-full"
