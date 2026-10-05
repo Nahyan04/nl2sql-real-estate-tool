@@ -59,9 +59,9 @@ def test_district_sales_ranking_names_and_amounts_come_from_rows() -> None:
     model = FakeChatModel("Invented district (AED 999 billion)")
     english = synthesize_answer("Which districts had the highest sales value in 2025?", SQL, result, model)
     arabic = synthesize_answer("ما المناطق الأعلى بقيمة المبيعات في 2025؟", SQL, result, model)
-    assert "Al Reem Island (AED 152.34 billion)" in english
-    assert "Yas Island (AED 92.45 billion)" in english
-    assert "Al Reem Island (152.34 مليار درهم)" in arabic
+    assert "- **Al Reem Island:** AED 152.34 billion" in english
+    assert "- **Yas Island:** AED 92.45 billion" in english
+    assert "- **Al Reem Island:** 152.34 مليار درهم" in arabic
     assert "Invented" not in english and model.prompts == []
 
 

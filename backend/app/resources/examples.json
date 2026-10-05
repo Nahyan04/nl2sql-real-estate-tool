@@ -1,38 +1,91 @@
 {
   "examples": [
     {
-      "id": "en-fresh-0",
+      "id": "en-sales-rank",
       "lang": "en",
-      "text": "Which five source districts had the highest sales value in 2025?"
+      "topic": "sales",
+      "title": "Where was sales value highest?",
+      "featured": true,
+      "text": "Which five districts had the highest sales value in 2025?"
     },
     {
-      "id": "en-fresh-1",
+      "id": "en-sales-mix",
       "lang": "en",
-      "text": "For Al Reem Island apartments in Q2 2026, what was the leased-unit-weighted annual rent estimate?"
-    },
-    {
-      "id": "en-fresh-2",
-      "lang": "en",
-      "text": "Which Al Reem Island apartment layouts had the highest indicative gross segment yields in Q2 2026?"
-    },
-    {
-      "id": "en-fresh-3",
-      "lang": "en",
-      "text": "What was the percentage change from June 2025 to June 2026 in the Abu Dhabi City all-rents index for all residential property types and all zones?"
-    },
-    {
-      "id": "en-fresh-4",
-      "lang": "en",
+      "topic": "sales",
+      "title": "How did sale types compare?",
+      "featured": true,
       "text": "Compare off-plan, ready and court-mandated sales value in 2025."
     },
     {
-      "id": "ar-fresh-5",
-      "lang": "ar",
-      "text": "قارن عدد سجلات البيع على الخارطة والجاهز في المنطقة المصدرية Al Reem Island عام 2025."
+      "id": "en-lease-value",
+      "lang": "en",
+      "topic": "leasing",
+      "title": "What was residential lease value?",
+      "featured": true,
+      "text": "What was the residential lease value for Q1 and Q2 2026, in AED?"
     },
     {
-      "id": "ar-fresh-6",
+      "id": "en-sales-count",
+      "lang": "en",
+      "topic": "sales",
+      "title": "How many sales were recorded?",
+      "featured": false,
+      "text": "How many sales observations are in the export for 2025?"
+    },
+    {
+      "id": "en-leased-units",
+      "lang": "en",
+      "topic": "leasing",
+      "title": "How many units were leased?",
+      "featured": false,
+      "text": "How many residential leased units were recorded at the end of Q2 2026?"
+    },
+    {
+      "id": "en-rent-trend",
+      "lang": "en",
+      "topic": "trends",
+      "title": "How did the rent index change?",
+      "featured": false,
+      "text": "What was the percentage change from June 2025 to June 2026 in the Abu Dhabi City all-rents index for all residential property types and all zones?"
+    },
+    {
+      "id": "ar-sales-rank",
       "lang": "ar",
+      "topic": "sales",
+      "title": "أين كانت قيمة المبيعات الأعلى؟",
+      "featured": true,
+      "text": "ما المناطق الخمس الأعلى من حيث قيمة المبيعات في عام 2025؟"
+    },
+    {
+      "id": "ar-sales-mix",
+      "lang": "ar",
+      "topic": "sales",
+      "title": "كيف توزعت المبيعات حسب نوع البيع؟",
+      "featured": true,
+      "text": "قارن عدد سجلات البيع على الخارطة والجاهز في عام 2025."
+    },
+    {
+      "id": "ar-lease-value",
+      "lang": "ar",
+      "topic": "leasing",
+      "title": "ما قيمة الإيجارات السكنية؟",
+      "featured": true,
+      "text": "ما مجموع قيمة الإيجارات السكنية الواردة في المصدر للربعين الأول والثاني من 2026 بالدرهم؟"
+    },
+    {
+      "id": "ar-sales-count",
+      "lang": "ar",
+      "topic": "sales",
+      "title": "كم سجل مبيعات في البيانات؟",
+      "featured": false,
+      "text": "كم عدد سجلات المبيعات الواردة في البيانات لعام 2025؟"
+    },
+    {
+      "id": "ar-rent-trend",
+      "lang": "ar",
+      "topic": "trends",
+      "title": "كيف تغير مؤشر الإيجارات؟",
+      "featured": false,
       "text": "ما نسبة التغير من يونيو 2025 إلى يونيو 2026 في مؤشر جميع الإيجارات لجميع أنواع العقارات السكنية وجميع المناطق في مدينة أبوظبي؟"
     }
   ]

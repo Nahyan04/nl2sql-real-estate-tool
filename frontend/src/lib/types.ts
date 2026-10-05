@@ -54,6 +54,9 @@ export interface ExampleQuestion {
   id: string;
   lang: Lang;
   text: string;
+  topic?: "sales" | "leasing" | "trends";
+  title?: string;
+  featured?: boolean;
 }
 
 export interface ExamplesResponse {
@@ -97,6 +100,7 @@ export interface SchemaResponse {
 
 export interface SourceCoverage {
   source_file: string;
+  source_rows?: number;
   grain: string | null;
   measure: string | null;
   observed_from: string | null;

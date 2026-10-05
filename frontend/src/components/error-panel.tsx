@@ -144,17 +144,17 @@ export function ErrorPanel({ error, arabic, onRetry }: { error: ApiError; arabic
         <h2 className="label-mono text-destructive">{explanation.title}</h2>
         <span className="label-mono text-sand">{error.code}</span>
       </div>
-      <p className="mt-2 max-w-[44rem] text-[1.0625rem] leading-relaxed text-ink">
+      <p className="mt-2 max-w-[44rem] text-base leading-relaxed text-ink">
         {explanation.guidance}
         {error.retryAfter !== null ? (arabic ? ` حاول بعد ${error.retryAfter} ثانية.` : ` Retry after ${error.retryAfter} seconds.`) : ""}
       </p>
       {error.detail && !arabic ? (
-        <p className="mt-3 max-w-[44rem] font-mono text-[0.9375rem] leading-relaxed break-words text-sand">
+        <p className="mt-3 max-w-[44rem] font-mono text-sm leading-relaxed break-words text-sand">
           {error.detail}
         </p>
       ) : null}
       {error.requestId ? <p className="mt-3 label-mono text-sand">{arabic ? "معرّف الطلب" : "Request ID"}: {error.requestId}</p> : null}
-      <button type="button" onClick={onRetry} className="mt-5 cursor-pointer rounded-md border border-rule px-4 py-2 text-sm font-medium text-ink transition-colors hover:border-sage hover:text-sage">
+      <button type="button" onClick={onRetry} className="mt-5 cursor-pointer rounded-md border border-rule px-4 py-2 text-sm font-semibold text-ink transition-colors hover:border-sage hover:text-sage">
         {arabic ? "حاول مرة أخرى" : "Try again"}
       </button>
     </section>

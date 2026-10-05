@@ -13,9 +13,11 @@ interface ProviderToggleProps {
   disabled: boolean;
   arabic?: boolean;
   availability: ProvidersResponse | null;
+  failed?: boolean;
 }
 
-export function ProviderToggle({ value, onChange, disabled, arabic = false, availability }: ProviderToggleProps) {
+export function ProviderToggle({ value, onChange, disabled, arabic = false, availability, failed = false }: ProviderToggleProps) {
+  if (availability === null) return <p className="text-sm text-sand" role="status">{failed ? (arabic ? "تعذر الاتصال بخدمة التحليل" : "Analysis service could not be reached") : (arabic ? "جارٍ التحقق من النموذج…" : "Checking model availability…")}</p>;
   const localAvailable = availability?.ollama.available === true;
   const cloudAvailable = availability?.anthropic.available === true;
   const localHint = localAvailable
@@ -38,16 +40,16 @@ export function ProviderToggle({ value, onChange, disabled, arabic = false, avai
               disabled={disabled || !(availability?.[option.value].available ?? false)}
               aria-pressed={value === option.value}
               onClick={() => onChange(option.value)}
-              className={`control-option cursor-pointer rounded-sm px-1.5 py-1 transition-colors disabled:cursor-default disabled:opacity-50 ${
+              className={`control-option min-h-10 cursor-pointer rounded-md px-2.5 py-1 transition-colors disabled:cursor-default disabled:opacity-50 ${
                 value === option.value ? "bg-sage/10 text-sage" : "text-sand hover:text-ink"
               }`}
             >
               {arabic ? (option.value === "anthropic" ? "خدمة سحابية" : "استضافة ذاتية") : option.label}
+              {option.value === "ollama" && !localAvailable ? <span className="ms-1 text-xs font-normal">{arabic ? " غير متاحة" : " unavailable"}</span> : null}
             </button>
           </span>
         ))}
       </div>
-      {!localAvailable ? <span className="text-xs text-sand" role="status">{arabic ? "الاستضافة الذاتية غير متاحة" : "Self-hosted unavailable"}</span> : null}
       {!cloudAvailable ? <span className="text-xs text-sand" role="status">{arabic ? "الخدمة السحابية غير متاحة" : "Cloud API unavailable"}</span> : null}
     </div>
   );

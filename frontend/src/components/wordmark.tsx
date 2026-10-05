@@ -15,10 +15,10 @@ export function Wordmark() {
           vectorEffect="non-scaling-stroke"
         />
       </svg>
-      <span className="text-[1.375rem] font-semibold text-sage" lang="ar" dir="rtl">
+      <span className="text-xl font-semibold text-sage" lang="ar" dir="rtl">
         بيان
       </span>
-      <span className="mt-1 text-[1rem] font-semibold tracking-[0.18em] text-ink">
+      <span className="mt-1 text-base font-semibold tracking-[0.18em] text-ink">
         BAYAN
       </span>
     </span>

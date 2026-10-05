@@ -33,7 +33,7 @@ def test_sale_type_plans_report_source_categories_without_causes():
     assert "sale_type IN ('off-plan', 'ready')" in count_plan[0]
     assert all(validate_product_query(plan[0]).is_safe for plan in (value_plan, count_plan))
     answer = render_sales_analysis(value_question, value_plan[1], [["off-plan", 100], ["ready", 50]], "en")
-    assert "off-plan" in answer and "ready" in answer
+    assert "- **off-plan:**" in answer and "- **ready:**" in answer
     assert "premium" not in answer and "larger" not in answer
     example = sales_analysis_plan("Compare off-plan, ready and court-mandated sales value in 2025.")
     assert example and example[1] == "sale_type_value"
@@ -63,3 +63,12 @@ def test_plain_year_count_and_value_include_zero_count_period():
     assert "0" in answer and "2030" in answer
     assert sales_analysis_plan("How many residential sales observations are in the export for 2025?") is None
     assert sales_analysis_plan("What was the total exported sales value in Yas Island in 2025?") is None
+
+
+def test_ranked_sales_answer_is_a_list_in_both_languages():
+    rows = [["Al Reem Island", 15234404846.22], ["Yas Island", 9244569524.83]]
+    for language in ("en", "ar"):
+        answer = render_sales_analysis("Which five source districts had the highest sales value in 2025?", "top_districts", rows, language)
+        assert answer.count("\n- **") == 2
+        assert "Al Reem Island" in answer and "15.23" in answer
+        assert "Yas Island" in answer and "9.24" in answer

@@ -10,6 +10,7 @@ from langchain_core.messages import AIMessage
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from app.config import Settings
+from app.api.routes.examples import load_examples
 from app.services.product_schema import introspect_product_schema, PRODUCT_RELATIONS
 from app.services.graph import run_pipeline
 from app.services.executor import execute_readonly
@@ -52,6 +53,8 @@ def test_introspection_exposes_only_source_views(runtime):
     schema = introspect_product_schema(runtime[0])
     assert {t['name'] for t in schema['tables']} == PRODUCT_RELATIONS
     assert schema['snapshot_id'] == '2026-09-24'
+    sales_source = next(source for source in schema['coverage'] if source['source_file'] == 'Transactions/recent_sales_2019-2026.csv')
+    assert sales_source['source_rows'] == 122936
     transaction = next(t for t in schema['tables'] if t['name']=='transactions')
     assert {'district','community','project_name','sold_share','sale_type'} <= {c['name'] for c in transaction['columns']}
 
@@ -113,3 +116,31 @@ def test_role_denied_raw_rows_and_write_privileges(runtime):
         assert not connection.execute(text("SELECT has_table_privilege(current_user,'bayan.transactions','INSERT')")).scalar_one()
     result = execute_readonly(readonly, 'SELECT source_rows FROM dataset_coverage LIMIT 1')
     assert result.row_count == 1
+
+
+@pytest.mark.parametrize('example', load_examples().examples, ids=lambda example: example.id)
+def test_public_examples_match_snapshot_reference(runtime, example):
+    engine, readonly, settings = runtime
+    year_filter = "transaction_date >= DATE '2025-01-01' AND transaction_date < DATE '2026-01-01'"
+    references = {
+        'sales-rank': f"SELECT district, SUM(price_aed) FROM bayan.transactions WHERE {year_filter} GROUP BY district ORDER BY SUM(price_aed) DESC, district ASC LIMIT 5",
+        'sales-count': f"SELECT COUNT(*) FROM bayan.transactions WHERE {year_filter}",
+        'lease-value': "SELECT SUM(active_value_aed) FROM bayan.rental_observations WHERE source_file = 'Residential Leases/lease_price_by_period.xlsx' AND period_end IN (DATE '2026-03-31', DATE '2026-06-30')",
+        'leased-units': "SELECT SUM(source_leased_units) FROM bayan.rental_observations WHERE source_file = 'Residential Leases/lease_residential.xlsx' AND period_end = DATE '2026-06-30'",
+        'rent-trend': "SELECT 100 * (MAX(index_value) FILTER (WHERE period_end = DATE '2026-06-30') - MAX(index_value) FILTER (WHERE period_end = DATE '2025-06-30')) / MAX(index_value) FILTER (WHERE period_end = DATE '2025-06-30') FROM bayan.price_indices WHERE source_file = 'Price Indices/rent_price_index.xlsx' AND index_type = 'rent' AND municipality = 'Abu Dhabi City' AND source_area_group = '(all zones)' AND property_group = '(all property types)' AND application_type = '(all rents)'",
+    }
+    key = example.id[3:]
+    if key == 'sales-mix':
+        aggregate = 'COUNT(*)' if example.lang == 'ar' else 'SUM(price_aed)'
+        types = "'off-plan', 'ready'" if example.lang == 'ar' else "'off-plan', 'ready', 'court-mandated'"
+        reference = f"SELECT sale_type, {aggregate} FROM bayan.transactions WHERE sale_type IN ({types}) AND {year_filter} GROUP BY sale_type ORDER BY {aggregate} DESC"
+    else:
+        reference = references[key]
+    with readonly.connect() as connection:
+        expected = [list(row) for row in connection.execute(text(reference))]
+    model = Model()
+    state = run_pipeline(example.text, language=example.lang, chat_model=model, engine=engine, engine_ro=readonly, settings=settings)
+    assert state.get('failure') is None
+    assert state['exec_result'].rows == expected
+    assert model.calls == 0
+    assert state['answer'] and state['snapshot_id'] == '2026-09-24'

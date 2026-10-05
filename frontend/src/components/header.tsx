@@ -1,39 +1,42 @@
+import Link from "next/link";
 import { ProviderToggle } from "@/components/provider-toggle";
 import { Wordmark } from "@/components/wordmark";
 import type { LanguageChoice, Provider, ProvidersResponse } from "@/lib/types";
 
 interface HeaderProps {
-  provider: Provider;
+  provider?: Provider;
   language: LanguageChoice;
   arabic: boolean;
-  onProviderChange: (provider: Provider) => void;
+  onProviderChange?: (provider: Provider) => void;
   onLanguageChange: (language: LanguageChoice) => void;
   busy: boolean;
-  availability: ProvidersResponse | null;
+  availability?: ProvidersResponse | null;
+  availabilityFailed?: boolean;
+  page?: "ask" | "data";
 }
 
-export function Header({ provider, language, arabic, onProviderChange, onLanguageChange, busy, availability }: HeaderProps) {
+export function Header({ provider, language, arabic, onProviderChange, onLanguageChange, busy, availability, availabilityFailed = false, page = "ask" }: HeaderProps) {
+  const languages: LanguageChoice[] = page === "data" ? ["en", "ar"] : ["auto", "en", "ar"];
   return (
     <header dir={arabic ? "rtl" : "ltr"} className="border-b border-rule bg-paper-flat/80">
-      <div className="mx-auto grid max-w-[88rem] gap-5 px-5 py-5 sm:px-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:px-12">
-        <div className="flex min-w-0 items-center gap-5 sm:gap-7">
+      <a href="#main-content" className="skip-link">{arabic ? "انتقل إلى المحتوى" : "Skip to content"}</a>
+      <div className="mx-auto grid max-w-[88rem] gap-4 px-5 py-4 sm:px-8 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center lg:px-12">
+        <div className="flex min-w-0 items-center gap-4 sm:gap-6">
           <Wordmark />
-          <p className="header-subtitle max-w-[24rem] border-s border-rule ps-5 text-[0.9375rem] font-medium leading-snug text-ink sm:ps-7">
-            {arabic ? "تحليلات عقارية لأبوظبي باللغة الطبيعية" : <>Natural-language analytics for Abu Dhabi&rsquo;s real estate market</>}
-          </p>
+          <nav aria-label={arabic ? "التنقل الرئيسي" : "Main navigation"} className="flex flex-wrap gap-x-6 gap-y-1 border-s border-rule ps-4 sm:ps-6">
+            {(["ask", "data"] as const).map((item) => <Link key={item} href={`${item === "ask" ? "/" : "/data"}${arabic ? "?lang=ar" : ""}`} aria-current={page === item ? "page" : undefined} className={`nav-link ${page === item ? "text-ink after:bg-sage" : "text-sand"}`}>
+              {item === "ask" ? (arabic ? "اسأل بيان" : "Ask Bayan") : (arabic ? "استكشف البيانات" : "Explore the data")}
+            </Link>)}
+          </nav>
         </div>
-        <div className="flex flex-wrap items-center gap-x-7 gap-y-3 border-t border-rule pt-4 lg:justify-end lg:border-0 lg:pt-0">
-          <div className="flex flex-wrap items-center gap-2.5" role="group" aria-label={arabic ? "لغة الإجابة" : "Answer language"}>
-            <span className="control-label me-1">{arabic ? "اللغة" : "Language"}</span>
-            {(["auto", "en", "ar"] as const).map((option) => (
-              <button key={option} type="button" disabled={busy} aria-pressed={language === option}
-                onClick={() => onLanguageChange(option)}
-                className={`control-option cursor-pointer rounded-sm px-1.5 py-1 transition-colors disabled:cursor-default ${language === option ? "bg-sage/10 text-sage" : "text-sand hover:text-ink"}`}>
-                {option === "auto" ? (arabic ? "تلقائي" : "Auto") : option === "en" ? "EN" : "عربي"}
-              </button>
-            ))}
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-rule pt-3 xl:justify-end xl:border-0 xl:pt-0">
+          <div className="flex items-center gap-1" role="group" aria-label={arabic ? "لغة الإجابة" : "Answer language"}>
+            <span className="control-label me-2">{arabic ? "اللغة" : "Language"}</span>
+            {languages.map((option) => <button key={option} type="button" disabled={busy} aria-pressed={language === option} onClick={() => onLanguageChange(option)} className={`control-option min-h-10 cursor-pointer rounded-md px-2.5 py-1 transition-colors disabled:cursor-default ${language === option ? "bg-sage/10 text-sage" : "text-sand hover:bg-sage/5 hover:text-ink"}`}>
+              {option === "auto" ? (arabic ? "تلقائي" : "Auto") : option === "en" ? "EN" : "عربي"}
+            </button>)}
           </div>
-          <ProviderToggle value={provider} onChange={onProviderChange} disabled={busy} arabic={arabic} availability={availability} />
+          {provider && onProviderChange ? <ProviderToggle value={provider} onChange={onProviderChange} disabled={busy} arabic={arabic} availability={availability ?? null} failed={availabilityFailed} /> : null}
         </div>
       </div>
     </header>

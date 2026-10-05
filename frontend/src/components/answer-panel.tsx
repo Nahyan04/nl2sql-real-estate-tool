@@ -3,6 +3,9 @@ import remarkGfm from "remark-gfm";
 
 /** The synthesizer answers in markdown and bolds the figure it was asked for. */
 const MARKDOWN = {
+  h1: ({ children }: { children?: React.ReactNode }) => <h3 className="mt-5 text-lg font-semibold">{children}</h3>,
+  h2: ({ children }: { children?: React.ReactNode }) => <h3 className="mt-5 text-lg font-semibold">{children}</h3>,
+  h3: ({ children }: { children?: React.ReactNode }) => <h3 className="mt-5 text-base font-semibold">{children}</h3>,
   p: ({ children }: { children?: React.ReactNode }) => (
     <p className="mt-4 first:mt-0">{children}</p>
   ),
@@ -11,16 +14,16 @@ const MARKDOWN = {
   ),
   em: ({ children }: { children?: React.ReactNode }) => <em className="italic">{children}</em>,
   ul: ({ children }: { children?: React.ReactNode }) => (
-    <ul className="mt-4 space-y-1.5 ps-5 marker:text-sage-dim">{children}</ul>
+    <ul className="mt-5 list-disc space-y-3 ps-5 marker:text-sage-dim">{children}</ul>
   ),
   ol: ({ children }: { children?: React.ReactNode }) => (
     <ol className="mt-4 list-decimal space-y-1.5 ps-5 marker:text-sage-dim">{children}</ol>
   ),
   li: ({ children }: { children?: React.ReactNode }) => (
-    <li className="list-disc">{children}</li>
+    <li>{children}</li>
   ),
   code: ({ children }: { children?: React.ReactNode }) => (
-    <code className="font-mono text-[0.9em] text-sand">{children}</code>
+    <code className="font-mono text-sm text-sand">{children}</code>
   ),
 };
 
@@ -33,7 +36,7 @@ export function AnswerPanel({ answer, title = "Answer", arabic = false }: { answ
       {/* an Arabic answer reads from the column's right edge, not from a
           left-anchored measure */}
       <div
-        className="answer-copy mt-5 text-[1.1875rem] leading-[1.75] font-medium text-ink"
+        className="answer-copy mt-5 max-w-[65ch] text-lg leading-[1.75] text-ink"
       >
         <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN}>
           {answer}

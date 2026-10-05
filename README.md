@@ -38,7 +38,11 @@ For frontend development, keep PostgreSQL and the API running, then use `cd fron
 
 ## Use
 
-Choose English, Arabic, or automatic language detection, then select an example or enter a question. Results show the answer, the SQL actually executed, source rows, a chart when useful, and snapshot/coverage evidence. Source period labels do not prove complete reporting periods. The Self-hosted control is enabled only when the server can reach its configured Ollama endpoint and find the configured model. Otherwise it is visibly unavailable; there is no silent provider switch.
+Choose English, Arabic, or automatic language detection, then select one of three featured examples or enter a question. Expand the question gallery for more sales, leasing, and trend examples. Session history can be expanded to rerun earlier questions. The **Explore the data** page describes the queryable subjects, measures, units, and observed dates; its example links prefill the question composer without running a query. Rankings and comparisons use scannable answer lists. Expand **How this was answered** for formatted, syntax-highlighted SQL; copying retains the exact executed query. Results show the answer, the SQL actually executed, source rows, a chart when useful, and snapshot/coverage evidence. Source period labels do not prove complete reporting periods. The Self-hosted control is enabled only when the server can reach its configured Ollama endpoint and find the configured model. Otherwise it is visibly unavailable; there is no silent provider switch.
+
+## API presentation metadata
+
+The `/api/v1/examples` response includes optional `topic`, `title`, and `featured` presentation metadata. `/api/v1/schema` coverage entries include `source_rows`, the number of observations in that source export; counts from overlapping aggregate exports are not additive.
 
 ## Check a change
 

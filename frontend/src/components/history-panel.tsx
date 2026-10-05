@@ -1,43 +1,20 @@
 "use client";
 
-interface HistoryPanelProps {
-  questions: string[];
-  onPick: (question: string) => void;
-  onClear: () => void;
-  busy: boolean;
-  arabic: boolean;
-}
-
-export function HistoryPanel({ questions, onPick, onClear, busy, arabic }: HistoryPanelProps) {
-  if (questions.length === 0) return null;
-
+export function HistoryPanel({ questions, onPick, onClear, busy, arabic }: {
+  questions: string[]; onPick: (question: string) => void; onClear: () => void; busy: boolean; arabic: boolean;
+}) {
+  if (!questions.length) return null;
   return (
-    <section dir={arabic ? "rtl" : "ltr"} className="mt-16 border-t border-rule pt-5">
-      <div className="flex items-baseline justify-between gap-6">
-        <h2 className="section-heading">{arabic ? "أسئلة هذه الجلسة" : "This session"}</h2>
-        <button
-          type="button"
-          onClick={onClear}
-          className="label-mono cursor-pointer text-sand transition-colors hover:text-sage"
-        >
-          {arabic ? "مسح السجل" : "Clear"}
-        </button>
+    <details dir={arabic ? "rtl" : "ltr"} className="mt-10 border-t border-rule pt-4">
+      <summary className="min-h-11 cursor-pointer text-sm font-semibold text-sand transition-colors hover:text-ink">
+        {arabic ? "أسئلة هذه الجلسة" : "Session history"} <span className="ms-2 font-mono text-xs font-normal">{questions.length}</span>
+      </summary>
+      <div className="mt-2 rounded-lg bg-paper-flat px-5 py-3">
+        <ul className="divide-y divide-rule">
+          {questions.map((question) => <li key={question}><button type="button" disabled={busy} dir="auto" onClick={() => onPick(question)} className="w-full cursor-pointer py-3 text-start text-sm leading-relaxed text-sand transition-colors hover:text-sage disabled:cursor-default disabled:opacity-50">{question}</button></li>)}
+        </ul>
+        <button type="button" onClick={onClear} className="min-h-11 cursor-pointer text-sm font-semibold text-sand underline decoration-rule underline-offset-4 hover:text-ink">{arabic ? "مسح السجل" : "Clear history"}</button>
       </div>
-      <ul className="mt-3">
-        {questions.map((question) => (
-          <li key={question}>
-            <button
-              type="button"
-              disabled={busy}
-              dir="auto"
-              onClick={() => onPick(question)}
-              className="w-full cursor-pointer py-[0.3125rem] text-start text-[1rem] font-medium leading-snug text-sand transition-colors hover:text-ink disabled:cursor-default disabled:hover:text-sand"
-            >
-              {question}
-            </button>
-          </li>
-        ))}
-      </ul>
-    </section>
+    </details>
   );
 }

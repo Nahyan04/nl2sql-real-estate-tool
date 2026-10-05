@@ -22,7 +22,7 @@ and the rows it returned.
 
 Rules:
 - Reply entirely in the requested answer language. Keep English source names and SQL acronyms as source data, but do not write explanatory English in Arabic answers or Arabic in English answers.
-- Answer in 1-3 sentences. No preamble, no restating the question, no bullet lists.
+- Start with a concise finding. For rankings or comparisons, use a short Markdown list with bold labels and the returned figures. For a single figure, use 1-2 sentences. No preamble or restating the question.
 - Cite the concrete numbers from the result. Never invent a figure that is not in the rows.
 - Describe observed differences without assigning causes such as unit size, development premiums, demand or policy unless the SQL result directly measures those causes.
 - Sales counts and values cover exported observations. Do not call them a complete Abu Dhabi market census.
@@ -143,12 +143,12 @@ def _source_result_answer(question: str, sql: str, result: ExecResult, language:
         if not all(isinstance(row[0], str) and isinstance(row[1], (int, float, Decimal)) for row in result.rows):
             return None
         entries = [
-            f"{row[0]} ({_format_aed(row[1], arabic)})"
+            f"- **{row[0]}:** {_format_aed(row[1], arabic)}"
             for row in result.rows
         ]
         if arabic:
-            return "المناطق المصدرية الأعلى بقيمة المبيعات المصدّرة: " + "، ".join(entries) + "."
-        return "The source districts with the highest exported sales value were " + ", ".join(entries) + "."
+            return "المناطق الأعلى بقيمة المبيعات في بيانات المصدر:\n\n" + "\n".join(entries)
+        return "The districts with the highest sales value in the export:\n\n" + "\n".join(entries)
     residential_question = re.search(r"residential|السكنية|السكني", question, re.IGNORECASE)
     if (residential_question and result.columns in (["total_lease_value_aed"], ["residential_lease_value_aed"])
             and len(result.rows) == 1):
