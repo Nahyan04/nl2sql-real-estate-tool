@@ -59,6 +59,7 @@ class Failure(TypedDict):
     type: str
     detail: str
     retry_after: NotRequired[int]
+    user_message: NotRequired[str]
 
 
 class PipelineState(TypedDict, total=False):
@@ -241,7 +242,9 @@ def generate_sql(state: PipelineState, config: RunnableConfig) -> dict[str, Any]
         if attempts < state.get("max_attempts", 1) and _EXPLICIT_YEAR.search(state["question"]):
             return {"attempts": attempts, "sql": None,
                     "failure": Failure(type="CLARIFICATION_RETRY", detail=clarification.group(1)[:DETAIL_LIMIT])}
-        return {"attempts": attempts, "sql": None, "failure": Failure(type="CLARIFICATION", detail=clarification.group(1)[:DETAIL_LIMIT])}
+        reason = clarification.group(1).strip()[:DETAIL_LIMIT]
+        return {"attempts": attempts, "sql": None,
+                "failure": Failure(type="CLARIFICATION", detail=reason, user_message=reason)}
     parsed = parse_response(raw)
 
     if parsed is None:

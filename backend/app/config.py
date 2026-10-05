@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     model_call_timeout_s: float = Field(default=12, gt=0, le=60)
     request_timeout_s: float = Field(default=25, gt=0, le=120)
     model_max_output_tokens: int = Field(default=1200, ge=128, le=4096)
+    model_temperature: float = Field(default=0, ge=0, le=1)
     model_generation_attempts: int = Field(default=2, ge=1, le=3)
     model_concurrency: int = Field(default=2, ge=1, le=16)
     model_queue_size: int = Field(default=4, ge=0, le=64)

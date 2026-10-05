@@ -54,10 +54,12 @@ def get_chat_model(provider: str | None, settings: Settings) -> BaseChatModel:
     name = (provider or settings.llm_provider).strip().lower()
 
     if name == ANTHROPIC:
+        logger.info("anthropic model configured model=%s temperature=%s", settings.anthropic_model, settings.model_temperature)
         return ChatAnthropic(
             model=settings.anthropic_model,
             api_key=settings.anthropic_api_key,
             max_tokens=settings.model_max_output_tokens,
+            temperature=settings.model_temperature,
             timeout=settings.model_call_timeout_s,
             max_retries=0,
         )

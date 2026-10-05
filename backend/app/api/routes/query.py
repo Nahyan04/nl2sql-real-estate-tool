@@ -170,7 +170,9 @@ def query(
         result = _error(
             _failure_status(failure_type),
             failure_type,
-            SAFE_FAILURE_DETAILS.get(failure_type, "The analysis could not be completed."),
+            (failure.get("user_message") or SAFE_FAILURE_DETAILS["CLARIFICATION"])
+            if failure_type == "CLARIFICATION"
+            else SAFE_FAILURE_DETAILS.get(failure_type, "The analysis could not be completed."),
             request_id,
             2 if failure_type == "MODEL_BUSY" else failure.get("retry_after"),
         )
