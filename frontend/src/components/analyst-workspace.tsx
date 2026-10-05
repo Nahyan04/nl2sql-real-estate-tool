@@ -124,12 +124,12 @@ export function AnalystWorkspace({ initialQuestion = "", initialLanguage = "auto
       <Header provider={provider} language={languageChoice} arabic={arabicQuestion} onLanguageChange={changeLanguage} onProviderChange={setProvider} busy={busy} availability={availability} availabilityFailed={availabilityFailed} />
 
       <main id="main-content" dir={arabicQuestion ? "rtl" : "ltr"} className="mx-auto w-full max-w-[88rem] flex-1 px-5 pt-8 pb-16 sm:px-8 lg:px-12 lg:pt-12">
-        {!showProcess ? <div className="mb-8 grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_24rem] lg:gap-10">
+        {!showProcess ? <div className="mb-8 grid items-start gap-7 md:grid-cols-[minmax(0,1fr)_minmax(15rem,0.75fr)] lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_24rem] lg:gap-10">
           <div>
-            <h1 className="display-heading max-w-[22ch]">{arabicQuestion ? "اسأل عن سوق أبوظبي العقاري." : "Ask about Abu Dhabi real estate."}</h1>
+            <h1 className="display-heading max-w-[22ch] md:text-2xl lg:text-display">{arabicQuestion ? "اسأل عن سوق أبوظبي العقاري." : "Ask about Abu Dhabi real estate."}</h1>
             <p className="mt-4 max-w-[54ch] text-base leading-relaxed text-sand sm:text-lg">{arabicQuestion ? "إجابات ورسوم بيانية وأدلة من المصادر، بالعربية أو الإنجليزية." : "Answers, charts, and source evidence. In English or Arabic."}</p>
           </div>
-          <div className="hidden lg:block"><DataSurface tables={tables} arabic={arabicQuestion} /></div>
+          <div><DataSurface tables={tables} arabic={arabicQuestion} /></div>
         </div> : null}
         <QueryInput value={question} onChange={setQuestion} onSubmit={() => run(question)} busy={busy} providerAvailable={providerAvailable} providerLoading={availability === null && !availabilityFailed} arabic={arabicQuestion} />
         {showProcess ? (

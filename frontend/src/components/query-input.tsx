@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { ArrowUpRight } from "lucide-react";
 
 export function QueryInput({ value, onChange, onSubmit, busy, providerAvailable, providerLoading = false, arabic }: {
@@ -8,14 +8,35 @@ export function QueryInput({ value, onChange, onSubmit, busy, providerAvailable,
   providerAvailable: boolean; providerLoading?: boolean; arabic: boolean;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const fit = () => { el.style.height = "auto"; el.style.height = `${el.scrollHeight}px`; };
+    let frame = 0;
+    let width = el.getBoundingClientRect().width;
+    const fit = () => {
+      el.style.height = "0px";
+      const style = getComputedStyle(el);
+      const border = parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth);
+      el.style.height = `${Math.ceil(el.scrollHeight + border + 2)}px`;
+    };
+    const scheduleFit = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(fit); };
     fit();
-    const observer = new ResizeObserver(fit);
+    // Zoom, wrapping and font loading can change the height without new input.
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry.contentRect.width !== width) {
+        width = entry.contentRect.width;
+        scheduleFit();
+      }
+    });
     observer.observe(el);
-    return () => observer.disconnect();
+    window.addEventListener("resize", scheduleFit);
+    document.fonts.addEventListener("loadingdone", scheduleFit);
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", scheduleFit);
+      document.fonts.removeEventListener("loadingdone", scheduleFit);
+    };
   }, [value]);
   const submittable = value.trim().length > 0 && !busy && providerAvailable;
   return (
@@ -26,7 +47,7 @@ export function QueryInput({ value, onChange, onSubmit, busy, providerAvailable,
           if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); if (submittable) onSubmit(); }
         }}
         placeholder={arabic ? "اسأل عن المبيعات أو الإيجارات أو اتجاهات السوق…" : "Ask about sales, leasing, or market trends…"}
-        className="query-field block min-h-10 w-full resize-none rounded-md bg-transparent text-lg font-normal leading-relaxed text-start text-ink placeholder:text-sand/65 focus-visible:outline-offset-4 disabled:text-sand sm:text-xl" />
+        className="query-field block min-h-10 w-full resize-none overflow-hidden rounded-md bg-transparent text-lg font-normal leading-relaxed text-start text-ink placeholder:text-sand/65 focus-visible:outline-offset-4 disabled:text-sand sm:text-xl" />
       <div className="mt-3 flex flex-wrap items-center justify-between gap-4 border-t border-rule pt-4">
         <p className="text-xs leading-relaxed text-sand">{arabic ? "Enter لإرسال السؤال · Shift + Enter لسطر جديد" : "Enter to ask · Shift + Enter for a new line"}</p>
         <button type="submit" disabled={!submittable} className="ask-button">

@@ -57,8 +57,8 @@
 
 @theme {
   /* Shared type scale: no component-specific font sizes. */
-  --text-xs: 0.75rem;
-  --text-sm: 0.875rem;
+  --text-xs: 0.875rem;
+  --text-sm: 1rem;
   --text-base: 1rem;
   --text-lg: 1.125rem;
   --text-xl: 1.5rem;
@@ -132,8 +132,8 @@
     @apply font-sans;
   }
   html[lang="ar"] {
-    --text-xs: 0.875rem;
-    --text-sm: 1rem;
+    --text-xs: 0.9375rem;
+    --text-sm: 1.0625rem;
     --text-base: 1.125rem;
     --text-lg: 1.25rem;
     --font-sans: var(--font-plex-arabic), var(--font-geist-sans), ui-sans-serif, sans-serif;
