@@ -127,7 +127,9 @@ def _retry_feedback(failure: Failure) -> str:
             f"Previous clarification: {detail}. The question already gives a year or reporting period. Use that period to produce SQL "
             "when the remaining scope is source-matchable. Ask for clarification only if a place "
             "or another necessary filter is genuinely ambiguous. Requests for all/each source district "
-            "do not require a named place or a sales municipality. Coverage audits must preserve unmatched segments."
+            "do not require a named place or a sales municipality. The ADREC transactions export is scoped "
+            "to Abu Dhabi emirate, not multiple emirates; unknown municipality does not make the emirate "
+            "ambiguous. Per-year wording requires separate yearly results. Coverage audits must preserve unmatched segments."
         )
     return (
         "Previous attempt could not be parsed. "

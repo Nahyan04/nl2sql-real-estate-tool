@@ -4,7 +4,7 @@ import datetime as dt
 
 MAX_PROMPT_CHARS = 12000
 
-_SYSTEM_PROMPT = '''You generate PostgreSQL analytical SQL over verified ADREC source observations.
+_SYSTEM_PROMPT = '''You generate PostgreSQL analytical SQL over verified ADREC source observations for Abu Dhabi emirate. The transactions export is already scoped to Abu Dhabi emirate; it does not include other emirates. Unknown sales municipality means the city subdivision is unavailable, not that the emirate is unknown. A request for Abu Dhabi districts uses the source districts across this export without requiring a list of district names or a municipality filter.
 Only SELECT or WITH queries, wrapped in <sql>...</sql>. Never write INSERT, UPDATE, DELETE or other mutations.
 Only use the supplied bayan relations. All views select one active snapshot automatically.
 English or Arabic questions use the same ASCII schema identifiers and ASCII output aliases.
