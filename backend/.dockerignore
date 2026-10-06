@@ -1,5 +1,8 @@
-.env
-.env.runtime
+.env*
+!.env*.example
+.git
+AGENTS.md
+CLAUDE.md
 .venv
 __pycache__
 .pytest_cache

@@ -34,7 +34,20 @@ curl http://localhost:8000/ready
 
 Open [http://localhost:3000](http://localhost:3000). `/ready` should report `ready` and a snapshot ID. `docker compose down` stops the app while retaining its named PostgreSQL volume.
 
-For frontend development, keep PostgreSQL and the API running, then use `cd frontend && npm ci && npm run dev` instead of the Compose frontend service. The local API URL is in `frontend/.env.local.example`.
+Compose starts three services together: PostgreSQL stores the data, `api` runs the Python backend, and `frontend` serves the website. The backend and API are the same service; no separate API process is needed. Images contain the code at build time, so repeat `docker compose up --build -d` after pulling changes. Check status with `docker compose ps` and logs with `docker compose logs --tail=100 api frontend`. Avoid `docker compose down -v`, which removes the database volume.
+
+For frontend development with automatic reload, stop the Compose frontend so port 3000 is free, and keep PostgreSQL and the API running:
+
+```sh
+docker compose stop frontend
+docker compose up -d postgres api
+cd frontend
+npm ci
+# First setup only: copy .env.local.example to .env.local if absent.
+npm run dev
+```
+
+To edit the Python backend with automatic reload too, stop the Compose API and run it from `backend/` with the configured local environment: `.venv/bin/uvicorn app.main:app --reload --host 127.0.0.1 --port 8000`. Keep the Compose PostgreSQL service running. Its port is exposed only on localhost. These development processes run in separate terminals; the full Compose setup needs only the single startup command above.
 
 ## Use
 
