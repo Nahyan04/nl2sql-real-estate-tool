@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import re
 from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any
@@ -68,14 +69,32 @@ def _category_keys(result: ExecResult, dimensions: list[str]) -> list[str]:
     return []
 
 
-def build_chart_spec(result: ExecResult) -> ChartSpec | None:
+def requested_chart_type(question: str) -> str | None:
+    patterns = {
+        'table': r'\b(?:table only|as a table|no chart)\b|جدول فقط|بدون رسم',
+        'bar': r'\bbar (?:chart|graph)\b|رسم (?:بياني )?بالأعمدة|مخطط أعمدة',
+        'line': r'\bline (?:chart|graph)\b|رسم (?:بياني )?خطي|مخطط خطي',
+        'unsupported': r'\b(?:pie|scatter|donut|doughnut|area) (?:chart|plot|graph)\b|مخطط دائري',
+    }
+    return next((kind for kind, pattern in patterns.items() if re.search(pattern, question, re.I)), None)
+
+
+def chart_request_note(preference: str | None, chart: ChartSpec | None, language: str) -> str | None:
+    if preference is None or preference == 'table' or (chart and chart.type == preference):
+        return None
+    return ('نوع الرسم المطلوب غير متاح لهذه النتيجة؛ تظهر البيانات باستخدام العرض المناسب المتاح.'
+            if language == 'ar' else 'The requested chart is unavailable for this result; the data uses the available suitable display.')
+
+
+def build_chart_spec(result: ExecResult, preference: str | None = None) -> ChartSpec | None:
     """Pick a chart for a result set, or None when a table says it better."""
-    if not result.rows or not result.columns:
+    if preference == 'table' or not result.rows or not result.columns:
         return None
 
     samples = [_first_value(result.rows, i) for i in range(len(result.columns))]
-    measures = [col for col, value in zip(result.columns, samples) if _is_numeric(value)]
-    temporal = [col for col, value in zip(result.columns, samples) if _is_temporal(value)]
+    years = [col for col in result.columns if re.fullmatch(r'(?:[a-z]+_)*year', col.lower())]
+    measures = [col for col, value in zip(result.columns, samples) if _is_numeric(value) and col not in years]
+    temporal = [col for col, value in zip(result.columns, samples) if _is_temporal(value) or col in years]
 
     if not measures:
         return None
@@ -97,7 +116,7 @@ def build_chart_spec(result: ExecResult) -> ChartSpec | None:
         if not measures:
             return None
         return ChartSpec(
-            type="line",
+            type="bar" if preference == 'bar' and result.row_count <= MAX_BAR_CATEGORIES else "line",
             x_key=x_key,
             y_keys=measures,
             title=_title(f"{_humanize(measures[0])} over {_humanize(x_key)}"),

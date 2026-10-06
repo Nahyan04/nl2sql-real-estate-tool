@@ -17,7 +17,7 @@ from app.core.database import get_engine, get_readonly_engine
 from app.core.llm import get_chat_model, message_text, provider_failure
 from app.core.prompt_builder import build_system_prompt, build_user_prompt
 from app.services.answer_synthesizer import synthesize_answer
-from app.services.chart_spec import ChartSpec, build_chart_spec
+from app.services.chart_spec import ChartSpec, build_chart_spec, requested_chart_type, chart_request_note
 from app.services.executor import ExecResult, execute_readonly, QueryDeadlineError, ResultSizeError
 from app.services.model_runtime import (
     ModelBusyError,
@@ -31,10 +31,12 @@ from app.services.schema_serializer import serialize_schema
 from app.services.sql_validator import validate_product_query, product_tables_used
 from app.services.product_schema import introspect_product_schema, ALIASES
 from app.services.question_policy import classify_question
-from app.services.query_semantics import missing_question_filters
+from app.services.query_semantics import missing_question_filters, missing_resolved_filters
 from app.core.language import Language, LanguageChoice, resolve_language
 from app.services.rental_query_plans import source_rental_plan, render_rental_plan_answer
 from app.services.sales_query_plans import sales_analysis_plan, render_sales_analysis
+from app.models.contracts import ClarificationAnswer
+from app.services.question_context import QuestionContext, load_places, resolve_context
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +85,13 @@ class PipelineState(TypedDict, total=False):
     max_attempts: int
     model_usage: dict[str, Any]
     query_method: str
+    question_context: QuestionContext
+    clarification_answers: list[ClarificationAnswer]
+    clarification_questions: list[Any]
+    resolved_scope: list[str]
+    chart_note: str | None
+    source_places: list[Any]
+    source_coverage: list[dict]
 
 
 def _classify_raw(raw: str) -> str:
@@ -170,6 +179,10 @@ def _provider_failure(exc: Exception, state: PipelineState, phase: str) -> Failu
 def retrieve_schema(state: PipelineState, config: RunnableConfig) -> dict[str, Any]:
     engine: Engine = _dep(config, "engine")
     schema = introspect_product_schema(engine)
+    places = load_places(_dep(config, "engine_ro"), schema,
+                         timeout_s=min(5, max(.001, state["deadline"] - time.monotonic())))
+    context = resolve_context(state["question"], places, schema.get("coverage", []),
+                              state["language"], state.get("clarification_answers"))
     selected = retrieve(
         state["question"],
         schema,
@@ -180,15 +193,32 @@ def retrieve_schema(state: PipelineState, config: RunnableConfig) -> dict[str, A
         "schema_context": serialize_schema(selected, char_budget=SCHEMA_CHAR_BUDGET),
         "tables_used": [table["name"] for table in selected],
         "snapshot_id": schema.get("snapshot_id"),
+        "source_places": places,
+        "source_coverage": schema.get("coverage", []),
+        **_context_update(context, state),
     }
+
+
+def _context_update(context: QuestionContext, state: PipelineState) -> dict[str, Any]:
+    update = {"question_context": context, "resolved_scope": context.descriptions}
+    if context.invalid:
+        update["failure"] = Failure(type="INVALID_CLARIFICATION", detail="The selected source choice is unavailable; start a new question.")
+    elif context.questions:
+        remaining = 2 - len(state.get("clarification_answers", []))
+        update["failure"] = Failure(type="CLARIFICATION" if remaining > 0 else "CLARIFICATION_EXHAUSTED",
+                                    detail="Choose a scope to continue.")
+        update["clarification_questions"] = context.questions[:remaining] if remaining > 0 else []
+    return update
 
 
 def generate_sql(state: PipelineState, config: RunnableConfig) -> dict[str, Any]:
     failure = state.get("failure")
     attempts = state.get("attempts", 0) + 1
 
-    if not failure:
-        sales_plan = sales_analysis_plan(state["question"])
+    # Confirmed choices must reach the model rather than a plan with fixed scope.
+    context = state.get("question_context", QuestionContext())
+    if not failure and not state.get("clarification_answers") and not context.period:
+        sales_plan = None if re.search(r"\bQ[1-4]\b|quarter|الربع", state["question"], re.I) else sales_analysis_plan(state["question"])
         if sales_plan:
             return {"attempts": 0, "sql": sales_plan[0], "failure": None,
                     "query_method": f"source_plan:sales_{sales_plan[1]}"}
@@ -197,7 +227,7 @@ def generate_sql(state: PipelineState, config: RunnableConfig) -> dict[str, Any]
             return {"attempts": 0, "sql": plan.sql, "failure": None,
                     "query_method": f"source_plan:{plan.kind}"}
 
-    system_prompt = build_system_prompt() + f"\nWrite clarification or unsupported text in {state['language']}. SQL identifiers remain English."
+    system_prompt = build_system_prompt() + f"\nWrite clarification or unsupported text in {state['language']}. SQL identifiers remain English." + context.prompt()
     messages = [
         SystemMessage(content=system_prompt),
         HumanMessage(
@@ -245,8 +275,14 @@ def generate_sql(state: PipelineState, config: RunnableConfig) -> dict[str, Any]
             return {"attempts": attempts, "sql": None,
                     "failure": Failure(type="CLARIFICATION_RETRY", detail=clarification.group(1)[:DETAIL_LIMIT])}
         reason = clarification.group(1).strip()[:DETAIL_LIMIT]
+        context = resolve_context(state["question"], state.get("source_places", []),
+                                  state.get("source_coverage", []), state["language"],
+                                  state.get("clarification_answers"), ask_period=True)
+        update = _context_update(context, state)
+        if update.get("failure"):
+            return {"attempts": attempts, "sql": None, **update}
         return {"attempts": attempts, "sql": None,
-                "failure": Failure(type="CLARIFICATION", detail=reason, user_message=reason)}
+                "failure": Failure(type="CLARIFICATION_EXHAUSTED" if state.get("clarification_answers") else "CLARIFICATION", detail=reason, user_message=reason)}
     parsed = parse_response(raw)
 
     if parsed is None:
@@ -267,6 +303,7 @@ def validate_sql(state: PipelineState, config: RunnableConfig) -> dict[str, Any]
     result = validate_product_query(state["sql"] or "")
     if result.is_safe:
         missing = missing_question_filters(state["question"], state["sql"] or "")
+        missing += missing_resolved_filters(state["sql"] or "", state.get("question_context", QuestionContext()))
         if missing:
             return {"sql": None, "failure": Failure(type="SCOPE_ERROR", detail=", ".join(missing))}
         return {"failure": None, "tables_used": product_tables_used(state["sql"])}
@@ -354,7 +391,10 @@ def synthesize_answer_node(state: PipelineState, config: RunnableConfig) -> dict
             state["question"],
             state["sql"] or "",
             state["exec_result"],
-            lambda messages: _invoke_model(state, config, messages),
+            lambda messages: _invoke_model(state, config, [
+                SystemMessage(content=messages[0].content + state.get("question_context", QuestionContext()).prompt()),
+                *messages[1:],
+            ]),
             language=state["language"],
         )
     except (ModelBusyError, RequestDeadlineError) as exc:
@@ -376,7 +416,9 @@ def build_chart_node(state: PipelineState, config: RunnableConfig) -> dict[str, 
     if state.get("failure") or state.get("outcome") == "no_data":
         return {"chart": None}
     try:
-        return {"chart": build_chart_spec(state["exec_result"])}
+        preference = requested_chart_type(state["question"])
+        chart = build_chart_spec(state["exec_result"], preference)
+        return {"chart": chart, "chart_note": chart_request_note(preference, chart, state["language"])}
     except Exception:  # noqa: BLE001 - a missing chart must not fail the request
         logger.exception("chart spec generation failed")
         return {"chart": None}
@@ -385,7 +427,7 @@ def build_chart_node(state: PipelineState, config: RunnableConfig) -> dict[str, 
 def _route(state: PipelineState, on_success: str) -> str:
     if not state.get("failure"):
         return on_success
-    if state.get("failure", {}).get("type") in {"UNSUPPORTED", "CLARIFICATION", "DATABASE_BUSY", "QUERY_TIMEOUT", "RESULT_TOO_LARGE", "MODEL_BUSY", "REQUEST_TIMEOUT", "PROVIDER_UNAVAILABLE", "PROVIDER_TIMEOUT", "PROVIDER_RATE_LIMIT", "PROVIDER_CONFIGURATION_ERROR", "PROVIDER_REQUEST_ERROR", "LANGUAGE_MISMATCH"}:
+    if state.get("failure", {}).get("type") in {"UNSUPPORTED", "CLARIFICATION", "CLARIFICATION_EXHAUSTED", "INVALID_CLARIFICATION", "DATABASE_BUSY", "QUERY_TIMEOUT", "RESULT_TOO_LARGE", "MODEL_BUSY", "REQUEST_TIMEOUT", "PROVIDER_UNAVAILABLE", "PROVIDER_TIMEOUT", "PROVIDER_RATE_LIMIT", "PROVIDER_CONFIGURATION_ERROR", "PROVIDER_REQUEST_ERROR", "LANGUAGE_MISMATCH"}:
         return END
     if state.get("attempts", 0) < state.get("max_attempts", 1):
         return "generate_sql"
@@ -415,7 +457,7 @@ def _build_graph():
     builder.add_node("build_chart", build_chart_node)
 
     builder.add_edge(START, "retrieve_schema")
-    builder.add_edge("retrieve_schema", "generate_sql")
+    builder.add_conditional_edges("retrieve_schema", lambda state: END if state.get("failure") else "generate_sql", ["generate_sql", END])
     builder.add_conditional_edges(
         "generate_sql", _after_generate, ["validate_sql", "generate_sql", END]
     )
@@ -446,6 +488,7 @@ def run_pipeline(
     settings: Settings | None = None,
     model_runtime: ModelRuntime | None = None,
     request_id: str | None = None,
+    clarification_answers: list[ClarificationAnswer] | None = None,
 ) -> PipelineState:
     settings = settings or get_settings()
     started = time.perf_counter()
@@ -483,6 +526,7 @@ def run_pipeline(
             "deadline": started + settings.request_timeout_s,
             "max_attempts": settings.model_generation_attempts,
             "query_method": "model",
+            "clarification_answers": clarification_answers or [],
         },
         config={
             "configurable": {

@@ -136,10 +136,14 @@ def test_synthesis_provider_failure_is_explicit(sqlite_engine, monkeypatch):
 
 
 @pytest.mark.parametrize('question', ['What were the latest sales?', 'كم بلغت مبيعات البطين في 2025؟'])
-def test_clarification_preflight_avoids_model_and_database(question):
+def test_source_clarification_avoids_model(sqlite_engine, monkeypatch, question):
+    from app.services.question_context import Place
+    schema = introspect_schema(sqlite_engine)
+    schema['coverage'] = [{'source_file': 'Transactions/recent_sales.csv', 'observed_from': '2019-01-01', 'observed_through': '2026-07-31'}]
+    monkeypatch.setattr(graph, 'introspect_product_schema', lambda _: schema)
+    monkeypatch.setattr(graph, 'load_places', lambda *args, **kwargs: [Place('transactions', 'district', 'Al Bateen'), Place('transactions', 'community', 'Al Bateen')])
     model = Model('<sql>SELECT 1</sql>')
-    state = run_pipeline(question, chat_model=model,
-                         settings=Settings(database_url='postgresql://unused/unused', readonly_db_password='unused'))
+    state = run_pipeline(question, chat_model=model, engine=sqlite_engine, engine_ro=sqlite_engine)
     assert state['failure']['type'] == 'CLARIFICATION'
     assert state['attempts'] == 0 and model.calls == 0
 
@@ -226,3 +230,72 @@ def test_expired_total_deadline_stops_before_model_call(sqlite_engine, monkeypat
 
     assert state['failure']['type'] == 'REQUEST_TIMEOUT'
     assert model.calls == 0
+
+
+def source_context_fixture(sqlite_engine, monkeypatch, places=None):
+    from app.services.question_context import Place
+    schema = introspect_schema(sqlite_engine)
+    schema['coverage'] = [{'source_file': 'Transactions/recent_sales.csv', 'observed_from': '2019-01-01', 'observed_through': '2026-07-31'}]
+    monkeypatch.setattr(graph, 'introspect_product_schema', lambda _: schema)
+    monkeypatch.setattr(graph, 'load_places', lambda *args, **kwargs: places or [Place('transactions', 'district', 'Khalifa City')])
+
+
+def test_original_khalifa_question_offers_source_choice_then_generates(sqlite_engine, monkeypatch):
+    from app.models.contracts import ClarificationAnswer
+    source_context_fixture(sqlite_engine, monkeypatch)
+    question = 'What is the average sale price of villas in khalifa city A in 2025?'
+    model = Model('unused')
+    state = run_pipeline(question, chat_model=model, engine=sqlite_engine, engine_ro=sqlite_engine, dry_run=True)
+    assert state['failure']['type'] == 'CLARIFICATION' and model.calls == 0
+    choice = state['clarification_questions'][0]
+    answer = ClarificationAnswer(question_id=choice.id, option_id=choice.options[0].id)
+    sql = "SELECT AVG(price_aed) AS average_sale_price_aed FROM transactions WHERE district = 'Khalifa City' AND property_type = 'villa' AND transaction_date >= DATE '2025-01-01' AND transaction_date < DATE '2026-01-01'"
+    class CaptureModel(Model):
+        def invoke(self, messages):
+            self.messages = messages
+            return super().invoke(messages)
+    model = CaptureModel('<sql>' + sql + '</sql>')
+    state = run_pipeline(question, chat_model=model, engine=sqlite_engine, engine_ro=sqlite_engine,
+                         dry_run=True, clarification_answers=[answer])
+    assert state['failure'] is None and state['query_method'] == 'model'
+    assert state['sql'] == sql and state['resolved_scope'] == ['district: Khalifa City']
+    assert 'Verified question context' in model.messages[0].content
+    assert 'Khalifa City' in model.messages[0].content
+
+
+def test_scope_omission_gets_repair_before_execution(sqlite_engine, monkeypatch):
+    source_context_fixture(sqlite_engine, monkeypatch)
+    model = Model('<sql>SELECT AVG(price_aed) FROM transactions</sql>',
+                  "<sql>SELECT AVG(price_aed) FROM transactions WHERE district = 'Khalifa City'</sql>")
+    state = run_pipeline('Average sale price in Khalifa City in 2025?', chat_model=model,
+                         engine=sqlite_engine, engine_ro=sqlite_engine, dry_run=True)
+    assert state['failure'] is None and model.calls == 2
+    assert "district = 'Khalifa City'" in state['sql']
+
+
+def test_two_clarifications_stop_after_unresolved_model_response(sqlite_engine, monkeypatch):
+    from app.services.question_context import Place
+    from app.models.contracts import ClarificationAnswer
+    source_context_fixture(sqlite_engine, monkeypatch, [Place('transactions', 'district', 'Al Bateen'), Place('transactions', 'community', 'Al Bateen')])
+    question = 'Show recent sales in Al Bateen'
+    first = run_pipeline(question, chat_model=Model('unused'), engine=sqlite_engine, engine_ro=sqlite_engine, dry_run=True)
+    answers = [ClarificationAnswer(question_id=q.id, option_id=q.options[0].id) for q in first['clarification_questions']]
+    assert len(answers) == 2
+    model = Model('<clarification>Which scope?</clarification>')
+    final = run_pipeline(question, chat_model=model, engine=sqlite_engine, engine_ro=sqlite_engine,
+                         dry_run=True, clarification_answers=answers)
+    assert final['failure']['type'] == 'CLARIFICATION_EXHAUSTED'
+    assert not final.get('clarification_questions') and model.calls == 1
+
+
+def test_confirmed_place_with_no_data_terminates_cleanly(sqlite_engine, monkeypatch):
+    from app.services.executor import ExecResult
+    source_context_fixture(sqlite_engine, monkeypatch)
+    monkeypatch.setattr(graph, 'execute_readonly', lambda *a, **kw: ExecResult(
+        columns=['average_sale_price_aed'], rows=[[None]], row_count=1,
+        executed_sql="SELECT AVG(price_aed) AS average_sale_price_aed FROM transactions WHERE district = 'Khalifa City'"))
+    model = Model("<sql>SELECT AVG(price_aed) AS average_sale_price_aed FROM transactions WHERE district = 'Khalifa City'</sql>")
+    state = run_pipeline('Average sale price in Khalifa City in 2030?', chat_model=model,
+                         engine=sqlite_engine, engine_ro=sqlite_engine)
+    assert state['outcome'] == 'no_data' and state['failure'] is None
+    assert state['chart'] is None and model.calls == 1

@@ -26,6 +26,7 @@ export function formatCell(value: Cell): string {
 export function formatMetricCell(value: Cell, column: string, arabic = false): string {
   if (!isNumeric(value)) return formatCell(value);
   const name = column.toLowerCase();
+  if (/(?:^|_)year$/.test(name) && Number.isInteger(value)) return String(value);
   if (name.endsWith("_aed_sqm")) return arabic ? `${GROUPED.format(value)} درهم/م²` : `AED ${GROUPED.format(value)}/sqm`;
   if (name.endsWith("_aed") && /(weighted|average|avg|per_unit)/.test(name)) {
     return arabic ? `${GROUPED.format(value)} درهم` : `AED ${GROUPED.format(value)}`;

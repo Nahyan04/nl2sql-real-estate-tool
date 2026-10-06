@@ -77,3 +77,66 @@ def missing_question_filters(question: str, sql: str) -> list[str]:
         if ("transaction_date", "LT", end) not in comparisons:
             missing.append(f"transaction_date < DATE '{end}'")
     return missing
+
+
+def missing_resolved_filters(sql: str, context) -> list[str]:
+    """Require confirmed source scopes in conjunctive predicates before execution."""
+    from sqlglot.optimizer.scope import traverse_scope
+
+    query = sqlglot.parse_one(sql, dialect='postgres')
+    equalities = set()
+    comparisons = set()
+    for scope in traverse_scope(query):
+        where = scope.expression.args.get('where')
+        if not where:
+            continue
+        terms = []
+
+        def collect(node):
+            if isinstance(node, exp.Paren):
+                collect(node.this)
+            elif isinstance(node, exp.And):
+                collect(node.left)
+                collect(node.right)
+            else:
+                terms.append(node)
+
+        collect(where.this)
+        for term in terms:
+            if isinstance(term, exp.In) and isinstance(term.this, exp.Column):
+                values = [_literal_value(value) for value in term.expressions]
+                if any(value is None for value in values):
+                    continue
+                for alias, source in scope.sources.items():
+                    if not isinstance(source, exp.Table) or (term.this.table and term.this.table != alias):
+                        continue
+                    expected = {p.value for p in context.places
+                                if p.relation == source.name and p.column == term.this.name}
+                    if set(values) == expected:
+                        equalities.update((source.name, term.this.name, value) for value in values)
+                continue
+            if not isinstance(term, (exp.EQ, exp.GTE, exp.LT)):
+                continue
+            column, literal = term.left, term.right
+            if not isinstance(column, exp.Column):
+                continue
+            value = _literal_value(literal)
+            if value is None:
+                continue
+            relations = [source.name for alias, source in scope.sources.items()
+                         if isinstance(source, exp.Table) and (not column.table or alias == column.table)]
+            for relation in relations:
+                if isinstance(term, exp.EQ):
+                    equalities.add((relation, column.name, value))
+                comparisons.add((relation, column.name, type(term).__name__, value))
+    missing = [f"{p.relation}.{p.column} = '{p.value}'" for p in context.places
+               if (p.relation, p.column, p.value) not in equalities]
+    if context.period:
+        relation = context.places[0].relation if context.places else next(
+            (table.name for table in query.find_all(exp.Table) if table.name in {'transactions', 'rental_observations', 'price_indices'}), 'transactions')
+        column = 'transaction_date' if relation == 'transactions' else 'period_end'
+        start, end = map(str, context.period)
+        for operator, value, symbol in [('GTE', start, '>='), ('LT', end, '<')]:
+            if (relation, column, operator, value) not in comparisons:
+                missing.append(f"{relation}.{column} {symbol} DATE '{value}'")
+    return missing

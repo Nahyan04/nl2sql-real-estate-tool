@@ -56,7 +56,9 @@ SAFE_FAILURE_DETAILS = {
     "SCOPE_ERROR": "The generated query omitted a filter from the question. Try again.",
     "UNSAFE_SQL": "The generated query was rejected by the read-only validator.",
     "UNSUPPORTED": "The available data does not support this question as asked.",
-    "CLARIFICATION": "Specify an exact period or an unambiguous source place so this question can be answered.",
+    "CLARIFICATION": "Add the place and period you mean, or choose a suggested scope.",
+    "CLARIFICATION_EXHAUSTED": "The question is still ambiguous after the clarification choices. Start a new question with a place and period.",
+    "INVALID_CLARIFICATION": "That choice is unavailable for this question or snapshot. Start a new question.",
     "EXECUTION_ERROR": "The generated query could not run. Try again; retain the request ID for diagnosis.",
     "DATABASE_BUSY": "The database is busy. Please try again shortly.",
     "QUERY_TIMEOUT": "The query exceeded its time limit. Try a narrower question.",
@@ -74,13 +76,15 @@ SAFE_FAILURE_DETAILS = {
 
 def _error(
     status_code: int, error: str, detail: str, request_id: str, retry_after: int | None = None,
+    clarification_questions: list | None = None,
 ) -> JSONResponse:
     headers = {"X-Request-ID": request_id}
     if retry_after is not None:
         headers["Retry-After"] = str(retry_after)
     return JSONResponse(
         status_code=status_code,
-        content=ErrorResponse(error=error, detail=detail, request_id=request_id).model_dump(),
+        content=ErrorResponse(error=error, detail=detail, request_id=request_id,
+                              clarification_questions=clarification_questions or []).model_dump(),
         headers=headers,
     )
 
@@ -148,6 +152,7 @@ def query(
                 chat_model=chat_model,
                 settings=settings,
                 request_id=request_id,
+                clarification_answers=payload.clarification_answers,
             )
     except LimitRejected as exc:
         result = _error(429, exc.code, "Request allowance reached; retry after the indicated delay.", request_id, exc.retry_after)
@@ -175,6 +180,7 @@ def query(
             else SAFE_FAILURE_DETAILS.get(failure_type, "The analysis could not be completed."),
             request_id,
             2 if failure_type == "MODEL_BUSY" else failure.get("retry_after"),
+            state.get("clarification_questions"),
         )
         if fresh_session:
             attach_cookie(result, session)
@@ -214,4 +220,6 @@ def query(
         latency_ms=state.get("latency_ms", 0),
         provider=payload.provider or settings.llm_provider,
         query_method=state.get("query_method") or "model",
+        resolved_scope=state.get("resolved_scope") or [],
+        chart_note=state.get("chart_note"),
     )

@@ -28,8 +28,10 @@ const EXPLANATIONS: Record<ApiErrorCode, { title: string; guidance: string }> = 
   },
   CLARIFICATION: {
     title: "Please clarify the question",
-    guidance: "Give exact dates or a named reporting period, and specify any ambiguous source place name.",
+    guidance: "Choose a suggested scope when available, or add the place and period you mean.",
   },
+  CLARIFICATION_EXHAUSTED: { title: "Scope still unclear", guidance: "We could not resolve this question after the clarification choices. Start a new question with a place and period." },
+  INVALID_CLARIFICATION: { title: "Choice unavailable", guidance: "That choice is no longer available for this question or data snapshot. Start a new question." },
   EXECUTION_ERROR: {
     title: "Query failed to run",
     guidance: "The generated query could not run against the data schema. Try again; the request ID can help diagnose the failure.",
@@ -127,7 +129,9 @@ const ARABIC_EXPLANATIONS: Record<ApiErrorCode, { title: string; guidance: strin
   SCOPE_ERROR: { title: "نطاق الاستعلام غير مكتمل", guidance: "لم يتضمن الاستعلام أحد شروط السؤال. حاول تحديد الشروط بوضوح أكبر." },
   UNSAFE_SQL: { title: "رُفض الاستعلام", guidance: "لم يجتز الاستعلام ضوابط القراءة فقط، لذلك لم يُنفذ." },
   UNSUPPORTED: { title: "هذا السؤال غير مدعوم", guidance: "البيانات الموثقة لا تدعم هذا السؤال. اسأل عن المبيعات أو الإيجارات أو المؤشرات أو العائد الإجمالي التقديري للمجموعة." },
-  CLARIFICATION: { title: "يرجى توضيح السؤال", guidance: "حدد فترة صريحة. إذا كان اسم المكان ملتبسًا، حدد هل تقصد المنطقة أو المجتمع كما يرد في المصدر." },
+  CLARIFICATION: { title: "يرجى توضيح السؤال", guidance: "اختر النطاق المقترح إن ظهر، أو أضف المكان والفترة المقصودين." },
+  CLARIFICATION_EXHAUSTED: { title: "النطاق ما زال ملتبسًا", guidance: "تعذر تحديد النطاق بعد خيارات التوضيح. ابدأ سؤالًا جديدًا بمكان وفترة." },
+  INVALID_CLARIFICATION: { title: "الخيار غير متاح", guidance: "هذا الخيار لم يعد متاحًا للسؤال أو البيانات الحالية. ابدأ سؤالًا جديدًا." },
   EXECUTION_ERROR: { title: "تعذر تنفيذ الاستعلام", guidance: "تعذر تنفيذ الاستعلام على مخطط البيانات. حاول مجددًا؛ يساعد معرّف الطلب في تشخيص السبب." },
   DATABASE_BUSY: { title: "قاعدة البيانات مشغولة", guidance: "هناك استعلامات كثيرة قيد التنفيذ. حاول مرة أخرى بعد قليل." },
   QUERY_TIMEOUT: { title: "استغرق الاستعلام وقتًا طويلًا", guidance: "حدد فترة أقصر أو موضوعًا أدق." },

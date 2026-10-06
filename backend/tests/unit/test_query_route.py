@@ -105,7 +105,7 @@ def test_clarification_response_is_safe_and_actionable(client, monkeypatch) -> N
     response = client.post("/api/v1/query", json={"question": "What were the latest sales?"})
     assert response.status_code == 422
     assert response.json()["error"] == "CLARIFICATION"
-    assert "exact period" in response.json()["detail"]
+    assert "place and period" in response.json()["detail"]
     assert "internal source text" not in response.text
 
 
@@ -135,3 +135,25 @@ def test_no_data_outcome_is_returned_with_executed_sql(client, monkeypatch) -> N
     assert response.status_code == 200
     assert response.json()["outcome"] == "no_data"
     assert response.json()["sql"].startswith("SELECT")
+
+
+def test_structured_clarification_choices_and_answers_cross_api(client, monkeypatch):
+    captured = {}
+    def pipeline(*args, **kwargs):
+        captured.update(kwargs)
+        return {'failure': {'type': 'CLARIFICATION', 'detail': 'Choose'},
+                'clarification_questions': [{'id': 'place', 'prompt': 'Which scope?',
+                    'options': [{'id': 'district', 'label': 'Al Bateen · district'},
+                                {'id': 'community', 'label': 'Al Bateen · community'}]}]}
+    monkeypatch.setattr(query_route, 'run_pipeline', pipeline)
+    response = client.post('/api/v1/query', json={'question': 'Sales in Al Bateen in 2025?',
+        'clarification_answers': [{'question_id': 'period', 'option_id': '2025'}]})
+    assert response.status_code == 422
+    assert len(response.json()['clarification_questions'][0]['options']) == 2
+    assert captured['clarification_answers'][0].option_id == '2025'
+
+
+def test_api_rejects_more_than_two_clarification_answers(client):
+    response = client.post('/api/v1/query', json={'question': 'sales', 'clarification_answers':
+        [{'question_id': str(i), 'option_id': 'a'} for i in range(3)]})
+    assert response.status_code == 422 and response.json()['error'] == 'INVALID_REQUEST'

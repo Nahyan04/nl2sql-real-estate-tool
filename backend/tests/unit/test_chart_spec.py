@@ -55,12 +55,12 @@ def test_line_accepts_datetime_values() -> None:
 
 
 def test_line_is_used_even_beyond_the_bar_row_ceiling() -> None:
-    spec = build_chart_spec(_result(["month", "index_value"], _months(12) * 8))
+    spec = build_chart_spec(_result(["month", "index_value"], [[dt.date(2025, 1, 1) + dt.timedelta(days=i), Decimal(i)] for i in range(96)]))
     assert spec.type == "line"
 
 
 def test_line_carries_every_measure_column() -> None:
-    rows = [[dt.date(2025, 1, 1), Decimal("1"), Decimal("2")]]
+    rows = [[dt.date(2025, 1, 1), Decimal("1"), Decimal("2")], [dt.date(2025, 2, 1), Decimal("2"), Decimal("3")]]
     spec = build_chart_spec(_result(["month", "sale_index", "rent_index"], rows))
     assert spec.y_keys == ["sale_index", "rent_index"]
 
@@ -113,3 +113,27 @@ def test_spec_carries_a_human_readable_title() -> None:
     rows = [["Yas Island", Decimal("9")]]
     spec = build_chart_spec(_result(["name_en", "total_sales_value_aed"], rows))
     assert spec.title == "Total sales value AED by name en"
+
+
+def test_requested_bar_for_time_series_and_years_are_dimensions():
+    result = _result(['year', 'sales_value_aed'], [[2025, 100], [2026, 150]])
+    assert build_chart_spec(result).type == 'line'
+    chart = build_chart_spec(result, 'bar')
+    assert chart.type == 'bar' and chart.x_key == 'year'
+    assert chart.y_keys == ['sales_value_aed']
+
+
+def test_requested_line_does_not_connect_unordered_categories():
+    result = _result(['district', 'sales_value_aed'], [['Yas Island', 100], ['Al Reem Island', 200]])
+    assert build_chart_spec(result, 'line').type == 'bar'
+    assert build_chart_spec(result, 'table') is None
+
+
+def test_chart_request_language_and_unsupported_fallback():
+    from app.services.chart_spec import requested_chart_type, chart_request_note
+    for question, kind in [('Show a bar chart of sales', 'bar'), ('اعرض مخطط خطي', 'line'),
+                           ('Show as a table', 'table'), ('Use a pie chart', 'unsupported')]:
+        assert requested_chart_type(question) == kind
+    assert requested_chart_type('Sales in Khalifa City in 2025?') is None
+    assert chart_request_note('unsupported', None, 'en')
+    assert chart_request_note('table', None, 'en') is None

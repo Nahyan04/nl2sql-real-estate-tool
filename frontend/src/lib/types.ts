@@ -20,6 +20,18 @@ export interface QueryRequest {
   language?: LanguageChoice;
   provider?: Provider | null;
   dry_run?: boolean;
+  clarification_answers?: ClarificationAnswer[];
+}
+
+export interface ClarificationAnswer {
+  question_id: string;
+  option_id: string;
+}
+
+export interface ClarificationQuestion {
+  id: string;
+  prompt: string;
+  options: { id: string; label: string }[];
 }
 
 export interface ChartSpec {
@@ -49,6 +61,8 @@ export interface QueryResponse {
   latency_ms: number;
   provider: string;
   query_method?: string;
+  resolved_scope?: string[];
+  chart_note?: string | null;
 }
 
 export interface ExampleQuestion {
@@ -68,6 +82,7 @@ export interface ErrorPayload {
   error: string;
   detail: string;
   request_id?: string | null;
+  clarification_questions?: ClarificationQuestion[];
 }
 
 export interface SchemaColumn {
@@ -117,6 +132,8 @@ export type ApiErrorCode =
   | "UNSAFE_SQL"
   | "UNSUPPORTED"
   | "CLARIFICATION"
+  | "CLARIFICATION_EXHAUSTED"
+  | "INVALID_CLARIFICATION"
   | "EMPTY_RESPONSE"
   | "EXECUTION_ERROR"
   | "DATABASE_BUSY"

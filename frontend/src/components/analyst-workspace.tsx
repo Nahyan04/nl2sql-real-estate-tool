@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
+import { ClarificationPanel } from "@/components/clarification-panel";
 import { AnswerPanel } from "@/components/answer-panel";
 import { SiteFooter } from "@/components/site-footer";
 import { DataSurface } from "@/components/data-surface";
@@ -18,7 +19,7 @@ import { SqlPanel } from "@/components/sql-panel";
 import { ApiError, getExamples, getProviders, getSchema, postQuery } from "@/lib/api";
 import { resolveLanguage } from "@/lib/language";
 import { clearHistory, getHistory, getServerHistory, pushHistory, subscribeHistory } from "@/lib/history";
-import type { ExampleQuestion, Lang, LanguageChoice, Provider, ProvidersResponse, QueryResponse, SchemaTable, SourceCoverage } from "@/lib/types";
+import type { ClarificationAnswer, ExampleQuestion, Lang, LanguageChoice, Provider, ProvidersResponse, QueryResponse, SchemaTable, SourceCoverage } from "@/lib/types";
 
 export function AnalystWorkspace({ initialQuestion = "", initialLanguage = "auto" }: { initialQuestion?: string; initialLanguage?: LanguageChoice }) {
   const [question, setQuestion] = useState(initialQuestion);
@@ -34,6 +35,8 @@ export function AnalystWorkspace({ initialQuestion = "", initialLanguage = "auto
   const history = useSyncExternalStore(subscribeHistory, getHistory, getServerHistory);
   const [result, setResult] = useState<QueryResponse | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
+  const [clarificationAnswers, setClarificationAnswers] = useState<ClarificationAnswer[]>([]);
+  const [clarificationQuestion, setClarificationQuestion] = useState("");
   const [busy, setBusy] = useState(false);
   const [runId, setRunId] = useState(0);
   const [startedAt, setStartedAt] = useState(0);
@@ -58,7 +61,7 @@ export function AnalystWorkspace({ initialQuestion = "", initialLanguage = "auto
   }, []);
 
   const run = useCallback(
-    async (text: string) => {
+    async (text: string, answers: ClarificationAnswer[] = []) => {
       const asked = text.trim();
       if (!asked || availability?.[provider].available !== true) return;
       const runLanguage = resolveLanguage(asked, languageChoice);
@@ -68,6 +71,8 @@ export function AnalystWorkspace({ initialQuestion = "", initialLanguage = "auto
       pending.current = controller;
 
       setQuestion(asked);
+      setClarificationQuestion(asked);
+      setClarificationAnswers(answers);
       setActiveLanguage(runLanguage);
       setBusy(true);
       setError(null);
@@ -77,7 +82,7 @@ export function AnalystWorkspace({ initialQuestion = "", initialLanguage = "auto
       pushHistory(asked);
 
       try {
-        const response = await postQuery({ question: asked, provider, language: languageChoice }, controller.signal);
+        const response = await postQuery({ question: asked, provider, language: languageChoice, clarification_answers: answers }, controller.signal);
         if (pending.current === controller) setResult(response);
       } catch (cause) {
         if (cause instanceof Error && cause.name === "AbortError") return;
@@ -91,6 +96,12 @@ export function AnalystWorkspace({ initialQuestion = "", initialLanguage = "auto
     },
     [provider, languageChoice, availability],
   );
+
+  const editQuestion = () => {
+    setError(null);
+    setClarificationAnswers([]);
+    requestAnimationFrame(() => document.getElementById("question")?.focus());
+  };
 
   const clearCurrent = useCallback(() => {
     pending.current?.abort();
@@ -131,7 +142,7 @@ export function AnalystWorkspace({ initialQuestion = "", initialLanguage = "auto
           </div>
           <div><DataSurface tables={tables} arabic={arabicQuestion} /></div>
         </div> : null}
-        <QueryInput value={question} onChange={setQuestion} onSubmit={() => run(question)} busy={busy} providerAvailable={providerAvailable} providerLoading={availability === null && !availabilityFailed} arabic={arabicQuestion} />
+        <QueryInput value={question} onChange={(value) => { setQuestion(value); if (error?.clarificationQuestions.length) { setError(null); setClarificationAnswers([]); } }} onSubmit={() => run(question)} busy={busy} providerAvailable={providerAvailable} providerLoading={availability === null && !availabilityFailed} arabic={arabicQuestion} />
         {showProcess ? (
           <button type="button" onClick={clearCurrent}
             className="mt-3 min-h-11 cursor-pointer rounded-md px-1 text-sm font-semibold text-sage transition-colors hover:text-ink">
@@ -149,18 +160,23 @@ export function AnalystWorkspace({ initialQuestion = "", initialLanguage = "auto
           <ExampleQuestions key={arabicQuestion ? "ar" : "en"} examples={examples} onPick={run} busy={busy || !providerAvailable} arabic={arabicQuestion} />
         ) : null}
 
-        {error ? <ErrorPanel error={error} arabic={arabicQuestion} onRetry={() => run(question)} /> : null}
+        {error?.code === "CLARIFICATION" && error.clarificationQuestions.length > 0 ? (
+          <ClarificationPanel key={runId} questions={error.clarificationQuestions} arabic={arabicQuestion}
+            onContinue={(answers) => run(clarificationQuestion, [...clarificationAnswers, ...answers])} onCancel={editQuestion} />
+        ) : error ? <ErrorPanel error={error} arabic={arabicQuestion} onRetry={() => run(question)} /> : null}
 
         {result ? (
           <>
             <div className="mt-7 grid items-start gap-7 xl:grid-cols-[minmax(0,1.85fr)_minmax(17rem,0.8fr)]">
               <article className="min-w-0 rounded-2xl bg-paper-flat p-5 sm:p-7">
+              {result.resolved_scope?.length ? <p className="mb-4 text-sm text-sand" dir="auto">{arabicQuestion ? "النطاق المستخدم" : "Scope used"}: {result.resolved_scope.join(" · ")}</p> : null}
               <AnswerPanel answer={result.answer} arabic={arabicQuestion} title={result.outcome === "no_data"
                 ? (arabicQuestion ? "لا توجد بيانات مطابقة" : "No matching data")
                 : (arabicQuestion ? "النتيجة الرئيسية" : "Key finding")} />
             {result.outcome !== "no_data" && result.chart ? (
               <ResultChart chart={result.chart} columns={result.columns} rows={result.rows} arabic={arabicQuestion} />
             ) : null}
+            {result.chart_note ? <p className="mt-4 text-sm text-sand">{result.chart_note}</p> : null}
             {/* a scalar is already shown whole by the stat figure */}
             {result.outcome === "no_data" || (result.chart?.type === "stat" && result.columns.length === 1) ? null : (
               <ResultsTable
